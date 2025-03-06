@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CBNU_LOCAL</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        header {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            padding: 20px;
+            background-color: #f4f4f4;
+            gap: 10px; /* 요소 간격 */
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 24px;
+            color: #333;
+        }
+
+        .lunch {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .lunch input {
+            margin-left: 10px; /* 텍스트와 체크박스 사이 간격 */
+        }
+
+        .tourist {
+            margin-top: 10px;
+        }
+
+        .tourist input {
+            padding: 8px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        main {
+            padding: 20px;
+        }
+
+        .section {
+            margin-bottom: 20px;
+        }
+
+        .list {
+            border: 1px solid #ccc;
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+        ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        ul li {
+            margin-bottom: 8px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>CBNU</h1>
+        <!-- 점심 -->
+        <div class="lunch">
+            점심 <input type="checkbox" />
+        </div>
+        <!-- 관광지 입력 -->
+        <div class="tourist">
+            <input type="number" placeholder="관광지 수 입력" />
+        </div>
+    </header>
+    <main>
+        <!-- 관광지 목록 -->
+        <section class="section">
+            <h2>관광지</h2>
+            <div class="list">
+                <ul>
+                    {% for site in tourist_sites %}
+                        <li>{{ site }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </section>
+        <!-- 청주의 음식점 목록 -->
+        <section class="section">
+            <h2>Cheongju의 음식점</h2>
+            <div class="list">
+                <ul>
+                    {% for food in food_locations_cheongju %}
+                        <li>{{ food }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </section>
+        <!-- 충주의 음식점 목록 -->
+        <section class="section">
+            <h2>Chungju의 음식점</h2>
+            <div class="list">
+                <ul>
+                    {% for food in food_locations_chungju %}
+                        <li>{{ food }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </section>
+    </main>
+</body>
+</html>
