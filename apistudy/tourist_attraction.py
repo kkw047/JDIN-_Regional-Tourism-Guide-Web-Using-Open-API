@@ -24,7 +24,7 @@ def get_tourist_sites():
 
     return result
 
-
+#
 # DB에 관광지 데이터를 저장하는 함수
 def save_to_db(data):
     try:

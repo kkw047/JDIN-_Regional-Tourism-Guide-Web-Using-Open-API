@@ -13,7 +13,7 @@ db_config = {
     'cursorclass': pymysql.cursors.DictCursor
 }
 
-
+###
 # 홈 라우트 (index.html 렌더링)
 @app.route('/')
 def homepage():
