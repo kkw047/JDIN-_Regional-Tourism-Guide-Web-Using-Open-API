@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>결과 페이지</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f7f7f7;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        h2 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        ul li {
+            padding: 10px;
+            border: 1px solid #ddd;
+            margin: 5px 0;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+        .btn-home {
+            margin-top: 20px;
+            padding: 10px 20px;
+            background-color: #4caf50;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+        }
+        .btn-home:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>여행지 추천 결과</h2>
+
+        {% if result %}
+        <!-- 점심 -->
+        {% if result.lunch %}
+        <h3>점심 장소</h3>
+        <p>{{ result.lunch }}</p>
+        {% else %}
+        <h3>점심을 포함하지 않았습니다.</h3>
+        {% endif %}
+
+        <!-- 저녁 -->
+        {% if result.dinner %}
+        <h3>저녁 장소</h3>
+        <p>{{ result.dinner }}</p>
+        {% else %}
+        <h3>저녁을 포함하지 않았습니다.</h3>
+        {% endif %}
+
+        <!-- 관광지 -->
+        <h3>추천 관광지</h3>
+        <ul>
+            {% for site in result.tourist_sites %}
+            <li>{{ site }}</li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p>데이터를 불러오지 못했습니다.</p>
+        {% endif %}
+
+        <a href="/" class="btn-home">홈으로 돌아가기</a>
+    </div>
+</body>
+</html>
