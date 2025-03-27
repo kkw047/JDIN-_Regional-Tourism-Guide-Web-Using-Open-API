@@ -20,7 +20,7 @@ def init_food_data():
     음식 데이터를 초기화하는 함수.
     기본 데이터가 없다면 DB에 값을 추가합니다.
     """
-    food_items = ['Pizza', 'Pasta', 'Sushi', 'Ramen', 'Burger', 'Salad']  # 초깃값
+    food_items = ['', '', '', '', '', '']  # 초깃값
 
     try:
         connection = pymysql.connect(**db_config)
@@ -47,7 +47,7 @@ def init_tourist_data():
     """
     관광지 데이터를 초기화하는 함수.
     """
-    tourist_spots = ['Eiffel Tower', 'Great Wall of China', 'Statue of Liberty', 'Taj Mahal', 'Colosseum']
+    tourist_spots = ['', '', '', '', '']
 
     try:
         connection = pymysql.connect(**db_config)
