@@ -1,65 +1,97 @@
 import requests
 import pymysql
 
-# DB 설정
+# MySQL 데이터베이스 설정
 db_config = {
     'host': '34.85.84.74',  # MySQL 서버 주소
     'user': 'root',  # MySQL 사용자 이름
     'password': 'woohaha4361!',  # MySQL 비밀번호
-    'database': 'food_location',  # 데이터베이스 이름
+    'database': 'User_Selecte',  # 데이터베이스 이름
     'charset': 'utf8mb4',
+    'cursorclass': pymysql.cursors.DictCursor
 }
 
-# 청주시 음식 데이터 가져오는 함수
-def get_Cheongju():
-    service_key = '<YOUR_SERVICE_KEY>'  # API 키를 여기에 삽입
-    url = f'https://api.odcloud.kr/api/3033595/v1/uddi:74266317-2cd8-4b3d-8682-d72062ac1743?page=1&perPage=10&serviceKey={service_key}'
-    response = requests.get(url)
-    data = response.json()['data']
 
-    result = []
-    for item in data:
-        result.append({
-            'name': item['업소명'],
-            'type': None,  # 타입 정보는 없으므로 기본값 설정
-            'location': item['소재지(지번)'].lstrip('충청북도')
-        })
+def get_food_data():
+    """
+    공공데이터 API에서 청주와 충주 음식 데이터를 가져옵니다.
+    데이터를 정리하여 리스트 형태로 반환합니다.
+    """
+    service_key = 'zYQ6z3LDxQw53kNYLivZE0EeBL7erd4d1Yjvy%2BVtS1%2BBrUC7uuOkmfuCl4Gg0pLo9LybOcpASEH98szaOEuLLQ%3D%3D'
 
-    return result
+    # API 주소 정의
+    cheongju_url = f'https://api.odcloud.kr/api/3033595/v1/uddi:74266317-2cd8-4b3d-8682-d72062ac1743?page=1&perPage=10&serviceKey={service_key}'
+    chungju_url = f'https://api.odcloud.kr/api/3037407/v1/uddi:050eceee-1dde-4be2-ac6b-ef812b73ec8f_201909101500?page=1&perPage=10&serviceKey={service_key}'
+
+    food_data = []
+
+    # 청주 데이터 가져오기
+    try:
+        response = requests.get(cheongju_url)
+        response.raise_for_status()
+        for item in response.json().get('data', []):
+            food_data.append({
+                'name': item.get('업소명', '이름 없음'),
+                'type': None,  # 타입 정보가 없으므로 기본값 설정
+                'location': item.get('소재지(지번)', '').lstrip('충청북도')
+            })
+    except requests.exceptions.RequestException as e:
+        print(f"청주 음식 데이터 가져오기 실패: {e}")
+
+    # 충주 데이터 가져오기
+    try:
+        response = requests.get(chungju_url)
+        response.raise_for_status()
+        for item in response.json().get('data', []):
+            food_data.append({
+                'name': item.get('업소명', '이름 없음'),
+                'type': None,
+                'location': item.get('소재지(도로명)', '').lstrip('충청북도')
+            })
+    except requests.exceptions.RequestException as e:
+        print(f"충주 음식 데이터 가져오기 실패: {e}")
+
+    return food_data
 
 
-# 충주시 음식 데이터 가져오는 함수
-def get_Chungju():
-    service_key = '<YOUR_SERVICE_KEY>'  # API 키를 여기에 삽입
-    url = f'https://api.odcloud.kr/api/3037407/v1/uddi:050eceee-1dde-4be2-ac6b-ef812b73ec8f_201909101500?page=1&perPage=10&serviceKey={service_key}'
-    response = requests.get(url)
-    data = response.json()['data']
+def save_food_data_to_db(food_data):
+    """
+    음식 데이터를 데이터베이스에 저장합니다.
+    """
+    if not food_data:
+        print("저장할 음식 데이터가 없습니다.")
+        return
 
-    result = []
-    for item in data:
-        result.append({
-            'name': item['업소명'],
-            'type': None,  # 타입 정보는 없으므로 기본값 설정
-            'location': item['소재지(도로명)'].lstrip('충청북도')
-        })
-
-    return result
-
-
-# DB에 음식 데이터를 저장하는 함수
-def save_to_db(data):
     try:
         connection = pymysql.connect(**db_config)
+        print("DB 연결 성공!")
+
         with connection.cursor() as cursor:
-            for item in data:
+            for food in food_data:
                 sql = """
                 INSERT INTO food_location (name, type, location)
                 VALUES (%s, %s, %s)
+                ON DUPLICATE KEY UPDATE 
+                    type=VALUES(type),
+                    location=VALUES(location)
                 """
-                cursor.execute(sql, (item['name'], item['type'], item['location']))
+                cursor.execute(sql, (food['name'], food['type'], food['location']))
             connection.commit()
-    except Exception as e:
+            print(f"총 {len(food_data)}개의 음식 데이터를 데이터베이스에 저장했습니다.")
+
+    except pymysql.MySQLError as e:
         print(f"DB 저장 오류: {e}")
     finally:
         connection.close()
 
+
+def init_food_data():
+    """
+    앱 실행 시 한 번 실행되는 초기화 함수. 음식 데이터를 가져와 DB에 저장합니다.
+    """
+    print("====== 청주와 충주의 음식 데이터를 가져오는 중입니다... ======")
+    food_data = get_food_data()
+    print(f"가져온 음식 데이터: {len(food_data)}개의 데이터")
+
+    save_food_data_to_db(food_data)
+    print("음식 데이터를 데이터베이스에 저장했습니다.")

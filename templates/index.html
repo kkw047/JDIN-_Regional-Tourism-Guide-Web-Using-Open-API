@@ -1,143 +1,97 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CBNU</title>
+    <title>여행지 선택</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-        }
-
-        header {
             display: flex;
-            flex-direction: column;
-            align-items: flex-start;
-            padding: 20px;
-            background-color: #f4f4f4;
-            gap: 10px; /* 요소 간격 */
-        }
-
-        header h1 {
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
             margin: 0;
-            font-size: 24px;
-            color: #333;
+            font-family: Arial, sans-serif;
+            background-color: #f7f7f7;
         }
-
-        .lunch {
-            font-size: 18px;
+        .container {
+            text-align: center;
+            background: #ffffff;
+            padding: 20px 30px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+            width: 350px;
+        }
+        h2 {
+            color: #333333;
+        }
+        .form-group {
+            margin: 15px 0;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
             font-weight: bold;
-            color: #333;
         }
-
-        .lunch input {
-            margin-left: 10px; /* 텍스트와 체크박스 사이 간격 */
+        input[type="checkbox"] {
+            margin: 0 5px 0 0;
         }
-
-        .tourist {
-            margin-top: 10px;
-        }
-
-        .tourist input {
-            padding: 8px;
-            font-size: 16px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-        }
-
-        main {
-            padding: 20px;
-        }
-
-        .section {
-            margin-bottom: 20px;
-        }
-
-        .list {
-            border: 1px solid #ccc;
-            padding: 10px;
-            border-radius: 5px;
-        }
-
-        ul {
-            list-style: none;
-            padding: 0;
-        }
-
-        ul li {
-            margin-bottom: 8px;
-        }
-
-        #map {
+        input[type="range"] {
             width: 100%;
-            height: 400px;
-            margin-top: 20px;
+        }
+        button {
+            background-color: #4caf50;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 100%;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #45a049;
         }
     </style>
 </head>
 <body>
-    <header>
-        <h1>CBNU</h1>
-        <!-- 점심 -->
-        <div class="lunch">
-            점심 <input type="checkbox" />
-        </div>
-        <!-- 관광지 입력 -->
-        <div class="tourist">
-            <input type="number" placeholder="관광지 수 입력" />
-        </div>
-    </header>
-    <main>
-        <!-- 관광지 목록 -->
-        <section class="section">
-            <h2>관광지</h2>
-            <div class="list">
-                <ul>
-                    {% for site in tourist_sites %}
-                        <li>{{ site }}</li>
-                    {% endfor %}
-                </ul>
+    <div class="container">
+        <h2>여행지 선택</h2>
+        <form action="/submit" method="post">
+            <!-- 점심 여부 --->
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" name="lunch" value="1">
+                    점심 포함
+                </label>
             </div>
-        </section>
-        <!-- 청주의 음식점 목록 -->
-        <section class="section">
-            <h2>Cheongju의 음식점</h2>
-            <div class="list">
-                <ul>
-                    {% for food in food_locations_cheongju %}
-                        <li>{{ food }}</li>
-                    {% endfor %}
-                </ul>
-            </div>
-        </section>
-        <!-- 충주의 음식점 목록 -->
-        <section class="section">
-            <h2>Chungju의 음식점</h2>
-            <div class="list">
-                <ul>
-                    {% for food in food_locations_chungju %}
-                        <li>{{ food }}</li>
-                    {% endfor %}
-                </ul>
-            </div>
-        </section>
 
-        <!-- 지도 표시 -->
-        <h2>지도</h2>
-    </main>
-   <div id="map" style="width:100%;height:350px;"></div>
-    <script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=b0c14eb0996a6253ee90bc85f3ea6d2b"></script>
-<script>
-var mapContainer = document.getElementById('map'), // 지도를 표시할 div 
-    mapOption = { 
-        center: new kakao.maps.LatLng(33.450701, 126.570667), // 지도의 중심좌표
-        level: 3 // 지도의 확대 레벨
-    };
+            <!-- 저녁 여부 -->
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" name="dinner" value="1">
+                    저녁 포함
+                </label>
+            </div>
 
-// 지도를 표시할 div와  지도 옵션으로  지도를 생성합니다
-var map = new kakao.maps.Map(mapContainer, mapOption); 
-</script>
+            <!-- 관광지 수 -->
+            <div class="form-group">
+                <label for="tourist_sites_count">관광지 수 선택 (1 ~ 10)</label>
+                <input
+                    type="range"
+                    id="tourist_sites_count"
+                    name="tourist_sites_count"
+                    min="1"
+                    max="10"
+                    value="5"
+                    oninput="document.getElementById('siteCountLabel').innerText = this.value;">
+                <span id="siteCountLabel">5</span>
+            </div>
+
+
+            <!-- 적용 버튼 -->
+            <button type="submit">적용</button>
+        </form>
+    </div>
 </body>
 </html>
