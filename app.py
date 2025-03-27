@@ -1,5 +1,6 @@
 import pymysql
 from flask import Flask, render_template, request, redirect, url_for
+import random
 
 app = Flask(__name__)
 
@@ -123,31 +124,111 @@ def submit():
 @app.route('/result')
 def result():
     """
-    사용자 입력 데이터를 기반으로 랜덤 관광지 및 음식 데이터를 제공합니다.
+    사용자 입력 데이터를 기반으로 점심, 저녁, 관광지를 조회하고, 결과를 혼합하여 반환하는 엔드포인트.
     """
+
     try:
+        # DB 연결 시작
         connection = pymysql.connect(**db_config)
 
+        # Step 1: 최근 사용자 입력 데이터 가져오기
         with connection.cursor() as cursor:
-            # 최근 사용자 입력 조회
             cursor.execute("SELECT * FROM user_selection ORDER BY id DESC LIMIT 1")
             user_data = cursor.fetchone()
 
-            # 음식 데이터 및 관광지 데이터 가져오기
-            lunch = dinner = None
-            cursor.execute("SELECT name FROM food_location ORDER BY RAND() LIMIT 1")
-            if user_data['lunch'] == '1':  # 점심 여부 확인
-                lunch = cursor.fetchone()['name']
-            if user_data['dinner'] == '1':  # 저녁 여부 확인
-                dinner = cursor.fetchone()['name']
+            # user_selection 테이블에서 데이터가 없는 경우 처리
+            if not user_data:
+                return render_template('result.html', result=[], error="사용자 입력 데이터가 없습니다. 데이터를 추가해주세요.")
 
-            # 관광지 데이터 가져오기
-            attractions = get_tourist_sites(user_data['tourist_sites_count'])  # 랜덤 관광지 호출
+            lunch_selected = user_data['lunch'] == 1
+            dinner_selected = user_data['dinner'] == 1
+            tourist_count = user_data['tourist_sites_count']
 
-        return render_template('result.html', lunch=lunch, dinner=dinner, attractions=attractions)
+            # 결과 저장 변수 초기화 (점심, 저녁, 관광지)
+            lunch, dinner = None, None
+            attractions = []
+
+            # Step 2: 점심 데이터 가져오기 (선택된 경우만)
+            if lunch_selected:
+                cursor.execute("SELECT name, location AS address FROM food_location ORDER BY RAND() LIMIT 1")
+                lunch_data = cursor.fetchone()
+                if lunch_data:
+                    lunch = {
+                        "name": lunch_data['name'],
+                        "type": "점심",
+                        "address": lunch_data['address'],
+                        "duration": 1  # 점심 소요 시간을 1시간으로 설정 (임시값, 변경 가능)
+                    }
+
+            # Step 3: 저녁 데이터 가져오기 (선택된 경우만)
+            if dinner_selected:
+                if lunch:  # 점심과 겹치지 않는 데이터를 선택
+                    cursor.execute(
+                        "SELECT name, location AS address FROM food_location WHERE name != %s ORDER BY RAND() LIMIT 1",
+                        (lunch["name"],)
+                    )
+                else:  # 점심이 없을 경우, 자유롭게 랜덤으로 저녁 데이터 선택
+                    cursor.execute("SELECT name, location AS address FROM food_location ORDER BY RAND() LIMIT 1")
+
+                dinner_data = cursor.fetchone()
+                if dinner_data:
+                    dinner = {
+                        "name": dinner_data['name'],
+                        "type": "저녁",
+                        "address": dinner_data['address'],
+                        "duration": 1  # 저녁 소요 시간을 1시간으로 설정 (임시값, 변경 가능)
+                    }
+
+            # Step 4: 관광지 데이터 가져오기
+            if tourist_count > 0:
+                cursor.execute("SELECT name, location AS address FROM tourist_attraction ORDER BY RAND() LIMIT %s",
+                               (tourist_count,))
+                attractions = [
+                    {
+                        "name": row['name'],
+                        "type": "관광지",
+                        "address": row['address'],
+                        "duration": random.randint(1, 2)  # 관광지 소요 시간 (1~2시간, 임시값)
+                    }
+                    for row in cursor.fetchall()
+                ]
+
+        # Step 5: 결과 섞기
+        result_list = []
+
+        if lunch:
+            result_list.append(lunch)  # 점심은 항상 첫 번째
+        if attractions:
+            result_list.extend(attractions)  # 관광지를 중간에 추가
+        if dinner:
+            result_list.append(dinner)  # 저녁은 항상 마지막
+
+        # 섞는 로직: 점심은 첫 번째, 저녁은 마지막, 관광지 중 일부는 중간 삽입
+        if lunch and dinner and attractions:
+            # 점심과 저녁 사이 시간 간격 설정 (6~8 시간 랜덤 값, 임시값)
+            lunch_to_dinner_gap = random.randint(6, 8)
+
+            # 점심과 저녁 사이에 관광지 하나 추가
+            final_result = [result_list[0]]  # 점심
+            if attractions:
+                final_result.append(attractions.pop(0))  # 점심 뒤에 관광지 추가
+            final_result.extend(attractions)  # 나머지 관광지
+            final_result.append(result_list[-1])  # 저녁
+        else:
+            lunch_to_dinner_gap = None  # 간격 없음
+            final_result = result_list
+
+        # 결과 렌더링
+        return render_template('result.html', result=final_result, lunch_to_dinner_gap=lunch_to_dinner_gap)
+
+    except Exception as e:
+        print(f"오류 발생: {e}")
+        return "데이터 처리 중 오류가 발생했습니다."
 
     finally:
+        # DB 연결 종료
         connection.close()
+
 
 
 def get_tourist_sites(limit=1):

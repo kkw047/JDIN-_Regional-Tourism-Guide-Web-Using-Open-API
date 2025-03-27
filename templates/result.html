@@ -3,84 +3,110 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>결과 페이지</title>
+    <title>추천 경로</title>
     <style>
+        /* 기본 스타일 */
         body {
             font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
             margin: 0;
-            padding: 20px;
-            background-color: #f7f7f7;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
         }
+
         .container {
-            max-width: 600px;
-            margin: 0 auto;
-            padding: 20px;
-            background: #ffffff;
-            border-radius: 10px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
             text-align: center;
+            background: #ffffff;
+            border-radius: 15px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+            width: 90%;
+            max-width: 600px;
+            padding: 20px;
         }
-        h2 {
+
+        h1 {
             margin-bottom: 20px;
+            font-size: 24px;
             color: #333;
         }
+
         ul {
-            list-style-type: none;
+            list-style: none;
             padding: 0;
+            margin: 0;
         }
-        ul li {
-            padding: 10px;
-            border: 1px solid #ddd;
-            margin: 5px 0;
-            border-radius: 5px;
-            background-color: #f9f9f9;
+
+        li {
+            background: #e8f0fe;
+            border-radius: 10px;
+            margin: 10px 0;
+            padding: 15px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
         }
-        .btn-home {
+
+        .type {
+            font-weight: bold;
+            color: #555;
+            font-size: 16px;
+            margin-bottom: 5px;
+        }
+
+        small {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .item-name {
+            font-size: 18px;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        a {
+            display: inline-block;
             margin-top: 20px;
-            padding: 10px 20px;
-            background-color: #4caf50;
-            color: white;
             text-decoration: none;
+            color: #3498db;
+            font-weight: bold;
+            padding: 10px 20px;
             border-radius: 5px;
+            background: #e8f0fe;
         }
-        .btn-home:hover {
-            background-color: #45a049;
+
+        a:hover {
+            background: #d6e4fc;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h2>여행지 추천 결과</h2>
+        <h1>추천 경로</h1>
 
-        {% if result %}
-        <!-- 점심 -->
-        {% if result.lunch %}
-        <h3>점심 장소</h3>
-        <p>{{ result.lunch }}</p>
+        {% if error %}
+            <p>{{ error }}</p>
+        {% elif result and result|length > 0 %}
+            <ul>
+                {% for item in result %}
+                    <li>
+                        <!-- Type, Name, Address -->
+                        <div class="type">{{ item.type }}</div>
+                        <div class="item-name">{{ item.name }}</div>
+                        <small>주소: {{ item.address }}</small>
+                        <small>소요 시간: {{ item.duration }}시간</small>
+                    </li>
+                {% endfor %}
+            </ul>
         {% else %}
-        <h3>점심을 포함하지 않았습니다.</h3>
+            <p>추천 결과가 없습니다. 다시 시도하세요.</p>
         {% endif %}
 
-        <!-- 저녁 -->
-        {% if result.dinner %}
-        <h3>저녁 장소</h3>
-        <p>{{ result.dinner }}</p>
-        {% else %}
-        <h3>저녁을 포함하지 않았습니다.</h3>
-        {% endif %}
-
-        <!-- 관광지 -->
-        <h3>추천 관광지</h3>
-        <ul>
-            {% for site in result.tourist_sites %}
-            <li>{{ site }}</li>
-            {% endfor %}
-        </ul>
-        {% else %}
-        <p>데이터를 불러오지 못했습니다.</p>
-        {% endif %}
-
-        <a href="/" class="btn-home">홈으로 돌아가기</a>
+        <a href="/">홈으로 돌아가기</a>
     </div>
 </body>
 </html>
