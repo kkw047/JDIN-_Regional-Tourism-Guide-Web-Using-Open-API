@@ -21,5 +21,6 @@ def homepage():
     )
 
 
+
 if __name__ == '__main__':
     app.run(debug=True)  # 개발 중에는 debug=True로 실행
