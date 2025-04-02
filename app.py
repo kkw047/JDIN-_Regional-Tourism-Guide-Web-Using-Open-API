@@ -6,13 +6,14 @@ app = Flask(__name__)
 
 # MySQL 연결 설정
 db_config = {
-    'host': '34.85.84.74',  # MySQL 서버 주소
-    'user': 'root',  # MySQL 사용자 이름
-    'password': 'woohaha4361!',  # MySQL 비밀번호
+    'host': '61.81.96.151',  # MySQL 서버 주소 (변경된 IP)
+    'user': 'outer',  # MySQL 사용자 이름 (변경된 사용자)
+    'password': 'outeropensql',  # MySQL 비밀번호 (변경된 비밀번호)
     'database': 'User_Selecte',  # 데이터베이스 이름
-    'charset': 'utf8mb4',
-    'cursorclass': pymysql.cursors.DictCursor
+    'charset': 'utf8mb4',  # 문자셋 설정
+    'cursorclass': pymysql.cursors.DictCursor  # DictCursor로 결과 반환
 }
+
 
 
 def init_food_data():
