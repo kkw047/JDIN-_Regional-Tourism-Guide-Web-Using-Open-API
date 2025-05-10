@@ -8,211 +8,384 @@
         body {
             font-family: Arial, sans-serif;
             margin: 0;
-            padding: 0;
+            padding: 20px;
             background-color: #fefefe;
         }
         .container {
-            width: 90%;
-            max-width: 1200px;
-            margin: 20px auto;
+            width: 95%;
+            max-width: 1400px;
+            margin: 0 auto;
         }
         #map {
             width: 100%;
-            height: 300px;
+            height: 500px;
             background-color: #dcdcdc;
             border: 1px solid #ccc;
             margin-bottom: 20px;
+            border-radius: 8px;
         }
         .content {
             display: flex;
             gap: 20px;
-        }
-        .buttons, .categories, .results {
-            background-color: #f9f9f9;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            padding: 10px;
+            flex-wrap: nowrap;
         }
         .buttons {
             width: 150px;
+            min-width: 150px;
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+        }
+        .categories {
+            width: 200px;
+            min-width: 200px;
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+        }
+        .results {
+            flex: 1;
+            min-width: 300px;
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
         }
         .buttons button {
             display: block;
             width: 100%;
-            margin-bottom: 10px;
-            padding: 8px;
+            margin-bottom: 12px;
+            padding: 10px;
             background-color: #007bff;
             color: white;
             border: none;
-            border-radius: 3px;
+            border-radius: 6px;
             cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+        .buttons button:hover {
+            opacity: 0.9;
         }
         .buttons button.active {
             background-color: #28a745;
         }
-        .buttons button:hover {
-            background-color: #0056b3;
-        }
-        .categories {
-            flex: 1;
+        .buttons button.selected {
+            background-color: #ff8800;
         }
         .categories label {
             display: block;
-            margin-bottom: 8px;
+            margin-bottom: 12px;
+            font-size: 16px;
+            cursor: pointer;
         }
-        .results {
-            flex: 2;
+        .categories input {
+            margin-right: 8px;
         }
         .results ul {
             list-style: none;
             padding: 0;
+            margin: 0;
         }
         .results li {
-            padding: 10px;
+            padding: 15px;
             border: 1px solid #ddd;
-            border-radius: 3px;
-            margin-bottom: 8px;
+            border-radius: 6px;
+            margin-bottom: 12px;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            background-color: white;
+            transition: all 0.3s;
+        }
+        .results li:hover {
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .site-info {
+            flex: 1;
+            font-size: 16px;
+            margin-right: 15px;
+        }
+        .select-btn, .cancel-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: all 0.3s;
+            white-space: nowrap;
+        }
+        .select-btn {
+            background-color: #28a745;
+            color: white;
+        }
+        .cancel-btn {
+            background-color: #dc3545;
+            color: white;
+        }
+        .select-btn:hover, .cancel-btn:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+        .confirm-container {
+            text-align: center;
+            margin-top: 30px;
+            padding: 20px;
+            background-color: #f9f9f9;
+            border-radius: 8px;
+            display: none;
+        }
+        #final-confirm-btn {
+            padding: 12px 30px;
+            background-color: #17a2b8;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 18px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        #final-confirm-btn:hover {
+            background-color: #138496;
+        }
+        #final-confirm-btn:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        @media (max-width: 768px) {
+            .content {
+                flex-wrap: wrap;
+            }
+            .buttons, .categories {
+                width: 100%;
+                min-width: auto;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
         <div id="map">[지도]</div>
-
         <div class="content">
-            <!-- 관광 버튼 -->
-            <div class="buttons" id="tourist-buttons">
-                <!-- 관광 버튼이 생성될 영역 -->
-            </div>
-
-            <!-- 카테고리 박스 -->
+            <div class="buttons" id="tourist-buttons"></div>
             <div class="categories" id="categories">
                 <label><input type="checkbox" value="전체" checked onchange="handleCategoryChange(this)"> 전체</label>
-                <!-- 카테고리 체크박스가 생성될 영역 -->
             </div>
-
-            <!-- 관광지 목록 -->
             <div class="results">
-                <ul id="results">
-                    <!-- 관광지 목록이 생성될 영역 -->
-                </ul>
+                <ul id="results"></ul>
             </div>
+        </div>
+        <div class="confirm-container" id="confirmContainer">
+            <button id="final-confirm-btn" onclick="moveToProcessPage()">확인하기</button>
         </div>
     </div>
 
     <script>
-        const city = "{{ city }}"; // 전달받은 지역 이름 (예: "서울")
-        const count = {{ count }}; // 전달받은 관광지 버튼 개수 (예: 5)
-        let categories = []; // DB에서 받아올 카테고리 목록
-        let activeCategories = ["전체"]; // 현재 활성화된 카테고리
-        let sites = []; // 관광지 목록(DB에서 가져옴)
+        const city = "{{ city }}";
+        const count = {{ count }};
+        let categories = [];
+        let activeCategories = ["전체"];
+        let sites = [];
+        let selectedSites = {};
 
-        // 관광 버튼 생성
         function createTouristButtons() {
-            const btnContainer = document.getElementById('tourist-buttons');
+            const btnContainer = document.getElementById("tourist-buttons");
+            while (btnContainer.childNodes.length > 0) {
+                btnContainer.removeChild(btnContainer.lastChild);
+            }
             for (let i = 1; i <= count; i++) {
-                const button = document.createElement('button');
-                button.textContent = `관광지 ${i}`;
-                if (i === 1) button.classList.add('active'); // 첫 번째 버튼 활성화
-                button.onclick = () => handleButtonClick(button);
+                const button = document.createElement("button");
+                button.innerText = `관광지 ${i}`;
+                button.setAttribute("data-index", i);
+                if (i === 1) button.classList.add("active");
+                button.onclick = () => handleTouristButtonClick(button);
                 btnContainer.appendChild(button);
             }
         }
 
-        // 버튼 클릭 처리
-        function handleButtonClick(button) {
+        function handleTouristButtonClick(button) {
             const buttons = document.querySelectorAll(".buttons button");
-            buttons.forEach(btn => btn.classList.remove('active')); // 모든 버튼 비활성화
-            button.classList.add('active'); // 현재 클릭한 버튼만 활성화
+            buttons.forEach(btn => {
+                btn.classList.remove("active");
+                if (btn.getAttribute("data-index") === button.getAttribute("data-index")) {
+                    btn.classList.add("active");
+                }
+            });
+            renderTouristSites();
         }
 
-        // 카테고리 체크박스 생성
         function createCategoryCheckboxes() {
-            fetch('/get_categories') // DB에서 카테고리 목록 가져오기
+            fetch("/get_categories")
                 .then(response => response.json())
                 .then(data => {
-                    categories = data.categories; // 카테고리 목록
-                    const categoryContainer = document.getElementById('categories');
+                    categories = data.categories || [];
+                    const categoryContainer = document.getElementById("categories");
+                    const existingCheckboxes = categoryContainer.querySelectorAll('input[type="checkbox"]:not([value="전체"])');
+                    existingCheckboxes.forEach(checkbox => checkbox.parentElement.remove());
                     categories.forEach(category => {
-                        const label = document.createElement('label');
+                        const label = document.createElement("label");
                         label.innerHTML = `<input type="checkbox" value="${category}" onchange="handleCategoryChange(this)"> ${category}`;
                         categoryContainer.appendChild(label);
                     });
-                });
+                })
+                .catch(err => console.error("카테고리 로드 실패:", err));
         }
 
-        // 체크박스 변경 처리
         function handleCategoryChange(checkbox) {
-            if (checkbox.value === "전체" && checkbox.checked) {
-                activeCategories = ["전체"];
-                const checkboxes = document.querySelectorAll(".categories input[type='checkbox']");
-                checkboxes.forEach(cb => {
-                    if (cb.value !== "전체") cb.checked = false;
-                });
-            } else {
-                const allCheckbox = document.querySelector(".categories input[value='전체']");
-                allCheckbox.checked = false;
-
-                // 활성화된 카테고리 업데이트
+            const allCheckbox = document.querySelector(".categories input[value='전체']");
+            if (checkbox.value === "전체") {
                 if (checkbox.checked) {
+                    document.querySelectorAll(".categories input[type='checkbox']:not([value='전체'])").forEach(cb => {
+                        cb.checked = false;
+                    });
+                    activeCategories = ["전체"];
+                }
+            } else {
+                if (checkbox.checked) {
+                    if (activeCategories.includes("전체")) {
+                        allCheckbox.checked = false;
+                        activeCategories = activeCategories.filter(cat => cat !== "전체");
+                    }
                     activeCategories.push(checkbox.value);
                 } else {
                     activeCategories = activeCategories.filter(cat => cat !== checkbox.value);
+                    if (activeCategories.length === 0) {
+                        allCheckbox.checked = true;
+                        activeCategories = ["전체"];
+                    }
                 }
             }
-            fetchTouristSites(); // 관광지 재검색
+            fetchTouristSites();
         }
 
-        // 관광지 데이터 가져오기
-        function fetchTouristSites() {
-            // 카테고리 필터링
-            const queryCategories = activeCategories.includes("전체") ? "" : `&categories=${activeCategories.join(",")}`;
-            fetch(`/get_tourist_sites?city=${city}${queryCategories}`) // DB에서 관광지 데이터 가져오기
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error("API 요청 실패");
+        function handleSiteSelection(button, siteId, siteName, siteLocation) {
+            const activeButton = document.querySelector(".buttons button.active");
+            const buttonIndex = activeButton.getAttribute("data-index");
+
+            if (button.classList.contains("select-btn")) {
+                if (selectedSites[buttonIndex]) {
+                    const prevSelectedBtn = document.querySelector(`button[data-site-id="${selectedSites[buttonIndex].id}"]`);
+                    if (prevSelectedBtn) {
+                        prevSelectedBtn.textContent = "선택";
+                        prevSelectedBtn.classList.remove("cancel-btn");
+                        prevSelectedBtn.classList.add("select-btn");
                     }
-                    return response.json();
-                })
-                .then(data => {
-                    sites = data.sites; // 관광지 데이터 저장
-                    renderTouristSites();
-                })
-                .catch(err => {
-                    console.error("관광지 데이터를 불러오는 중 오류 발생:", err);
-                    const resultContainer = document.getElementById('results');
-                    resultContainer.innerHTML = "<li>데이터를 불러오지 못했습니다.</li>";
-                });
+                }
+                selectedSites[buttonIndex] = {
+                    id: siteId,
+                    name: siteName,
+                    location: siteLocation,
+                    index: buttonIndex
+                };
+                button.textContent = "선택 취소";
+                button.classList.remove("select-btn");
+                button.classList.add("cancel-btn");
+                button.setAttribute("data-site-id", siteId);
+                const touristButton = document.querySelector(`.buttons button[data-index="${buttonIndex}"]`);
+                touristButton.classList.add("selected");
+            } else {
+                delete selectedSites[buttonIndex];
+                button.textContent = "선택";
+                button.classList.remove("cancel-btn");
+                button.classList.add("select-btn");
+                button.removeAttribute("data-site-id");
+                const touristButton = document.querySelector(`.buttons button[data-index="${buttonIndex}"]`);
+                touristButton.classList.remove("selected");
+            }
+            updateSelectionStatus();
         }
 
-        // 관광지 목록 렌더링
+        function updateSelectionStatus() {
+            const selectedCount = Object.keys(selectedSites).length;
+            const confirmContainer = document.getElementById('confirmContainer');
+            const finalConfirmBtn = document.getElementById('final-confirm-btn');
+
+            if (selectedCount === count) {
+                confirmContainer.style.display = 'block';
+                finalConfirmBtn.disabled = false;
+            } else {
+                confirmContainer.style.display = 'none';
+                finalConfirmBtn.disabled = true;
+            }
+        }
+
+        function moveToProcessPage() {
+            const sortedSites = Object.values(selectedSites).sort((a, b) => a.index - b.index);
+            const params = new URLSearchParams();
+
+            sortedSites.forEach((site, index) => {
+                params.append(`site${index+1}_name`, encodeURIComponent(site.name));
+                params.append(`site${index+1}_location`, encodeURIComponent(site.location || ''));
+            });
+
+            params.append('city', encodeURIComponent(city));
+            params.append('count', count);
+
+            window.location.href = `/process?${params.toString()}`;
+        }
+
+        function fetchTouristSites() {
+            if (!city) return;
+            const queryCategories = `&categories=${encodeURIComponent(activeCategories.join(","))}`;
+            const queryUrl = `/get_tourist_sites?city=${encodeURIComponent(city)}${queryCategories}`;
+            fetch(queryUrl)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        sites = data.sites || [];
+                        renderTouristSites();
+                    } else {
+                        console.error("서버 오류:", data.error);
+                    }
+                })
+                .catch(err => console.error("요청 실패:", err));
+        }
+
         function renderTouristSites() {
-            const resultContainer = document.getElementById('results');
+            const resultContainer = document.getElementById("results");
             resultContainer.innerHTML = "";
-            if (sites.length === 0) {
-                resultContainer.innerHTML = "<li>관광지가 없습니다.</li>";
+            if (!sites || sites.length === 0) {
+                resultContainer.innerHTML = `<li style="text-align: center; padding: 30px;">해당 지역의 관광지가 없습니다.</li>`;
                 return;
             }
+            const activeButton = document.querySelector(".buttons button.active");
+            const buttonIndex = activeButton ? activeButton.getAttribute("data-index") : null;
+            const selectedSite = buttonIndex ? selectedSites[buttonIndex] : null;
+
             sites.forEach(site => {
-                const li = document.createElement('li');
-                li.innerHTML = `
-                    <span>[${site.name}] (${site.category})</span>
-                `;
+                const li = document.createElement("li");
+                const infoDiv = document.createElement("div");
+                infoDiv.className = "site-info";
+                const category = site.category ? `(${site.category})` : "";
+                infoDiv.innerHTML = `<strong>${site.name}</strong> ${category}<br><small style="color: #666;">${site.location || '위치 정보 없음'}</small>`;
+                li.appendChild(infoDiv);
+
+                const actionButton = document.createElement("button");
+                if (selectedSite && selectedSite.id === site.id) {
+                    actionButton.textContent = "선택 취소";
+                    actionButton.classList.add("cancel-btn");
+                    actionButton.setAttribute("data-site-id", site.id);
+                } else {
+                    actionButton.textContent = "선택";
+                    actionButton.classList.add("select-btn");
+                    actionButton.removeAttribute("data-site-id");
+                }
+                actionButton.onclick = () => handleSiteSelection(actionButton, site.id, site.name, site.location);
+                li.appendChild(actionButton);
                 resultContainer.appendChild(li);
             });
         }
 
-        // 초기화
         function init() {
-            createTouristButtons(); // 관광 버튼 생성
-            createCategoryCheckboxes(); // 카테고리 생성
-            fetchTouristSites(); // 관광지 로드
+            createTouristButtons();
+            createCategoryCheckboxes();
+            fetchTouristSites();
         }
 
-        init(); // 프로그램 초기화
+        init();
     </script>
 </body>
 </html>

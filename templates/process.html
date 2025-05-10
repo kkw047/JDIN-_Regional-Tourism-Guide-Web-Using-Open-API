@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>선택된 관광지 결과</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f8f9fa;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #343a40;
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #eee;
+        }
+        .site-list {
+            list-style: none;
+            padding: 0;
+        }
+        .site-item {
+            padding: 20px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            align-items: center;
+            transition: all 0.3s;
+        }
+        .site-item:hover {
+            background-color: #f8f9fa;
+        }
+        .site-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #ff8800;
+            margin-right: 20px;
+            min-width: 40px;
+            text-align: center;
+        }
+        .site-info {
+            flex: 1;
+        }
+        .site-name {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #333;
+        }
+        .site-location {
+            color: #6c757d;
+            font-size: 16px;
+        }
+        .back-btn {
+            display: block;
+            width: 200px;
+            margin: 30px auto 0;
+            padding: 12px;
+            background-color: #6c757d;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.3s;
+        }
+        .back-btn:hover {
+            background-color: #5a6268;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>선택된 관광지 목록</h1>
+        <ul class="site-list" id="siteList"></ul>
+        <button class="back-btn" onclick="window.location.href='result.html?city={{ city }}&count={{ count }}'">다시 선택하기</button>
+    </div>
+
+    <script>
+        const params = new URLSearchParams(window.location.search);
+        const siteList = document.getElementById('siteList');
+
+        for (let i = 1; i <= 3; i++) {
+            const name = params.get(`site${i}_name`) ? decodeURIComponent(params.get(`site${i}_name`)) : '';
+            const location = params.get(`site${i}_location`) ? decodeURIComponent(params.get(`site${i}_location`)) : '';
+
+            if (name) {
+                const li = document.createElement('li');
+                li.className = 'site-item';
+                li.innerHTML = `
+                    <div class="site-number">${i}</div>
+                    <div class="site-info">
+                        <div class="site-name">${name}</div>
+                        <div class="site-location">${location || '위치 정보 없음'}</div>
+                    </div>
+                `;
+                siteList.appendChild(li);
+            }
+        }
+    </script>
+</body>
+</html>
