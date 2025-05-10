@@ -1,100 +1,194 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ko">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>관광지 선택</title>
+    <title>관광지 검색</title>
     <style>
         body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 0;
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
-            margin: 0;
-            font-family: Arial, sans-serif;
-            background-color: #f7f7f7;
+            min-height: 100vh;
         }
 
         .container {
-            text-align: center;
-            background: #ffffff;
-            padding: 20px 30px;
+            background-color: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-            border-radius: 10px;
-            width: 350px;
+            width: 400px;
+            text-align: center;
         }
 
-        h2 {
-            color: #333333;
+        h1 {
+            font-size: 24px;
             margin-bottom: 20px;
         }
 
-        .form-group {
-            margin: 15px 0;
-        }
-
         label {
-            display: inline-block;
+            display: block;
             margin-bottom: 10px;
+            text-align: left;
             font-weight: bold;
         }
 
-        select, input[type="range"] {
+        select {
             width: 100%;
-            padding: 5px;
-            margin: 10px 0;
+            padding: 8px;
+            margin-bottom: 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
             font-size: 16px;
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 10px;
+            border-radius: 20px;
+            background: linear-gradient(to right, #9cff57, #bfff8a); /* 연두색 그라데이션 */
+            outline: none;
+            transition: background 0.3s;
+            cursor: pointer;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 25px;
+            height: 25px;
+            background: #54c700; /* 연한 초록색 핸들 */
+            border: 2px solid #a8ff84; /* 연두색 테두리 */
+            border-radius: 50%;
+            box-shadow: 0 0 8px #a8ff84; /* 빛나는 효과 */
+            cursor: pointer;
+            transition: background 0.3s, transform 0.2s;
+        }
+
+        input[type="range"]:hover::-webkit-slider-thumb {
+            background: #76ff03; /* 연두색으로 hover */
+            transform: scale(1.1); /* 살짝 커지는 효과 */
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 25px;
+            height: 25px;
+            background: #54c700;
+            border: 2px solid #a8ff84;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 8px #a8ff84;
+        }
+
+        input[type="range"]::-ms-thumb {
+            width: 25px;
+            height: 25px;
+            background: #54c700;
+            border: 2px solid #a8ff84;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 8px #a8ff84;
         }
 
         button {
-            background-color: #4caf50;
+            width: 100%;
+            padding: 10px;
+            background-color: #54c700; /* 슬라이더와 비슷한 연한 초록색 */
             color: white;
             border: none;
-            padding: 12px 20px;
-            border-radius: 5px;
-            cursor: pointer;
-            width: 100%;
+            border-radius: 30px; /* 버튼도 동글동글하게 */
             font-size: 16px;
+            cursor: pointer;
+            transition: background 0.3s;
         }
 
         button:hover {
-            background-color: #45a049;
+            background-color: #76ff03; /* 연두색 */
+        }
+
+        .error {
+            color: red;
+            font-size: 14px;
+            margin-top: -15px;
+            margin-bottom: 15px;
+        }
+
+        .range-value {
+            font-size: 16px;
+            margin-bottom: 20px;
+            font-weight: bold;
+            color: #54c700; /* 선택된 값 강조 색상 */
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h2>관광지 검색</h2>
-        <form action="/submit" method="post">
+        <h1>관광지 검색</h1>
+        <form method="post" action="/submit" id="search-form">
             <!-- 도시 선택 -->
-            <div class="form-group">
-                <label for="tourist_location">도시 선택</label>
-                <select name="tourist_location" id="tourist_location">
-                    <option value="none">=== 도시 선택 ===</option>
-                    <option value="청주">청주</option>
-                    <option value="충주">충주</option>
-                    <option value="서울">서울</option>
-                    <option value="부산">부산</option>
-                </select>
-            </div>
+            <label for="tourist_location">도시를 선택하세요:</label>
+            <select name="tourist_location" id="tourist_location" required>
+                <option value="none" selected>도시를 선택하세요</option>
+                <option value="서울">서울</option>
+                <option value="충주">충주</option>
+                <option value="부산">부산</option>
+                <option value="제주">제주</option>
+            </select>
 
-            <!-- 관광지 수 선택 -->
-            <div class="form-group">
-                <label for="tourist_sites_count">관광지 수 (1 ~ 10)</label>
-                <input
-                    type="range"
-                    id="tourist_sites_count"
-                    name="tourist_sites_count"
-                    min="1"
-                    max="10"
-                    value="3"
-                    oninput="document.getElementById('siteCountLabel').innerText = this.value;">
-                <span id="siteCountLabel">3</span>
-            </div>
+            <!-- 관광지 수 선택 (슬라이더) -->
+            <label for="tourist_sites_count">관광지 수:</label>
+            <input type="range" name="tourist_sites_count" id="tourist_sites_count" min="1" max="3" value="1">
+            <div class="range-value" id="range-value">1</div>
 
-            <!-- 검색 버튼 -->
             <button type="submit">검색</button>
+
+            <!-- 에러 메시지 -->
+            <div class="error" id="error-message" style="display: none;"></div>
         </form>
     </div>
+
+    <script>
+        // 슬라이더 값 표시
+        const rangeInput = document.getElementById('tourist_sites_count');
+        const rangeValue = document.getElementById('range-value');
+
+        rangeInput.addEventListener('input', function() {
+            rangeValue.textContent = rangeInput.value;
+        });
+
+        // 폼 제출 이벤트 처리
+        const form = document.getElementById('search-form');
+        const errorMessage = document.getElementById('error-message');
+
+        form.addEventListener('submit', function(event) {
+            const city = document.getElementById('tourist_location').value;
+            const count = document.getElementById('tourist_sites_count').value;
+
+            // 유효성 검사
+            if (city === "none") {
+                event.preventDefault(); // 제출 중단
+                errorMessage.style.display = "block";
+                errorMessage.textContent = "도시를 선택하세요!";
+                return;
+            }
+
+            if (!count || count < 1) {
+                event.preventDefault(); // 제출 중단
+                errorMessage.style.display = "block";
+                errorMessage.textContent = "관광지 수는 최소 1개 이어야 합니다!";
+                return;
+            }
+
+            // 에러 메시지 숨기기
+            errorMessage.style.display = "none";
+        });
+    </script>
 </body>
 </html>
