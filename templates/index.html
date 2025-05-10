@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>여행지 선택</title>
+    <title>관광지 선택</title>
     <style>
         body {
             display: flex;
@@ -35,20 +35,15 @@
 
         label {
             display: inline-block;
-            margin-right: 10px;
+            margin-bottom: 10px;
             font-weight: bold;
-            font-size: 16px; /* 라벨 글자 크기 */
         }
 
-        select {
-            font-size: 16px; /* Select 글자 크기 */
-            padding: 5px; /* Select 안의 내용 여백 */
-            height: auto; /* height 자동 조정 */
-            min-width: 120px; /* 최소 크기 */
-        }
-
-        input[type="range"] {
+        select, input[type="range"] {
             width: 100%;
+            padding: 5px;
+            margin: 10px 0;
+            font-size: 16px;
         }
 
         button {
@@ -65,46 +60,40 @@
         button:hover {
             background-color: #45a049;
         }
-
-        .selection-group {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 20px;
-        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h2>관광지 선택</h2>
+        <h2>관광지 검색</h2>
         <form action="/submit" method="post">
-            <!-- 관광지 선택 -->
-            <div class="selection-group">
-                <label for="tourist_location"></label>
-                <select name="language" id="tourist_location">
-                    <option value="none">=== 선택 ===</option>
-                    <option value="chunju" selected>청주</option>
-                    <option value="seoul">청주</option>
-                    <option value="busan">청주</option>
+            <!-- 도시 선택 -->
+            <div class="form-group">
+                <label for="tourist_location">도시 선택</label>
+                <select name="tourist_location" id="tourist_location">
+                    <option value="none">=== 도시 선택 ===</option>
+                    <option value="청주">청주</option>
+                    <option value="충주">충주</option>
+                    <option value="서울">서울</option>
+                    <option value="부산">부산</option>
                 </select>
             </div>
 
-            <!-- 관광지 수 -->
+            <!-- 관광지 수 선택 -->
             <div class="form-group">
-                <label for="tourist_sites_count">관광지 수 선택 (1 ~ 3)</label>
+                <label for="tourist_sites_count">관광지 수 (1 ~ 10)</label>
                 <input
                     type="range"
                     id="tourist_sites_count"
                     name="tourist_sites_count"
                     min="1"
-                    max="3"
+                    max="10"
                     value="3"
                     oninput="document.getElementById('siteCountLabel').innerText = this.value;">
                 <span id="siteCountLabel">3</span>
             </div>
 
-            <!-- 적용 버튼 -->
-            <button type="submit">적용</button>
+            <!-- 검색 버튼 -->
+            <button type="submit">검색</button>
         </form>
     </div>
 </body>
