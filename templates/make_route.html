@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>TMAP 관광지도</title>
+  <style>
+    html, body {
+        height: 100%;
+        margin: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background: #f5f5f5;
+        }
+
+    .container {
+        width: 700px;         /* 최대 너비 제한 (선택사항) */
+        height: 900px;
+        border: 2px solid #333;
+        padding: 10px;
+        background-color: white;
+        box-sizing: border-box;
+        overflow: auto;
+        }
+
+    #map_div {
+        width: 300px;
+        height: 250px; 
+        }
+
+
+    .selected-list {
+    margin: 20px 0;
+    padding: 12px;
+    background: #eef6ff;
+    border: 1px dashed #666;
+    font-size: 16px;
+    }
+
+    .selected-list .slots {
+    display: flex;
+    flex-direction: column; /* 가로 -> 세로 변경 */
+    gap: 10px;
+    margin-top: 10px;
+    }
+
+    
+    .selected-list .selected-slot {
+    height: 50px;
+    background: #d8f0ff;
+    border-radius: 10px;
+    line-height: 50px;
+    text-align: center;
+    cursor: pointer;
+    user-select: none;
+    font-weight: 600;
+    color: #333;
+    box-shadow: inset 0 0 5px rgba(0,0,0,0.1);
+    }
+    .selected-list .selected-slot.empty {
+    color: #999;
+    font-style: italic;
+    }
+    .filter-box {
+    border: 2px solid #666;
+    border-radius: 20px;
+    padding: 20px;
+    margin-top: 20px;
+    font-size: 16px;
+    background-color: #fff;
+    }
+
+    .filter-box label {
+    display: block;
+    margin: 10px 0;
+    }
+
+  </style>
+  <script src="https://apis.openapi.sk.com/tmap/jsv2?version=1&appKey=7lUDZYkLXB2Yw0QuX5aCr7UmyXh9TJ6l2spLvANH"></script>
+</head>
+<body>
+  <div class="container">
+    <div class="back-arrow"><a href="javascript:history.back()">←</a></div>
+    <div id="map_div"></div>
+
+    <div class="selected-list" id="selectedList">
+        <strong>선택된 관광지:</strong>
+        <div class="slots">
+            <div class="selected-slot" data-index="0"></div>
+            <div class="selected-slot" data-index="1"></div>
+            <div class="selected-slot" data-index="2"></div>
+        </div>
+        </div>
+    <!-- 카테고리 필터 -->
+    <div class="filter-box">
+      <h3>카테고리</h3>
+      <label><input type="checkbox" value="산"> 산</label>
+      <label><input type="checkbox" value="공원"> 공원</label>
+    </div>
+
+    <!-- 관광지 필터 -->
+    <div class="filter-box" id="poiBox">
+      <h3>관광지</h3>
+    </div>
+  </div>
+
+  <script>
+    let map;
+    let selectedPoints = {}; // { name: {lat, lon} }
+    let markers = {};        // { name: Marker }
+    let lineLayer = null;
+
+    const appKey = "7lUDZYkLXB2Yw0QuX5aCr7UmyXh9TJ6l2spLvANH"; // ← 실제 TMAP API 키로 교체
+
+    const POI_DATA = {
+      산: [
+        { name: "북한산", lat: 37.6584, lon: 126.9862 },
+        { name: "관악산", lat: 37.4459, lon: 126.9643 }
+      ],
+      공원: [
+        { name: "서울숲", lat: 37.5445, lon: 127.0373 },
+        { name: "올림픽공원", lat: 37.5196, lon: 127.1215 }
+      ]
+    };
+
+    function initMap() {
+        map = new Tmapv2.Map("map_div", {
+            center: new Tmapv2.LatLng(37.5665, 126.9780),
+            width: "100%",
+            height: "400px",  // CSS와 동일하게 맞춤
+            zoom: 13
+        });
+        }
+
+    async function drawRoute() {
+        if (lineLayer) lineLayer.setMap(null);
+
+        const names = Object.keys(selectedPoints);
+        if (names.length < 2) return;
+
+        const lineArr = [];
+
+        for (let i = 0; i < names.length - 1; i++) {
+            const start = selectedPoints[names[i]];
+            const end = selectedPoints[names[i + 1]];
+
+            const response = await fetch("https://apis.openapi.sk.com/tmap/routes/pedestrian?version=1&format=json", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "appKey": appKey
+            },
+            body: JSON.stringify({
+                startX: start.lon,
+                startY: start.lat,
+                endX: end.lon,
+                endY: end.lat,
+                reqCoordType: "WGS84GEO",
+                resCoordType: "WGS84GEO"
+            })
+            });
+
+            const data = await response.json();
+
+            data.features.forEach(f => {
+            if (f.geometry.type === "LineString") {
+                f.geometry.coordinates.forEach(coord => {
+                lineArr.push(new Tmapv2.LatLng(coord[1], coord[0]));
+                });
+            }
+            });
+        }
+
+        lineLayer = new Tmapv2.Polyline({
+            path: lineArr,
+            strokeColor: "#FF0000",
+            strokeWeight: 4,
+            map: map
+        });
+    }
+
+
+    function updateSelectedList() {
+        const slots = document.querySelectorAll(".selected-slot");
+        // 빈칸 초기화
+        slots.forEach(slot => {
+            slot.textContent = "관광지";
+            slot.classList.add("empty");
+            slot.dataset.place = "";
+        });
+
+        // 선택된 관광지를 빈칸에 채우기
+        const names = Object.keys(selectedPoints);
+        for (let i = 0; i < names.length && i < slots.length; i++) {
+            slots[i].textContent = names[i];
+            slots[i].classList.remove("empty");
+            slots[i].dataset.place = names[i];
+        }
+        }
+
+        // 슬롯 클릭 시 관광지 해제 기능 추가
+        document.getElementById("selectedList").addEventListener("click", (e) => {
+        if (e.target.classList.contains("selected-slot") && !e.target.classList.contains("empty")) {
+            const name = e.target.dataset.place;
+            if (name) {
+            toggleMarker({ name });
+            }
+        }
+        });
+
+        function toggleMarker(place) {
+        const name = place.name;
+
+        if (markers[name]) {
+            markers[name].setMap(null);
+            delete markers[name];
+            delete selectedPoints[name];
+        } else {
+            // 빈칸이 3개 뿐이므로 3개 초과 선택 안되게 제한
+            if (Object.keys(selectedPoints).length >= 3) {
+            alert("최대 3개까지만 선택 가능합니다.");
+            return;
+            }
+
+            const data = findPlaceByName(name);
+            if (!data) return;
+
+            const marker = new Tmapv2.Marker({
+            position: new Tmapv2.LatLng(data.lat, data.lon),
+            map: map,
+            title: name
+            });
+            markers[name] = marker;
+            selectedPoints[name] = data;
+            map.setCenter(new Tmapv2.LatLng(data.lat, data.lon));
+        }
+
+        updateSelectedList();
+        drawRoute();
+        updatePOIChecks();
+        }
+
+    function findPlaceByName(name) {
+      for (const cat in POI_DATA) {
+        for (const p of POI_DATA[cat]) {
+          if (p.name === name) return p;
+        }
+      }
+      return null;
+    }
+
+    function updatePOICheckboxes() {
+      const selectedCats = Array.from(document.querySelectorAll('.filter-box input[type="checkbox"]:checked'))
+                                .map(cb => cb.value);
+      const poiBox = document.getElementById("poiBox");
+      poiBox.innerHTML = "<h3>관광지</h3>";
+
+      selectedCats.forEach(cat => {
+        (POI_DATA[cat] || []).forEach(place => {
+          const label = document.createElement("label");
+          const checkbox = document.createElement("input");
+          checkbox.type = "checkbox";
+          checkbox.value = place.name;
+          checkbox.checked = !!selectedPoints[place.name];
+          checkbox.onchange = () => toggleMarker(place);
+          label.appendChild(checkbox);
+          label.append(` ${place.name}`);
+          poiBox.appendChild(label);
+        });
+      });
+    }
+
+    function updatePOIChecks() {
+      const checkboxes = document.querySelectorAll('#poiBox input[type="checkbox"]');
+      checkboxes.forEach(cb => {
+        cb.checked = !!selectedPoints[cb.value];
+      });
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      initMap();
+      document.querySelectorAll('.filter-box input[type="checkbox"]').forEach(cb => {
+        cb.addEventListener("change", updatePOICheckboxes);
+      });
+    });
+  </script>
+</body>
+</html>
