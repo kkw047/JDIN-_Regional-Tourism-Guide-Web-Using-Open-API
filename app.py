@@ -146,5 +146,6 @@ atexit.register(lambda: scheduler.shutdown())
 
 if __name__ == '__main__':
     print("스케줄러가 실행 중입니다...")
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=True)
+
 
