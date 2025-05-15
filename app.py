@@ -78,7 +78,7 @@ def get_tourist_sites():
     try:
         connection = pymysql.connect(**db_config)
         with connection.cursor() as cursor:
-            sql = "SELECT id, name, category, location FROM tourist_attraction WHERE city LIKE %s"
+            sql = "SELECT id, name, address FROM tourist_attraction WHERE address LIKE %s"
             params = [f"%{city}%"]
 
             if categories and categories != "전체":
