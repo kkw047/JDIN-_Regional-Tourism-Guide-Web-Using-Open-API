@@ -1,5 +1,12 @@
 from flask import Flask, render_template, request, jsonify, redirect, url_for
+from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.triggers.interval import IntervalTrigger
 import pymysql
+import atexit
+import sys
+
+# tourist_attraction.py에서 함수 가져오기
+from apistudy.tourist_attraction import get_tourist_sites_from_api, save_tourist_sites_to_db
 
 app = Flask(__name__)
 
@@ -16,35 +23,24 @@ db_config = {
 
 @app.route('/')
 def index():
-    """
-    메인 페이지
-    """
     return render_template('index.html')
 
 
 @app.route('/submit', methods=['POST'])
 def submit():
-    """
-    관광지 검색 요청 처리
-    """
     city = request.form.get('tourist_location')
     count = request.form.get('tourist_sites_count')
 
-    # 입력 데이터 검증
     if not city or city == "none":
         return "도시를 선택하세요!", 400
     if not count or int(count) < 1:
         return "관광지 수는 최소 1개 이상이어야 합니다!", 400
 
-    # 결과 화면으로 리다이렉트
     return redirect(url_for('result', city=city, count=count))
 
 
 @app.route('/result')
 def result():
-    """
-    관광지 검색 결과 화면
-    """
     city = request.args.get('city')
     count = request.args.get('count')
 
@@ -53,9 +49,6 @@ def result():
 
 @app.route('/get_categories', methods=['GET'])
 def get_categories():
-    """
-    DB에서 카테고리 목록 가져오는 API
-    """
     try:
         connection = pymysql.connect(**db_config)
         with connection.cursor() as cursor:
@@ -90,7 +83,6 @@ def get_tourist_sites():
 
             if categories and categories != "전체":
                 category_list = categories.split(",")
-                # 각 카테고리에 대해 LIKE 조건 추가
                 like_conditions = []
                 for category in category_list:
                     like_conditions.append("name LIKE %s")
@@ -111,13 +103,48 @@ def get_tourist_sites():
             connection.close()
 
 
-
 @app.route('/process')
 def process():
     return render_template('process.html',
-                        city=request.args.get('city'),
-                        count=request.args.get('count'))
+                           city=request.args.get('city'),
+                           count=request.args.get('count'))
+
+
+def update_tourist_attractions():
+    """
+    tourist_attraction.py에 정의된 함수들을 사용해서 관광 데이터를 갱신합니다.
+    """
+    print("관광지 데이터 갱신 작업 시작...")
+
+    # API를 통해 관광지 데이터 가져오기
+    from apistudy.tourist_attraction import get_tourist_sites_from_api, save_tourist_sites_to_db
+    tourist_sites = get_tourist_sites()
+
+    # 가져온 데이터를 데이터베이스에 저장
+    save_tourist_sites_to_db(tourist_sites)
+
+    print("관광지 데이터 갱신 작업 완료!")
+
+
+# 스케줄러 설정
+scheduler = BackgroundScheduler()
+scheduler.start()
+
+# 스케줄링 작업 등록
+scheduler.add_job(
+    func=update_tourist_attractions,  # 실행할 작업 함수
+    trigger=IntervalTrigger(days=1),  # 1분마다 실행
+
+    id="update_tourist_attractions_job",  # 고유 작업 ID
+    name="관광지 데이터 갱신 작업",  # 작업 이름
+    replace_existing=True  # 동일 ID가 있을 경우 기존 작업 대체
+)
+
+# 애플리케이션 종료 시 스케줄러도 종료
+atexit.register(lambda: scheduler.shutdown())
 
 
 if __name__ == '__main__':
+    print("스케줄러가 실행 중입니다...")
     app.run(debug=True)
+

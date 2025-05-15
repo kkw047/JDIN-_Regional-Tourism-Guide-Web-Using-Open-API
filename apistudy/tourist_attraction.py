@@ -3,40 +3,54 @@ import pymysql
 
 # MySQL 데이터베이스 설정
 db_config = {
-    'host': '61.81.96.151',  # MySQL 서버 주소 (변경된 IP)
-    'user': 'outer',  # MySQL 사용자 이름 (변경된 사용자)
-    'password': 'outeropensql',  # MySQL 비밀번호 (변경된 비밀번호)
+    'host': '61.81.96.151',  # MySQL 서버 주소
+    'user': 'outer',  # MySQL 사용자 이름
+    'password': 'outeropensql',  # MySQL 비밀번호
     'database': 'User_Selecte',  # 데이터베이스 이름
     'charset': 'utf8mb4',  # 문자셋 설정
     'cursorclass': pymysql.cursors.DictCursor  # DictCursor로 결과 반환
 }
 
 
-def get_tourist_sites():
+def get_tourist_sites_from_api():
     """
     공공데이터 API에서 관광지 데이터를 가져옵니다.
-    데이터를 정리하여 리스트 형태로 반환합니다.
     """
+    base_url = 'http://apis.data.go.kr/B551011/KorService2/areaBasedSyncList2'
     service_key = 'zYQ6z3LDxQw53kNYLivZE0EeBL7erd4d1Yjvy%2BVtS1%2BBrUC7uuOkmfuCl4Gg0pLo9LybOcpASEH98szaOEuLLQ%3D%3D'
-    url = f'https://api.odcloud.kr/api/3067368/v1/uddi:b9d25b17-9391-471e-9c7f-aad014581edd?page=1&perPage=10&serviceKey={service_key}'
+    url = f'{base_url}?serviceKey={service_key}'
+
+    params = {
+        'numOfRows': 105,
+        'pageNo': 1,
+        'MobileOS': 'WIN',
+        'MobileApp': 'AppTest',
+        '_type': 'json',
+        'showflag': 1,
+        'arrange': 'C',
+        'contentTypeId': 12,
+        'areaCode': 33,
+        'sigunguCode': 10,
+    }
 
     try:
-        response = requests.get(url)
-        response.raise_for_status()  # HTTP 에러 발생 시 예외 처리
+        response = requests.get(url, params=params)
+        response.raise_for_status()
         data = response.json()
 
-        # 가져온 데이터 확인
-        print("API 응답 데이터:", data)
-
-        # 관광지 데이터를 정리하여 반환
+        # JSON 응답에서 필요한 데이터 추출
         tourist_sites = []
-        for item in data.get('data', []):
-            # 이름, 도시, 위치 데이터 정리
-            tourist_sites.append({
-                'name': item.get('관광지명', '이름 없음'),
-                'city': item.get('시군', '도시 없음'),
-                'location': item.get('위치', '위치 정보 없음')
-            })
+        if 'response' in data and 'body' in data['response'] and 'items' in data['response']['body']:
+            items = data['response']['body']['items']['item']
+            for item in items:
+                tourist_sites.append({
+                    'name': item.get('title', '이름 없음')[:255],
+                    'addr': item.get('addr1', '주소 정보 없음')[:255],
+                    'image': item.get('firstimage', '이미지 정보 없음'),
+                    'mapx': item.get('mapx', '좌표 없음'),
+                    'mapy': item.get('mapy', '좌표 없음'),
+                    'tel': item.get('tel', '전화번호 정보 없음')[:100],
+                })
         return tourist_sites
 
     except requests.exceptions.RequestException as e:
@@ -53,29 +67,38 @@ def save_tourist_sites_to_db(tourist_sites):
         return
 
     try:
+        # MySQL 연결
         connection = pymysql.connect(**db_config)
         print("DB 연결 성공!")
 
         with connection.cursor() as cursor:
             for site in tourist_sites:
                 try:
-                    # 관광지 중복 확인 및 삽입
+                    # 관광지 데이터를 삽입 또는 업데이트
                     sql = """
-                    INSERT INTO tourist_attraction (name, city, location)
-                    VALUES (%s, %s, %s)
-                    ON DUPLICATE KEY UPDATE 
-                        city=VALUES(city),
-                        location=VALUES(location)
+                    INSERT INTO tourist_attraction (name, address, image, mapx, mapy, tel)
+                    VALUES (%s, %s, %s, %s, %s, %s)
+                    ON DUPLICATE KEY UPDATE
+                        address = VALUES(address),
+                        image = VALUES(image),
+                        mapx = VALUES(mapx),
+                        mapy = VALUES(mapy),
+                        tel = VALUES(tel)
                     """
                     cursor.execute(sql, (
-                        site['name'][:255],  # 필드 길이 초과 방지
-                        site['city'][:100],  # 필드 길이 제한
-                        site['location'][:255]
+                        site['name'],
+                        site['addr'],
+                        site['image'],
+                        site['mapx'],
+                        site['mapy'],
+                        site['tel']
                     ))
                 except Exception as e:
                     print(f"데이터 삽입 오류: {site}, 오류: {e}")
+
+            # 데이터베이스에 반영
             connection.commit()
-            print("관광지 데이터를 데이터베이스에 저장했습니다.")
+            print(f"{len(tourist_sites)}개의 관광지 데이터를 데이터베이스에 저장했습니다.")
 
     except pymysql.MySQLError as e:
         print(f"DB 연결 오류: {e}")
@@ -83,3 +106,11 @@ def save_tourist_sites_to_db(tourist_sites):
         connection.close()
 
 
+if __name__ == '__main__':
+    print("API에서 관광지 데이터 가져오는 중...")
+    # API에서 관광지 데이터 가져오기
+    tourist_sites = get_tourist_sites_from_api()
+
+    print(f"가져온 관광지 데이터 수: {len(tourist_sites)}")
+    # 데이터베이스에 저장
+    save_tourist_sites_to_db(tourist_sites)
