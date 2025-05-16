@@ -72,7 +72,8 @@ Open API를 활용하여 **출발지 기준 거리 계산**, **여행 시간 설
 
 ## 실행 화면
 
-![image](https://github.com/user-attachments/assets/887c38fd-42ad-400c-ae2f-fba56f14f0eb)
+![image](https://github.com/user-attachments/assets/17dda793-051a-4208-ad8a-bb8feb2ce1eb)
+
   
 
 ---
