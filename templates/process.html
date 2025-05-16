@@ -1,18 +1,17 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>선택된 관광지 결과</title>
     <style>
         body {
             font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 20px;
             background-color: #f8f9fa;
+            padding: 20px;
         }
         .container {
-            max-width: 800px;
+            max-width: 1000px;
             margin: 0 auto;
             background-color: white;
             padding: 30px;
@@ -20,93 +19,147 @@
             box-shadow: 0 4px 12px rgba(0,0,0,0.1);
         }
         h1 {
-            color: #343a40;
             text-align: center;
+            color: #343a40;
             margin-bottom: 30px;
-            padding-bottom: 15px;
             border-bottom: 2px solid #eee;
+            padding-bottom: 15px;
         }
         .site-list {
             list-style: none;
             padding: 0;
+            margin-bottom: 30px;
         }
         .site-item {
-            padding: 20px;
-            border-bottom: 1px solid #eee;
             display: flex;
-            align-items: center;
-            transition: all 0.3s;
-        }
-        .site-item:hover {
-            background-color: #f8f9fa;
+            padding: 15px;
+            border-bottom: 1px solid #eee;
         }
         .site-number {
-            font-size: 24px;
+            font-size: 22px;
             font-weight: bold;
             color: #ff8800;
             margin-right: 20px;
-            min-width: 40px;
-            text-align: center;
         }
         .site-info {
             flex: 1;
         }
         .site-name {
-            font-size: 20px;
+            font-size: 18px;
             font-weight: bold;
-            margin-bottom: 8px;
             color: #333;
         }
         .site-location {
-            color: #6c757d;
-            font-size: 16px;
+            color: #666;
+            font-size: 15px;
         }
-        .back-btn {
-            display: block;
-            width: 200px;
-            margin: 30px auto 0;
-            padding: 12px;
-            background-color: #6c757d;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            font-size: 16px;
-            cursor: pointer;
-            text-align: center;
-            transition: all 0.3s;
-        }
-        .back-btn:hover {
-            background-color: #5a6268;
+        #map {
+            width: 100%;
+            height: 500px;
+            border-radius: 10px;
+            border: 1px solid #ccc;
+            margin: 30px 0;
         }
     </style>
+    <script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=ce5bcf94fc2081f078f2061c33a4d7f4"></script>
 </head>
 <body>
-    <div class="container">
-        <h1>선택된 관광지 목록</h1>
-        <ul class="site-list" id="siteList"></ul>
-    </div>
+<div class="container">
+    <div id="map"></div>
 
-    <script>
-        const params = new URLSearchParams(window.location.search);
-        const siteList = document.getElementById('siteList');
+    <h1>선택된 관광지 목록</h1>
+    <ul class="site-list" id="siteList"></ul>
+</div>
 
-        for (let i = 1; i <= 3; i++) {
-            const name = params.get(`site${i}_name`) ? decodeURIComponent(params.get(`site${i}_name`)) : '';
-            const location = params.get(`site${i}_location`) ? decodeURIComponent(params.get(`site${i}_location`)) : '';
+<script>
+    const siteList = document.getElementById('siteList');
+    const siteData = [];
+    const params = new URLSearchParams(window.location.search);
+    const siteCount = parseInt(params.get('count'), 10) || 0;
 
-            if (name) {
-                const li = document.createElement('li');
-                li.className = 'site-item';
-                li.innerHTML = `
-                    <div class="site-number">${i}</div>
-                    <div class="site-info">
-                        <div class="site-name">${name}</div>
-                        <div class="site-location">${location || '위치 정보 없음'}</div>
-                    </div>
-                `;
-                siteList.appendChild(li);
-            }
+    for (let i = 1; i <= siteCount; i++) {
+        const name = params.get(`site${i}_name`);
+        const location = params.get(`site${i}_location`);
+        const lat = parseFloat(params.get(`site${i}_lat`));
+        const lon = parseFloat(params.get(`site${i}_lon`));
+
+        if (name && location && !isNaN(lat) && !isNaN(lon)) {
+            siteData.push({
+                name: decodeURIComponent(name),
+                address: decodeURIComponent(location),
+                lat,
+                lon
+            });
         }
-    </script>
+    }
+
+
+    siteData.forEach((site, index) => {
+        const li = document.createElement('li');
+        li.className = 'site-item';
+        li.innerHTML = `
+            <div class="site-number">${index + 1}</div>
+            <div class="site-info">
+                <div class="site-name">${site.name}</div>
+                <div class="site-location">${site.address}</div>
+            </div>`;
+        siteList.appendChild(li);
+    });
+
+    let map;
+    let markers = [];
+    let polyline;
+
+    function initMap() {
+        const container = document.getElementById('map');
+        const options = {
+            center: new kakao.maps.LatLng(36.642, 127.489),
+            level: 7
+        };
+        map = new kakao.maps.Map(container, options);
+
+        const bounds = new kakao.maps.LatLngBounds();
+        const path = [];
+
+        siteData.forEach(site => {
+            const position = new kakao.maps.LatLng(site.lat, site.lon);
+            bounds.extend(position);
+            path.push(position);
+
+            const marker = new kakao.maps.Marker({
+                position: position,
+                map: map,
+                title: site.name
+            });
+
+            const info = new kakao.maps.InfoWindow({
+                content: `<div style="padding:5px;">${site.name}</div>`
+            });
+
+            kakao.maps.event.addListener(marker, 'click', function() {
+                info.open(map, marker);
+            });
+
+            markers.push(marker);
+        });
+
+        if (path.length > 1) {
+            polyline = new kakao.maps.Polyline({
+                path: path,
+                strokeWeight: 4,
+                strokeColor: '#FF0000',
+                strokeOpacity: 0.8,
+                strokeStyle: 'solid'
+            });
+            polyline.setMap(map);
+        }
+
+        if (path.length > 0) {
+            map.setBounds(bounds);
+        }
+    }
+
+    window.onload = initMap;
+</script>
 </body>
 </html>

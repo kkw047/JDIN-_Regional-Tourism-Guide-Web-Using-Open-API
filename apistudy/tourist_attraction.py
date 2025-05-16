@@ -114,3 +114,5 @@ if __name__ == '__main__':
     print(f"가져온 관광지 데이터 수: {len(tourist_sites)}")
     # 데이터베이스에 저장
     save_tourist_sites_to_db(tourist_sites)
+
+
