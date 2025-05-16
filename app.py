@@ -89,7 +89,7 @@ def get_tourist_sites():
         connection = pymysql.connect(**db_config)
         with connection.cursor() as cursor:
             # 기본 조건: 주소에 도시명이 포함된 관광지 검색
-            sql = "SELECT id, name, address, mapx, mapy, tel FROM tourist_attraction WHERE address LIKE %s"
+            sql = "SELECT id, name, address, image, mapx, mapy, tel FROM tourist_attraction WHERE address LIKE %s"
             params = [f"%{city}%"]
 
             # 카테고리가 지정되었고 '전체'가 아닐 경우 추가 조건 생성

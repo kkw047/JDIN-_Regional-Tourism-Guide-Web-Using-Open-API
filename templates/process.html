@@ -44,6 +44,30 @@
         .site-info {
             flex: 1;
         }
+        .site-info img {
+            display: block;
+            margin-top: 10px;
+            max-width: 100%;
+            height: auto;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .site-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .site-image {
+            width: 160px;
+            height: 120px;
+            object-fit: cover;
+            border-radius: 10px;
+            flex-shrink: 0;
+            border: 1px solid #ccc;
+        }
         .site-name {
             font-size: 18px;
             font-weight: bold;
@@ -67,17 +91,72 @@
 <div class="container">
     <div id="map"></div>
 
+    <!-- 추가된 경로 텍스트 박스 -->
+    <div id="routeText" class="route-text"></div>
+
     <h1>선택된 관광지 목록</h1>
     <ul class="site-list" id="siteList"></ul>
+    <div class="confirm-button-container">
+        <button class="confirm-button">여행 확정</button>
+    </div>
 </div>
 
+<style>
+    .route-text {
+        margin: 20px 0;
+        padding: 15px;
+        background-color: #fff3cd;
+        color: #856404;
+        border: 1px solid #ffeeba;
+        border-radius: 8px;
+        font-size: 20px;
+        font-weight: bold;
+        text-align: center;
+    }
+
+    .site-text-block {
+        margin-top: 5px;
+        font-size: 14px;
+        color: #444;
+        background-color: #f1f1f1;
+        padding: 8px 12px;
+        border-radius: 6px;
+    }   
+    .confirm-button-container {
+        text-align: center;
+        margin-top: 30px;
+    }
+
+    .confirm-button {
+        background-color: #28a745;
+        color: white;
+        font-size: 18px;
+        font-weight: bold;
+        padding: 12px 24px;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        transition: background-color 0.3s;
+    }
+
+    .confirm-button:hover {
+        background-color: #218838;
+    }
+
+</style>
+
 <script>
+    
     const siteList = document.getElementById('siteList');
     const siteData = [];
     const params = new URLSearchParams(window.location.search);
     const siteCount = parseInt(params.get('count'), 10) || 0;
 
+    const routeTextBox = document.getElementById('routeText');
+
     for (let i = 1; i <= siteCount; i++) {
+        const image = params.get(`site${i}_image`);
         const name = params.get(`site${i}_name`);
         const location = params.get(`site${i}_location`);
         const lat = parseFloat(params.get(`site${i}_lat`));
@@ -87,22 +166,33 @@
             siteData.push({
                 name: decodeURIComponent(name),
                 address: decodeURIComponent(location),
+                image: decodeURIComponent(image),
+
                 lat,
                 lon
             });
         }
     }
+    if (siteData.length > 0) {
+        const routeText = siteData.map((site, idx) => `${site.name}`).join(' → ');
+        routeTextBox.textContent = routeText;
+    }
+
 
 
     siteData.forEach((site, index) => {
         const li = document.createElement('li');
         li.className = 'site-item';
         li.innerHTML = `
+            ${site.image ? `<img src="${site.image}" alt="${site.name}" class="site-image">` : ''}
             <div class="site-number">${index + 1}</div>
             <div class="site-info">
                 <div class="site-name">${site.name}</div>
                 <div class="site-location">${site.address}</div>
+                <div class="site-text-block">이곳은 텍스트 블록 1입니다.</div>
+                <div class="site-text-block">이곳은 텍스트 블록 2입니다.</div>
             </div>`;
+
         siteList.appendChild(li);
     });
 

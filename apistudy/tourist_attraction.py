@@ -105,6 +105,23 @@ def save_tourist_sites_to_db(tourist_sites):
     finally:
         connection.close()
 
+def print_all_tourist_sites():
+    """
+        데이터베이스에 저장된 관광지 데이터를 모두 출력합니다.
+    """
+    try:
+        connection = pymysql.connect(**db_config)
+        with connection.cursor() as cursor:
+            sql = "SELECT * FROM tourist_attraction"
+            cursor.execute(sql)
+            results = cursor.fetchall()
+            print(f"\n저장된 관광지 데이터 ({len(results)}개):")
+            for site in results:
+                print(f"- 이름: {site['name']}, 주소: {site['address']}, 전화: {site['tel']}, 위도: {site['mapy']}, 경도: {site['mapx']}")
+    except pymysql.MySQLError as e:
+        print(f"DB 출력 오류: {e}")
+    finally:
+        connection.close()
 
 if __name__ == '__main__':
     print("API에서 관광지 데이터 가져오는 중...")

@@ -374,7 +374,7 @@
             }
 
             // 관광지 선택 / 선택 취소 처리
-            function handleSiteSelection(button, siteId, siteName, lat, lon, address = '', category = '') {
+            function handleSiteSelection(button, siteId, siteName, lat, lon, address = '', category = '', image = '') {
                 const activeButton = document.querySelector(".buttons button.active");
                 const buttonIndex = parseInt(activeButton.getAttribute("data-index"), 10);
                 const parsedLat = parseFloat(lat);
@@ -396,6 +396,7 @@
                         name: siteName,
                         address: address,
                         category: category,
+                        image: image,
                         lat: lat,
                         lon: lon,
                         index: buttonIndex,
@@ -437,6 +438,8 @@
                 const sitesPayload = sortedSites.map(site => ({
                     name: site.name,
                     address: site.address,
+                    category: site.category,
+                    image: site.image,
                     lat: parseFloat(site.lat),
                     lon: parseFloat(site.lon)
                 }));
@@ -464,6 +467,8 @@
                         params.append(`site${index + 1}_location`, encodeURIComponent(site.address));
                         params.append(`site${index + 1}_lat`, site.lat);
                         params.append(`site${index + 1}_lon`, site.lon);
+                        params.append(`site${index + 1}_image`, encodeURIComponent(site.image));  
+
                     });
 
                     params.append('city', encodeURIComponent(city));
@@ -545,10 +550,11 @@
                         actionButton,
                         site.id,
                         site.name,
-                        site.mapy,
-                        site.mapx,
+                        site.mapy,     // lat
+                        site.mapx,     // lon
                         site.address || '',
-                        site.category || ''
+                        site.category || '',
+                        site.image || ''
                     );
                 };
                     li.appendChild(actionButton); // 버튼 추가
