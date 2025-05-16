@@ -155,15 +155,6 @@
             background-color: #cccccc;
             cursor: not-allowed;
         }
-        @media (max-width: 768px) {
-            .content {
-                flex-wrap: wrap;
-            }
-            .buttons, .categories {
-                width: 100%;
-                min-width: auto;
-            }
-        }
         .arrow-down {
             width: 100%;
             text-align: center;
@@ -178,285 +169,647 @@
             transition: transform 0.3s;
         }
         @keyframes bounceDown {
-            0%, 100% {
-                transform: translateY(0);
-            }
-            50% {
-                transform: translateY(4px);
-            }
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(4px); }
         }
         @keyframes glow {
-            0%, 100% {
-                text-shadow: 0 0 6px #ffc107;
-            }
-            50% {
-                text-shadow: 0 0 12px #ffc107;
-            }
+            0%, 100% { text-shadow: 0 0 6px #ffc107; }
+            50% { text-shadow: 0 0 12px #ffc107; }
         }
         @keyframes focusedBounce {
-            0%, 100% {
-                transform: translateY(0);
-            }
-            50% {
-                transform: translateY(-4px);
-            }
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-4px); }
         }
         .buttons button.focused {
             animation: focusedBounce 1s infinite;
             border: 2px solid #ffffff;
             box-shadow: 0 0 10px #ffffff;
         }
+
+        /* 마커 이미지 크기 조절 */
+        .tmap-marker img {
+            width: 65px; /* 원하는 가로 크기 */
+            height: 30px; /* 원하는 세로 크기 */
+        }
+        @media (max-width: 768px) {
+            .content {
+                flex-wrap: wrap;
+            }
+            .buttons, .categories {
+                width: 100%;
+                min-width: auto;
+            }
+        }
     </style>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://apis.openapi.sk.com/tmap/jsv2?version=1&appKey=Mb9cttQ9De2UcPzNfNwCl7ZRY31kNiUqPjCAeZne&callback=tmapApiLoaded"></script>
 </head>
 <body>
-    <div class="container">
-        <div id="map">[지도]</div>
-        <div class="content">
-            <div class="buttons" id="tourist-buttons"></div>
-            <div class="categories" id="categories">
-                <label><input type="checkbox" value="전체" checked onchange="handleCategoryChange(this)"> 전체</label>
-            </div>
-            <div class="results">
-                <ul id="results"></ul>
-            </div>
+<div id="map"></div>
+<div class="container">
+
+    <div class="content">
+        <div class="buttons" id="tourist-buttons"></div>
+        <div class="categories" id="categories">
+            <label><input type="checkbox" value="전체" checked onchange="handleCategoryChange(this)"> 전체</label>
         </div>
-        <div class="confirm-container" id="confirmContainer">
-            <button id="final-confirm-btn" onclick="moveToProcessPage()">확인하기</button>
+        <div class="results">
+            <ul id="results"></ul>
         </div>
     </div>
+    <div class="confirm-container" id="confirmContainer">
+        <button id="final-confirm-btn" onclick="moveToProcessPage()">확인하기</button>
+    </div>
+</div>
 
-    <script>
-        const city = "{{ city }}";
-        const count = {{ count }};
-        let categories = [];
-        let activeCategories = ["전체"];
-        let sites = [];
-        let selectedSites = {};
+<script>
+  // 전역 변수 선언
+  let map;
+  let markers = [];
+  let polyline = null;
+  let city = "{{ city }}";
+  let count = {{ count }};
+  let categories = [];
+  let activeCategories = ["전체"];
+  let sites = [];
+  let selectedSites = {};
+  let tmapLoaded = false; // Tmap API 로드 상태를 추적하는 변수
+  let polylines = []; // 경로를 저장할 배열
+  let infoWindow; // 정보 창 변수 추가
 
-        function createTouristButtons() {
-            const btnContainer = document.getElementById("tourist-buttons");
-            while (btnContainer.childNodes.length > 0) {
-                btnContainer.removeChild(btnContainer.lastChild);
-            }
-            for (let i = 1; i <= count; i++) {
-                const button = document.createElement("button");
-                button.innerText = `관광지 ${i}`;
-                button.setAttribute("data-index", i);
-                if (i === 1) button.classList.add("active");
-                button.onclick = () => handleTouristButtonClick(button);
-                btnContainer.appendChild(button);
+  // Tmap API 키를 여기에 입력하세요.
+  const apiKey = "Mb9cttQ9De2UcPzNfNwCl7ZRY31kNiUqPjCAeZne";
 
-                if (i < count) {
-                   const arrow = document.createElement("div");
-                   arrow.className = "arrow-down";
-                   btnContainer.appendChild(arrow);
-               }
-            }
+  // static 폴더 안에 있는 이미지 파일의 URL을 정의합니다.
+  const startIcon = "static/start.png";
+  const middleIcon = "static/middle.png";
+  const endIcon = "static/end.png";
+
+  // 지도 초기화 함수
+function initializeMap() {
+    const cityCoordinates = {
+      "서울": { lat: 37.5665, lng: 126.9780 },
+      "청주": { lat: 36.6424341, lng: 127.4890319 },
+      "부산": { lat: 35.1796, lng: 129.0756 },
+      "제주": { lat: 33.4996, lng: 126.5312 }
+    };
+
+    const center = cityCoordinates[city] || cityCoordinates["서울"];
+
+    map = new Tmapv2.Map("map", {
+      center: new Tmapv2.LatLng(center.lat, center.lng),
+      width: "100%",
+      height: "500px",
+      zoom: 12 // 초기 줌 레벨 설정
+    });
+
+      // 정보 창 생성
+      infoWindow = new Tmapv2.InfoWindow({
+        position: new Tmapv2.LatLng(0, 0), // 초기 위치 설정 (실제 위치는 마커에 따라 변경됨)
+        border: '0px solid #FFFFFF',
+        background: '#333333',
+        color: '#ffffff',
+        text: '',
+        visible: false, // 초기에는 숨김
+        padding: '5px',
+        align: 'center'
+      });
+      infoWindow.setMap(map); // 지도에 정보 창 추가
+  }
+
+
+ function updateMapMarkers() {
+    // Tmap API가 로드되었는지 확인
+    if (!tmapLoaded) {
+      console.warn("Tmap API가 아직 로드되지 않았습니다. 마커 업데이트를 연기합니다.");
+      return;
+    }
+
+    // 기존 마커 제거
+    clearMarkers();
+
+    // 선택된 관광지에 대한 마커 생성
+    const selectedSitesArray = Object.values(selectedSites).sort((a, b) => a.index - b.index);
+
+    selectedSitesArray.forEach((site, index) => {
+      if (site && site.location) {
+        const location = parseLocation(site.location);
+        if (location) {
+          // 마커 이미지 URL 결정
+          let markerIcon;
+          if (index === 0) {
+            markerIcon = startIcon; // 시작 지점
+          } else if (index === selectedSitesArray.length - 1) {
+            markerIcon = endIcon; // 도착 지점
+          } else {
+            markerIcon = middleIcon; // 중간 지점
+          }
+
+          // mapx와 mapy를 사용하여 TMap.LonLat 객체 생성
+          const lonLat = new Tmapv2.LatLng(location.lat, location.lng);
+
+          // 마커 생성
+          const marker = new Tmapv2.Marker({
+            position: lonLat,
+            icon: markerIcon,
+            iconSize: new Tmapv2.Size(65, 30),
+            title : site.name,
+            map: map
+          });
+
+
+          markers.push(marker);
+        } else {
+          console.error(`유효하지 않은 위치 정보: ${site.name}`);
         }
+      }
+    });
 
-        function handleTouristButtonClick(button) {
-            const buttons = document.querySelectorAll(".buttons button");
-            buttons.forEach(btn => {
-                btn.classList.remove("active", "focused");
-                if (btn.getAttribute("data-index") === button.getAttribute("data-index")) {
-                    btn.classList.add("active", "focused");
-                }
-            });
-            renderTouristSites();
+    // 모든 마커를 포함하는 경계 설정 (선택 사항)
+    if (markers.length > 0) {
+      const bounds = new Tmapv2.LatLngBounds();
+      for (var i = 0; i < markers.length; i++) {
+        bounds.extend(markers[i].getPosition());
+      }
+      map.fitBounds(bounds);
+    }
+  }
+
+  function clearMarkers() {
+    markers.forEach(marker => marker.setMap(null));
+    markers = [];
+  }
+
+  function createTouristButtons() {
+    const btnContainer = document.getElementById("tourist-buttons");
+    btnContainer.innerHTML = '';
+    for (let i = 1; i <= count; i++) {
+      const button = document.createElement("button");
+      button.innerText = `관광지 ${i}`;
+      button.setAttribute("data-index", i);
+      if (i === 1) button.classList.add("active");
+      button.onclick = () => handleTouristButtonClick(button);
+      btnContainer.appendChild(button);
+
+      if (i < count) {
+        const arrow = document.createElement("div");
+        arrow.className = "arrow-down";
+        btnContainer.appendChild(arrow);
+      }
+    }
+  }
+
+
+  function handleTouristButtonClick(button) {
+    const buttons = document.querySelectorAll(".buttons button");
+    buttons.forEach(btn => {
+      btn.classList.remove("active", "focused");
+      if (btn.getAttribute("data-index") === button.getAttribute("data-index")) {
+        btn.classList.add("active", "focused");
+      }
+    });
+    renderTouristSites();
+  }
+
+  function createCategoryCheckboxes() {
+    fetch("/get_categories")
+      .then(response => response.json())
+      .then(data => {
+        categories = data.categories || [];
+        const categoryContainer = document.getElementById("categories");
+        const existingCheckboxes = categoryContainer.querySelectorAll('input[type="checkbox"]:not([value="전체"])');
+        existingCheckboxes.forEach(checkbox => checkbox.parentElement.remove());
+        categories.forEach(category => {
+          const label = document.createElement("label");
+          label.innerHTML = `<input type="checkbox" value="${category}" onchange="handleCategoryChange(this)"> ${category}`;
+          categoryContainer.appendChild(label);
+        });
+      })
+      .catch(err => console.error("카테고리 로드 실패:", err));
+  }
+
+  function handleCategoryChange(checkbox) {
+    const allCheckbox = document.querySelector(".categories input[value='전체']");
+    if (checkbox.value === "전체") {
+      if (checkbox.checked) {
+        document.querySelectorAll(".categories input[type='checkbox']:not([value='전체'])").forEach(cb => {
+          cb.checked = false;
+        });
+        activeCategories = ["전체"];
+      }
+    } else {
+      if (checkbox.checked) {
+        if (activeCategories.includes("전체")) {
+          allCheckbox.checked = false;
+          activeCategories = activeCategories.filter(cat => cat !== "전체");
         }
-
-        function createCategoryCheckboxes() {
-            fetch("/get_categories")
-                .then(response => response.json())
-                .then(data => {
-                    categories = data.categories || [];
-                    const categoryContainer = document.getElementById("categories");
-                    const existingCheckboxes = categoryContainer.querySelectorAll('input[type="checkbox"]:not([value="전체"])');
-                    existingCheckboxes.forEach(checkbox => checkbox.parentElement.remove());
-                    categories.forEach(category => {
-                        const label = document.createElement("label");
-                        label.innerHTML = `<input type="checkbox" value="${category}" onchange="handleCategoryChange(this)"> ${category}`;
-                        categoryContainer.appendChild(label);
-                    });
-                })
-                .catch(err => console.error("카테고리 로드 실패:", err));
+        activeCategories.push(checkbox.value);
+      } else {
+        activeCategories = activeCategories.filter(cat => cat !== checkbox.value);
+        if (activeCategories.length === 0) {
+          allCheckbox.checked = true;
+          activeCategories = ["전체"];
         }
+      }
+    }
+    fetchTouristSites();
+  }
 
-        function handleCategoryChange(checkbox) {
-            const allCheckbox = document.querySelector(".categories input[value='전체']");
-            if (checkbox.value === "전체") {
-                if (checkbox.checked) {
-                    document.querySelectorAll(".categories input[type='checkbox']:not([value='전체'])").forEach(cb => {
-                        cb.checked = false;
-                    });
-                    activeCategories = ["전체"];
-                }
-            } else {
-                if (checkbox.checked) {
-                    if (activeCategories.includes("전체")) {
-                        allCheckbox.checked = false;
-                        activeCategories = activeCategories.filter(cat => cat !== "전체");
-                    }
-                    activeCategories.push(checkbox.value);
-                } else {
-                    activeCategories = activeCategories.filter(cat => cat !== checkbox.value);
-                    if (activeCategories.length === 0) {
-                        allCheckbox.checked = true;
-                        activeCategories = ["전체"];
-                    }
-                }
-            }
-            fetchTouristSites();
+function handleSiteSelection(button, siteId, siteName, site) {
+  console.log("handleSiteSelection 호출됨");
+  console.log("siteId:", siteId);
+  console.log("siteName:", siteName);
+  console.log("site:", site);
+
+  const activeButton = document.querySelector(".buttons button.active");
+  const buttonIndex = activeButton.getAttribute("data-index");
+
+  if (button.classList.contains("select-btn")) {
+    // 이전에 선택된 버튼이 있는 경우, 텍스트를 "선택"으로 변경하고 스타일을 업데이트합니다.
+    if (selectedSites[buttonIndex]) {
+      const prevSelectedBtn = document.querySelector(`button[data-site-id="${selectedSites[buttonIndex].id}"]`);
+      if (prevSelectedBtn) {
+        prevSelectedBtn.textContent = "선택";
+        prevSelectedBtn.classList.remove("cancel-btn");
+        prevSelectedBtn.classList.add("select-btn");
+      }
+    }
+
+    // 위치 정보 처리
+    try {
+      const locationData = parseLocation(site.location);
+      if (!locationData) {
+        console.error(`유효하지 않은 위치 정보: ${siteName}`);
+        alert("유효하지 않은 위치 정보입니다."); // 사용자에게 알림
+        return;
+      }
+
+      selectedSites[buttonIndex] = {
+        id: siteId,
+        name: siteName,
+        location: site.location,
+        index: Number(buttonIndex)
+      };
+
+      button.textContent = "선택 취소";
+      button.classList.remove("select-btn");
+      button.classList.add("cancel-btn");
+      button.setAttribute("data-site-id", siteId);
+
+      activeButton.textContent = siteName;
+      activeButton.classList.add("selected");
+
+      // 첫 번째 관광지 선택 시 지도를 해당 위치로 이동 및 줌 설정
+      if (Object.keys(selectedSites).length === 1) {
+        const newCenter = new Tmapv2.LatLng(locationData.lat, locationData.lng);
+        map.setCenter(newCenter);
+        map.setZoom(15); // 원하는 줌 레벨로 설정
+      }
+
+      // 다음 버튼 활성화 (선택 사항)
+      const nextIndex = Number(buttonIndex) + 1;
+      const nextButton = document.querySelector(`.buttons button[data-index="${nextIndex}"]`);
+      if (nextButton) {
+        handleTouristButtonClick(nextButton);
+      }
+    } catch (error) {
+      console.error("위치 정보 처리 중 오류 발생:", error);
+      alert("위치 정보 처리 중 오류가 발생했습니다."); // 사용자에게 알림
+      return;
+    }
+  } else {
+    delete selectedSites[buttonIndex];
+    button.textContent = "선택";
+    button.classList.remove("cancel-btn");
+    button.classList.add("select-btn");
+    button.removeAttribute("data-site-id");
+
+    const touristButton = document.querySelector(`.buttons button[data-index="${buttonIndex}"]`);
+    touristButton.classList.remove("selected");
+    touristButton.innerText = `관광지 ${buttonIndex}`;
+  }
+
+  updateSelectionStatus();
+  updateMapMarkers();
+}
+
+function updateSelectionStatus() {
+  const selectedCount = Object.keys(selectedSites).length;
+  const confirmContainer = document.getElementById('confirmContainer');
+  const finalConfirmBtn = document.getElementById('final-confirm-btn');
+
+  if (selectedCount === count) {
+    confirmContainer.style.display = 'block';
+    finalConfirmBtn.disabled = false;
+
+    // 기존 경로 삭제
+    clearTmapPath();
+
+    // 선택된 관광지 목록을 순회하면서 경로 요청
+    const siteKeys = Object.keys(selectedSites);
+    for (let i = 0; i < siteKeys.length - 1; i++) {
+      const startSite = selectedSites[siteKeys[i]];
+      const endSite = selectedSites[siteKeys[i + 1]];
+
+      if (startSite && endSite && startSite.location && endSite.location) {
+        const startLocation = parseLocation(startSite.location);
+        const endLocation = parseLocation(endSite.location);
+
+        if (startLocation && endLocation) {
+          const start = new Tmapv2.LatLng(startLocation.lat, startLocation.lng);
+          const end = new Tmapv2.LatLng(endLocation.lat, endLocation.lng);
+          getTmapPath(start, end);
+        } else {
+          console.warn("유효하지 않은 위치 정보:", startSite.name, endSite.name);
         }
+      }
+    }
 
-        function handleSiteSelection(button, siteId, siteName, siteLocation) {
-            const activeButton = document.querySelector(".buttons button.active");
-            const buttonIndex = activeButton.getAttribute("data-index");
+    adjustMapBounds(); // 모든 마커가 보이도록 지도 경계 조정 (마지막 선택 시에만 호출)
+  } else {
+    confirmContainer.style.display = 'none';
+    finalConfirmBtn.disabled = true;
+    clearTmapPath(); // 선택이 완료되지 않았을 때 경로 삭제
+  }
+}
 
-            if (button.classList.contains("select-btn")) {
-                if (selectedSites[buttonIndex]) {
-                    const prevSelectedBtn = document.querySelector(`button[data-site-id="${selectedSites[buttonIndex].id}"]`);
-                    if (prevSelectedBtn) {
-                        prevSelectedBtn.textContent = "선택";
-                        prevSelectedBtn.classList.remove("cancel-btn");
-                        prevSelectedBtn.classList.add("select-btn");
-                    }
-                }
-                selectedSites[buttonIndex] = {
-                    id: siteId,
-                    name: siteName,
-                    location: siteLocation,
-                    index: Number(buttonIndex)
-                };
-                button.textContent = "선택 취소";
-                button.classList.remove("select-btn");
-                button.classList.add("cancel-btn");
-                button.setAttribute("data-site-id", siteId);
+function adjustMapBounds() {
+  const bounds = new Tmapv2.LatLngBounds();
+  let hasValidLocation = false;
 
-                activeButton.textContent = siteName;
-                activeButton.classList.add("selected");
-
-                const nextIndex = Number(buttonIndex) + 1;
-                const nextButton = document.querySelector(`.buttons button[data-index="${nextIndex}"]`);
-                if (nextButton) {
-                    handleTouristButtonClick(nextButton);
-                }
-            }
-            else {
-                // 선택 취소
-                delete selectedSites[buttonIndex];
-                button.textContent = "선택";
-                button.classList.remove("cancel-btn");
-                button.classList.add("select-btn");
-                button.removeAttribute("data-site-id");
-                const touristButton = document.querySelector(`.buttons button[data-index="${buttonIndex}"]`);
-                touristButton.classList.remove("selected");
-                touristButton.innerText = `관광지 ${buttonIndex}`;
-
-                // 포커스를 이전 관광지로 이동
-                const selectedIndexes = Object.keys(selectedSites).map(i => parseInt(i)).sort((a, b) => a - b);
-                const prevIndex = selectedIndexes.length > 0 ? selectedIndexes[selectedIndexes.length - 1] : null;
-                if (prevIndex) {
-                    const prevBtn = document.querySelector(`.buttons button[data-index="${prevIndex}"]`);
-                    if (prevBtn) handleTouristButtonClick(prevBtn);
-                }
-            }
-            updateSelectionStatus();
+  for (const key in selectedSites) {
+    if (selectedSites.hasOwnProperty(key)) {
+      const site = selectedSites[key];
+      if (site && site.location) {
+        const location = parseLocation(site.location);
+        if (location) {
+          const latLng = new Tmapv2.LatLng(location.lat, location.lng);
+          bounds.extend(latLng);
+          hasValidLocation = true;
+        } else {
+          console.warn(`유효하지 않은 위치 정보: ${site.name}`);
         }
+      } else {
+        console.warn(`위치 정보가 없습니다: ${site.name}`);
+      }
+    }
+  }
 
-        function updateSelectionStatus() {
-            const selectedCount = Object.keys(selectedSites).length;
-            const confirmContainer = document.getElementById('confirmContainer');
-            const finalConfirmBtn = document.getElementById('final-confirm-btn');
+  if (hasValidLocation) {
+    // 모든 마커를 포함하는 최소 경계를 찾고 지도를 조정합니다.
+    map.fitBounds(bounds);
+  } else {
+    // 유효한 위치 정보가 없는 경우, 기본 위치로 지도를 설정합니다.
+    const cityCoordinates = {
+      "서울": { lat: 37.5665, lng: 126.9780 },
+      "청주": { lat: 36.6424341, lng: 127.4890319 },
+      "부산": { lat: 35.1796, lng: 129.0756 },
+      "제주": { lat: 33.4996, lng: 126.5312 }
+    };
+    const center = cityCoordinates[city] || cityCoordinates["서울"];
+    map.setCenter(new Tmapv2.LatLng(center.lat, center.lng));
+    map.setZoom(12);
+  }
+}
 
-            if (selectedCount === count) {
-                confirmContainer.style.display = 'block';
-                finalConfirmBtn.disabled = false;
-            } else {
-                confirmContainer.style.display = 'none';
-                finalConfirmBtn.disabled = true;
-            }
+  function moveToProcessPage() {
+    const sortedSites = Object.values(selectedSites).sort((a, b) => a.index - b.index);
+    const params = new URLSearchParams();
+
+    sortedSites.forEach((site, index) => {
+      params.append(`site${index + 1}_name`, encodeURIComponent(site.name));
+      params.append(`site${index + 1}_location`, encodeURIComponent(site.location || ''));
+    });
+
+    params.append('city', encodeURIComponent(city));
+    params.append('count', count);
+
+    window.location.href = `/process?${params.toString()}`;
+  }
+
+
+  function renderTouristSites() {
+    const resultContainer = document.getElementById("results");
+    resultContainer.innerHTML = "";
+    if (!sites || sites.length === 0) {
+      resultContainer.innerHTML = `<li style="text-align: center; padding: 30px;">해당 지역의 관광지가 없습니다.</li>`;
+      return;
+    }
+
+    const activeButton = document.querySelector(".buttons button.active");
+    const buttonIndex = activeButton ? activeButton.getAttribute("data-index") : null;
+    const selectedSite = buttonIndex ? selectedSites[buttonIndex] : null;
+
+    sites.forEach(site => {
+      const li = document.createElement("li");
+      const infoDiv = document.createElement("div");
+      infoDiv.className = "site-info";
+      const category = site.category ? `(${site.category})` : "";
+      const address = site.address || "위치 정보 없음";
+
+      infoDiv.innerHTML = `<strong>${site.name}</strong> ${category}<br><small style="color: #666;">${address}</small>`;
+      li.appendChild(infoDiv);
+
+      const actionButton = document.createElement("button");
+      if (selectedSite && selectedSite.id === site.id) {
+        actionButton.textContent = "선택 취소";
+        actionButton.classList.add("cancel-btn");
+        actionButton.setAttribute("data-site-id", site.id);
+      } else {
+        actionButton.textContent = "선택";
+        actionButton.classList.add("select-btn");
+      }
+      actionButton.onclick = () => handleSiteSelection(actionButton, site.id, site.name, site);
+      li.appendChild(actionButton);
+      resultContainer.appendChild(li);
+    });
+  }
+
+ function parseLocation(locationStr) {
+    if (!locationStr) {
+      console.warn("위치 정보가 없습니다.");
+      return null; // 또는 기본 위치 정보 객체 반환
+    }
+
+    // 객체인 경우
+    if (typeof locationStr === 'object') {
+      // location 객체가 mapx, mapy를 가지고 있는 경우
+      if (locationStr.mapx !== undefined && locationStr.mapy !== undefined) {
+        const lng = parseFloat(locationStr.mapx);
+        const lat = parseFloat(locationStr.mapy);
+
+        if (!isNaN(lng) && !isNaN(lat)) {
+          return { lng, lat };
+        } else {
+          console.warn("유효하지 않은 mapx 또는 mapy 값:", locationStr);
+          return null;
         }
+      }
+      else if (locationStr.lng !== undefined && locationStr.lat !== undefined) {
+        const lng = parseFloat(locationStr.lng);
+        const lat = parseFloat(locationStr.lat);
 
-        function moveToProcessPage() {
-            const sortedSites = Object.values(selectedSites).sort((a, b) => a.index - b.index);
-            const params = new URLSearchParams();
-
-            sortedSites.forEach((site, index) => {
-                params.append(`site${index+1}_name`, encodeURIComponent(site.name));
-                params.append(`site${index+1}_location`, encodeURIComponent(site.location || ''));
-            });
-
-            params.append('city', encodeURIComponent(city));
-            params.append('count', count);
-
-            window.location.href = `/process?${params.toString()}`;
+        if (!isNaN(lng) && !isNaN(lat)) {
+          return { lng, lat };
+        } else {
+          console.warn("유효하지 않은 lng 또는 lat 값:", locationStr);
+          return null;
         }
+      }
 
-        function fetchTouristSites() {
-            if (!city) return;
-            const queryCategories = `&categories=${encodeURIComponent(activeCategories.join(","))}`;
-            const queryUrl = `/get_tourist_sites?city=${encodeURIComponent(city)}${queryCategories}`;
-            fetch(queryUrl)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        sites = data.sites || [];
-                        renderTouristSites();
-                    } else {
-                        console.error("서버 오류:", data.error);
-                    }
-                })
-                .catch(err => console.error("요청 실패:", err));
+      else {
+        console.warn("유효하지 않은 위치 정보 형식 (객체):", locationStr);
+        return null;
+      }
+    }
+
+    // 문자열인 경우
+    if (typeof locationStr === 'string') {
+      // 먼저 JSON 문자열인지 확인
+      try {
+        const jsonData = JSON.parse(locationStr);
+        return parseLocation(jsonData); // 재귀 호출
+      } catch (e) {
+        // JSON 파싱 실패시 쉼표로 구분된 좌표인지 확인
+        const parts = locationStr.split(',');
+        if (parts.length === 2) {
+          const lng = parseFloat(parts[0].trim());
+          const lat = parseFloat(parts[1].trim());
+
+          if (!isNaN(lng) && !isNaN(lat)) {
+            return { lng, lat };
+          } else {
+            console.warn("유효하지 않은 좌표 문자열:", locationStr);
+            return null;
+          }
+        } else {
+          console.warn("유효하지 않은 위치 정보 형식:", locationStr);
+          return null;
         }
+      }
+    }
 
-        function renderTouristSites() {
-            const resultContainer = document.getElementById("results");
-            resultContainer.innerHTML = "";
-            if (!sites || sites.length === 0) {
-                resultContainer.innerHTML = `<li style="text-align: center; padding: 30px;">해당 지역의 관광지가 없습니다.</li>`;
-                return;
-            }
-            const activeButton = document.querySelector(".buttons button.active");
-            const buttonIndex = activeButton ? activeButton.getAttribute("data-index") : null;
-            const selectedSite = buttonIndex ? selectedSites[buttonIndex] : null;
+    console.warn("유효하지 않은 위치 정보 타입:", typeof locationStr, locationStr);
+    return null;
+  }
 
-            sites.forEach(site => {
-                const li = document.createElement("li");
-                const infoDiv = document.createElement("div");
-                infoDiv.className = "site-info";
-                const category = site.category ? `(${site.category})` : "";
-                infoDiv.innerHTML = `<strong>${site.name}</strong> ${category}<br><small style="color: #666;">${site.location || '위치 정보 없음'}</small>`;
-                li.appendChild(infoDiv);
+  function fetchTouristSites() {
+    if (!city) return;
+    const queryCategories = `&categories=${encodeURIComponent(activeCategories.join(","))}`;
+    const queryUrl = `/get_tourist_sites?city=${encodeURIComponent(city)}${queryCategories}`;
 
-                const actionButton = document.createElement("button");
-                if (selectedSite && selectedSite.id === site.id) {
-                    actionButton.textContent = "선택 취소";
-                    actionButton.classList.add("cancel-btn");
-                    actionButton.setAttribute("data-site-id", site.id);
-                } else {
-                    actionButton.textContent = "선택";
-                    actionButton.classList.add("select-btn");
-                    actionButton.removeAttribute("data-site-id");
-                }
-                actionButton.onclick = () => handleSiteSelection(actionButton, site.id, site.name, site.location);
-                li.appendChild(actionButton);
-                resultContainer.appendChild(li);
-            });
+    console.log("요청 URL:", queryUrl);
+
+    fetch(queryUrl)
+      .then(response => response.json())
+      .then(data => {
+        console.log("받은 데이터:", data);
+        if (data.success) {
+          sites = data.sites || [];
+          renderTouristSites();
+        } else {
+          console.error("서버 오류:", data.error);
         }
+      })
+      .catch(err => console.error("요청 실패:", err));
+  }
 
-        function init() {
-            createTouristButtons();
-            createCategoryCheckboxes();
-            fetchTouristSites();
-            // 페이지 첫 이동시에도 버튼에 바운싱 효과 적용
-            const firstButton = document.querySelector('.buttons button[data-index="1"]');
-            if (firstButton) {
-            handleTouristButtonClick(firstButton);
-            }
-        }
+  function init() {
+    if (typeof Tmapv2 !== 'undefined') {
+      initializeMap();
+      createTouristButtons();
+      createCategoryCheckboxes();
+      fetchTouristSites();
+      const firstButton = document.querySelector('.buttons button[data-index="1"]');
+      if (firstButton) {
+        handleTouristButtonClick(firstButton);
+      }
+      tmapLoaded = true;
+      updateMapMarkers(); // 초기 지도 설정 후 마커 업데이트
+    } else {
+      console.error("Tmapv2 API 스크립트 로드 실패");
+      // Tmap API 로드 실패 시 대체 UI를 표시하거나, 오류 메시지를 표시할 수 있습니다.
+      setTimeout(init, 500); // 0.5초 후에 다시 시도
+    }
+  }
 
-        init();
-    </script>
+  function tmapApiLoaded() {
+    console.log("Tmapv2 API 로드 완료");
+    init(); // Tmapv2 API 로드 완료 후 init 함수 호출
+  }
+
+function getTmapPath(start, end) {
+  const apiUrl = "https://apis.openapi.sk.com/tmap/routes/pedestrian?version=1&format=json";
+
+  // start와 end 객체 내용 확인
+  console.log("Start 객체:", start);
+  console.log("End 객체:", end);
+
+  // 좌표 값을 가져오는 방식에 따라 수정
+  const startX = typeof start.lng === 'function' ? parseFloat(start.lng()) : parseFloat(start.lng);
+  const startY = typeof start.lat === 'function' ? parseFloat(start.lat()) : parseFloat(start.lat);
+  const endX = typeof end.lng === 'function' ? parseFloat(end.lng()) : parseFloat(end.lng);
+  const endY = typeof end.lat === 'function' ? parseFloat(end.lat()) : parseFloat(end.lat());
+
+  const requestData = {
+    "startX": startX,
+    "startY": startY,
+    "endX": endX,
+    "endY": endY,
+    "reqCoordType": "WGS84GEO",
+    "resCoordType": "WGS84GEO",
+    "startName": "출발지",
+    "endName": "도착지"
+  };
+
+  console.log("Tmap API 요청 데이터:", requestData);
+
+  $.ajax({
+    method: "POST",
+    url: apiUrl,
+    async: false,
+    headers: {
+      "Accept": "application/json",
+      "Content-Type": "application/json; charset=utf-8",
+      "appKey": "Mb9cttQ9De2UcPzNfNwCl7ZRY31kNiUqPjCAeZne"
+    },
+    data: JSON.stringify(requestData),
+    success: function(response) {
+      const resultData = response.features;
+      drawTmapPath(resultData);
+    },
+    error: function(request, status, error) {
+      console.error("경로 요청 실패:", error);
+      console.error("오류 메시지:", request.responseText);
+    }
+  });
+}
+
+
+function drawTmapPath(pathData) {
+  for (let i in pathData) {
+    const geometry = pathData[i].geometry;
+    if (geometry.type === "LineString") {
+      const coords = geometry.coordinates;
+      const line = new Tmapv2.Polyline({
+        path: coords.map(coord => new Tmapv2.LatLng(coord[1], coord[0])),
+        strokeColor: "#DD0000",
+        strokeWeight: 6,
+        map: map
+      });
+      polylines.push(line);
+    }
+  }
+}
+
+function clearTmapPath() {
+  for (let i in polylines) {
+    polylines[i].setMap(null);
+  }
+  polylines = [];
+}
+
+  window.onload = init;
+</script>
 </body>
 </html>
