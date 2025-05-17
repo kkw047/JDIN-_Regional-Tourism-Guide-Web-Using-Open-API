@@ -79,7 +79,7 @@ def get_tourist_sites():
         connection = pymysql.connect(**db_config)
         with connection.cursor() as cursor:
             # SQL 쿼리 수정: mapx, mapy 컬럼 추가
-            sql = "SELECT id, name, address, mapx, mapy FROM tourist_attraction WHERE address LIKE %s"
+            sql = "SELECT id, name, address, mapx, mapy, image FROM tourist_attraction WHERE address LIKE %s"
             params = [f"%{city}%"]
 
             if categories and categories != "전체":

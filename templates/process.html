@@ -37,6 +37,22 @@
             align-items: center;
             transition: all 0.3s;
         }
+
+        .site-image {
+            width: 150px;
+            height: auto;
+            margin-right: 20px;
+            border-radius: 6px;
+            flex-shrink: 0;
+        }
+        #map {
+            width: 100%;
+            height: 500px;
+            background-color: #dcdcdc;
+            border: 1px solid #ccc;
+            margin-bottom: 20px;
+            border-radius: 8px;
+        }
         .site-item:hover {
             background-color: #f8f9fa;
         }
@@ -78,34 +94,105 @@
         .back-btn:hover {
             background-color: #5a6268;
         }
+        .site-extra {
+            font-size: 14px;
+            color: #495057;
+            margin-top: 5px;
+        }
+        .confirm-btn {
+            display: block;
+            margin: 40px auto 0;
+            padding: 14px 30px;
+            font-size: 18px;
+            font-weight: bold;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .confirm-btn:hover {
+            background-color: #218838;
+        }
+        .route-summary {
+            text-align: center;
+            font-size: 20px;
+            font-weight: bold;
+            margin: 20px 0;
+            color: #020202;
+        }
     </style>
+    <script src="https://apis.openapi.sk.com/tmap/jsv2?version=1&appKey=Mb9cttQ9De2UcPzNfNwCl7ZRY31kNiUqPjCAeZne&callback=tmapApiLoaded"></script>
+
 </head>
 <body>
     <div class="container">
+        <div id="map"></div>
+        <div id="routeSummary" class="route-summary"></div>
         <h1>선택된 관광지 목록</h1>
         <ul class="site-list" id="siteList"></ul>
+        <button class="confirm-btn" onclick="confirmTrip()">여행 확정</button>
+
     </div>
 
     <script>
+        
         const params = new URLSearchParams(window.location.search);
         const siteList = document.getElementById('siteList');
+        const routeSummary = document.getElementById("routeSummary");
+        let routeNames = [];
+        
+        function confirmTrip() {
+            alert("여행이 확정되었습니다!");
+            // 또는 window.location.href = "/submit-final"; 와 같이 실제 이동 처리도 가능
+
+        }
 
         for (let i = 1; i <= 3; i++) {
             const name = params.get(`site${i}_name`) ? decodeURIComponent(params.get(`site${i}_name`)) : '';
-            const location = params.get(`site${i}_location`) ? decodeURIComponent(params.get(`site${i}_location`)) : '';
+            const locationParam = params.get(`site${i}_location`) ? decodeURIComponent(params.get(`site${i}_location`)) : '';
+            const address = params.get(`site${i}_address`) ? decodeURIComponent(params.get(`site${i}_address`)) : '주소 정보 없음';
+            const imageUrl = params.get(`site${i}_image`) ? decodeURIComponent(params.get(`site${i}_image`)) : '';
+
+            let location = "위치 정보 없음";
+            try {
+                const locObj = JSON.parse(locationParam);
+                if (locObj.mapx && locObj.mapy) {
+                    location = `위도: ${locObj.mapy}, 경도: ${locObj.mapx}`;
+                } else if (locObj.lat && locObj.lng) {
+                    location = `위도: ${locObj.lat}, 경도: ${locObj.lng}`;
+                }
+            } catch (e) {
+                location = locationParam || "위치 정보 없음";
+            }
 
             if (name) {
+                routeNames.push(name); // 경로에 추가
                 const li = document.createElement('li');
                 li.className = 'site-item';
                 li.innerHTML = `
+                    ${imageUrl ? `<img src="${imageUrl}" alt="${name}" class="site-image">` : ''}
                     <div class="site-number">${i}</div>
                     <div class="site-info">
                         <div class="site-name">${name}</div>
-                        <div class="site-location">${location || '위치 정보 없음'}</div>
+                        <div class="site-location">${address}</div>
+                        <div class="site-extra">추가 정보 1: 여기에 텍스트 입력</div>
+                        <div class="site-extra">추가 정보 2: 여기에 텍스트 입력</div>
                     </div>
                 `;
                 siteList.appendChild(li);
             }
+        }
+
+        // 경로 요약 텍스트 표시
+        if (routeNames.length >= 2) {
+            routeSummary.textContent = routeNames.join(" → ");
+        } else if (routeNames.length === 1) {
+            routeSummary.textContent = routeNames[0];
+        } else {
+            routeSummary.textContent = "선택된 관광지가 없습니다.";
         }
     </script>
 </body>
