@@ -22,7 +22,6 @@ db_config = {
     'cursorclass': pymysql.cursors.DictCursor
 }
 
-
 @app.route('/')
 def index():
     return render_template('index.html')
