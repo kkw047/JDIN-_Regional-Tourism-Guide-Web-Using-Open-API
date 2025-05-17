@@ -1,578 +1,815 @@
-    <!DOCTYPE html>
-    <html lang="ko">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>검색 결과</title>
-        <style>
-            body {
-                font-family: Arial, sans-serif;
-                margin: 0;
-                padding: 20px;
-                background-color: #fefefe;
-            }
-            .container {
-                width: 95%;
-                max-width: 1400px;
-                margin: 0 auto;
-            }
-            #map {
-                width: 100%;
-                height: 500px;
-                background-color: #dcdcdc;
-                border: 1px solid #ccc;
-                margin-bottom: 20px;
-                border-radius: 8px;
-            }
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>검색 결과</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #fefefe;
+        }
+        .container {
+            width: 95%;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        #map {
+            width: 100%;
+            height: 500px;
+            background-color: #dcdcdc;
+            border: 1px solid #ccc;
+            margin-bottom: 20px;
+            border-radius: 8px;
+        }
+        .content {
+            display: flex;
+            gap: 20px;
+            flex-wrap: nowrap;
+        }
+        .buttons {
+            width: 150px;
+            min-width: 150px;
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+        }
+        .categories {
+            width: 200px;
+            min-width: 200px;
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+        }
+        .results {
+            flex: 1;
+            min-width: 300px;
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+        }
+        .buttons button {
+            display: block;
+            width: 100%;
+            margin-bottom: 12px;
+            padding: 10px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+        .buttons button:hover {
+            opacity: 0.9;
+        }
+        .buttons button.active {
+            background-color: #28a745;
+        }
+        .buttons button.selected {
+            background-color: #ff8800;
+        }
+        .categories label {
+            display: block;
+            margin-bottom: 12px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        .categories input {
+            margin-right: 8px;
+        }
+        .results ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .results li {
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: white;
+            transition: all 0.3s;
+        }
+        .results li:hover {
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .site-info {
+            flex: 1;
+            font-size: 16px;
+            margin-right: 15px;
+        }
+        .select-btn, .cancel-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: all 0.3s;
+            white-space: nowrap;
+        }
+        .select-btn {
+            background-color: #28a745;
+            color: white;
+        }
+        .cancel-btn {
+            background-color: #dc3545;
+            color: white;
+        }
+        .select-btn:hover, .cancel-btn:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+        .confirm-container {
+            text-align: center;
+            margin-top: 30px;
+            padding: 20px;
+            background-color: #f9f9f9;
+            border-radius: 8px;
+            display: none;
+        }
+        #final-confirm-btn {
+            padding: 12px 30px;
+            background-color: #17a2b8;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 18px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        #final-confirm-btn:hover {
+            background-color: #138496;
+        }
+        #final-confirm-btn:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        .arrow-down {
+            width: 100%;
+            text-align: center;
+            margin: 6px 0 12px;
+            font-size: 18px;
+            color: #999;
+            animation: bounceDown 1.8s infinite;
+        }
+        .arrow-down::before {
+            content: "▼";
+            display: inline-block;
+            transition: transform 0.3s;
+        }
+        @keyframes bounceDown {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(4px); }
+        }
+        @keyframes glow {
+            0%, 100% { text-shadow: 0 0 6px #ffc107; }
+            50% { text-shadow: 0 0 12px #ffc107; }
+        }
+        @keyframes focusedBounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-4px); }
+        }
+        .buttons button.focused {
+            animation: focusedBounce 1s infinite;
+            border: 2px solid #ffffff;
+            box-shadow: 0 0 10px #ffffff;
+        }
+
+        /* 마커 이미지 크기 조절 */
+        .tmap-marker img {
+            width: 65px; /* 원하는 가로 크기 */
+            height: 30px; /* 원하는 세로 크기 */
+        }
+        @media (max-width: 768px) {
             .content {
-                display: flex;
-                gap: 20px;
-                flex-wrap: nowrap;
+                flex-wrap: wrap;
             }
-            .buttons {
-                width: 150px;
-                min-width: 150px;
-                background-color: #f9f9f9;
-                border: 1px solid #ddd;
-                border-radius: 8px;
-                padding: 15px;
-            }
-            .categories {
-                width: 200px;
-                min-width: 200px;
-                background-color: #f9f9f9;
-                border: 1px solid #ddd;
-                border-radius: 8px;
-                padding: 15px;
-            }
-            .results {
-                flex: 1;
-                min-width: 300px;
-                background-color: #f9f9f9;
-                border: 1px solid #ddd;
-                border-radius: 8px;
-                padding: 15px;
-            }
-            .buttons button {
-                display: block;
+            .buttons, .categories {
                 width: 100%;
-                margin-bottom: 12px;
-                padding: 10px;
-                background-color: #007bff;
-                color: white;
-                border: none;
-                border-radius: 6px;
-                cursor: pointer;
-                font-size: 16px;
-                transition: all 0.3s;
+                min-width: auto;
             }
-            .buttons button:hover {
-                opacity: 0.9;
-            }
-            .buttons button.active {
-                background-color: #28a745;
-            }
-            .buttons button.selected {
-                background-color: #ff8800;
-            }
-            .categories label {
-                display: block;
-                margin-bottom: 12px;
-                font-size: 16px;
-                cursor: pointer;
-            }
-            .categories input {
-                margin-right: 8px;
-            }
-            .results ul {
-                list-style: none;
-                padding: 0;
-                margin: 0;
-            }
-            .results li {
-                padding: 15px;
-                border: 1px solid #ddd;
-                border-radius: 6px;
-                margin-bottom: 12px;
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                background-color: white;
-                transition: all 0.3s;
-            }
-            .results li:hover {
-                box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            }
-            .site-info {
-                flex: 1;
-                font-size: 16px;
-                margin-right: 15px;
-            }
-            .select-btn, .cancel-btn {
-                padding: 8px 16px;
-                border: none;
-                border-radius: 6px;
-                cursor: pointer;
-                font-size: 14px;
-                font-weight: bold;
-                transition: all 0.3s;
-                white-space: nowrap;
-            }
-            .select-btn {
-                background-color: #28a745;
-                color: white;
-            }
-            .cancel-btn {
-                background-color: #dc3545;
-                color: white;
-            }
-            .select-btn:hover, .cancel-btn:hover {
-                opacity: 0.9;
-                transform: translateY(-1px);
-            }
-            .confirm-container {
-                text-align: center;
-                margin-top: 30px;
-                padding: 20px;
-                background-color: #f9f9f9;
-                border-radius: 8px;
-                display: none;
-            }
-            #final-confirm-btn {
-                padding: 12px 30px;
-                background-color: #17a2b8;
-                color: white;
-                border: none;
-                border-radius: 6px;
-                font-size: 18px;
-                cursor: pointer;
-                transition: all 0.3s;
-            }
-            #final-confirm-btn:hover {
-                background-color: #138496;
-            }
-            #final-confirm-btn:disabled {
-                background-color: #cccccc;
-                cursor: not-allowed;
-            }
-            @media (max-width: 768px) {
-                .content {
-                    flex-wrap: wrap;
-                }
-                .buttons, .categories {
-                    width: 100%;
-                    min-width: auto;
-                }
-            }
-        </style>
-        <script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=ce5bcf94fc2081f078f2061c33a4d7f4"></script>
-    </head>
-    <body>
-        <div class="container">
-            <div id="map"></div>
-            <div class="content">
-                <div class="buttons" id="tourist-buttons"></div>
-                <div class="categories" id="categories">
-                    <label><input type="checkbox" value="전체" checked onchange="handleCategoryChange(this)"> 전체</label>
-                </div>
-                <div class="results">
-                    <ul id="results"></ul>
-                </div>
-            </div>
-            <div class="confirm-container" id="confirmContainer">
-                <button id="final-confirm-btn" onclick="moveToProcessPage()">확인하기</button>
-            </div>
+        }
+    </style>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://apis.openapi.sk.com/tmap/jsv2?version=1&appKey=Mb9cttQ9De2UcPzNfNwCl7ZRY31kNiUqPjCAeZne&callback=tmapApiLoaded"></script>
+</head>
+<body>
+<div id="map"></div>
+<div class="container">
+
+    <div class="content">
+        <div class="buttons" id="tourist-buttons"></div>
+        <div class="categories" id="categories">
+            <label><input type="checkbox" value="전체" checked onchange="handleCategoryChange(this)"> 전체</label>
         </div>
+        <div class="results">
+            <ul id="results"></ul>
+        </div>
+    </div>
+    <div class="confirm-container" id="confirmContainer">
+        <button id="final-confirm-btn" onclick="moveToProcessPage()">확인하기</button>
+    </div>
+</div>
 
-        <script>
-            const city = "{{ city }}";
-            const count = parseInt("{{ count }}", 10); 
+<script>
+  // 전역 변수 선언
+  let map;
+  let markers = [];
+  let polyline = null;
+  let city = "{{ city }}";
+  let count = {{ count }};
+  let categories = [];
+  let activeCategories = ["전체"];
+  let sites = [];
+  let selectedSites = {};
+  let tmapLoaded = false; // Tmap API 로드 상태를 추적하는 변수
+  let polylines = []; // 경로를 저장할 배열
+  let infoWindow; // 정보 창 변수 추가
 
-            let categories = [];               // 전체 카테고리 목록
-            let activeCategories = ["전체"];   // 현재 선택된 카테고리 목록
-            let sites = [];                   // 현재 필터에 맞는 관광지 목록
-            let selectedSites = {};           // 사용자가 선택한 관광지 정보
-            let map;                          // Tmap 지도 객체
-            let markers = {}; // 관광지 ID를 키로 마커 객체 저장
-            let routeLine = null; // 연결선 객체
+  // Tmap API 키를 여기에 입력하세요.
+  const apiKey = "Mb9cttQ9De2UcPzNfNwCl7ZRY31kNiUqPjCAeZne";
 
-            
+  // static 폴더 안에 있는 이미지 파일의 URL을 정의합니다.
+  const startIcon = "static/start.png";
+  const middleIcon = "static/middle.png";
+  const endIcon = "static/end.png";
 
-            // 지도 초기화 함수
-            function initMap() {
-                const container = document.getElementById('map');
-                const options = {
-                    center: new kakao.maps.LatLng(36.6424341, 127.4890319),
-                    level: 5
-                };
-                map = new kakao.maps.Map(container, options);
-            }
+  // 지도 초기화 함수
+function initializeMap() {
+    const cityCoordinates = {
+      "서울": { lat: 37.5665, lng: 126.9780 },
+      "청주": { lat: 36.6424341, lng: 127.4890319 },
+      "부산": { lat: 35.1796, lng: 129.0756 },
+      "제주": { lat: 33.4996, lng: 126.5312 }
+    };
 
-            // 마커 및 경로 그리기
-            function drawSelectedMarkers() {
-                // 기존 마커 제거
-                Object.values(markers).forEach(marker => marker.setMap(null));
-                markers = {};
+    const center = cityCoordinates[city] || cityCoordinates["서울"];
 
-                // 기존 경로 제거
-                if (routeLine) {
-                    routeLine.setMap(null);
-                    routeLine = null;
-                }
+    map = new Tmapv2.Map("map", {
+      center: new Tmapv2.LatLng(center.lat, center.lng),
+      width: "100%",
+      height: "500px",
+      zoom: 12 // 초기 줌 레벨 설정
+    });
 
-                const positions = [];
-
-                const sortedSites = Object.values(selectedSites).sort((a, b) => a.index - b.index);
-                sortedSites.forEach(site => {
-                    const lat = parseFloat(site.lat);
-                    const lon = parseFloat(site.lon);
-                    if (!isNaN(lat) && !isNaN(lon)) {
-                        const position = new kakao.maps.LatLng(lat, lon);
-                        positions.push(position);
-
-                        const marker = new kakao.maps.Marker({
-                            position: position,
-                            map: map,
-                            title: site.name
-                        });
-
-                        const infowindow = new kakao.maps.InfoWindow({
-                            content: `<div style="padding:5px;">${site.name}</div>`
-                        });
-
-                        kakao.maps.event.addListener(marker, 'click', () => {
-                            infowindow.open(map, marker);
-                        });
-
-                        markers[site.id] = marker;
-                    }
-                });
-
-                if (positions.length > 1) {
-                    routeLine = new kakao.maps.Polyline({
-                        path: positions,
-                        strokeWeight: 4,
-                        strokeColor: '#FF0000',
-                        strokeOpacity: 0.8,
-                        strokeStyle: 'solid'
-                    });
-                    routeLine.setMap(map);
-                }
-
-                if (positions.length > 0) {
-                    const bounds = new kakao.maps.LatLngBounds();
-                    positions.forEach(pos => bounds.extend(pos));
-                    map.setBounds(bounds);
-                }
-            }
+      // 정보 창 생성
+      infoWindow = new Tmapv2.InfoWindow({
+        position: new Tmapv2.LatLng(0, 0), // 초기 위치 설정 (실제 위치는 마커에 따라 변경됨)
+        border: '0px solid #FFFFFF',
+        background: '#333333',
+        color: '#ffffff',
+        text: '',
+        visible: false, // 초기에는 숨김
+        padding: '5px',
+        align: 'center'
+      });
+      infoWindow.setMap(map); // 지도에 정보 창 추가
+  }
 
 
-            function showMarkerOnMap(lat, lon, siteName = "", siteId) {
-                Object.values(markers).forEach(marker => marker.setMap(null));
-                markers = {};
+ function updateMapMarkers() {
+    // Tmap API가 로드되었는지 확인
+    if (!tmapLoaded) {
+      console.warn("Tmap API가 아직 로드되지 않았습니다. 마커 업데이트를 연기합니다.");
+      return;
+    }
 
-                const position = new kakao.maps.LatLng(lat, lon);
-                const marker = new kakao.maps.Marker({
-                    position: position,
-                    map: map,
-                    title: siteName
-                });
+    // 기존 마커 제거
+    clearMarkers();
 
-                markers[siteId] = marker;
-                map.setCenter(position);
-                map.setLevel(4);
-            }
+    // 선택된 관광지에 대한 마커 생성
+    const selectedSitesArray = Object.values(selectedSites).sort((a, b) => a.index - b.index);
 
-            // 관광지 선택 버튼 생성
-            function createTouristButtons() {
-                const btnContainer = document.getElementById("tourist-buttons");
-                btnContainer.innerHTML = "";
+    selectedSitesArray.forEach((site, index) => {
+      if (site && site.location) {
+        const location = parseLocation(site.location);
+        if (location) {
+          // 마커 이미지 URL 결정
+          let markerIcon;
+          if (index === 0) {
+            markerIcon = startIcon; // 시작 지점
+          } else if (index === selectedSitesArray.length - 1) {
+            markerIcon = endIcon; // 도착 지점
+          } else {
+            markerIcon = middleIcon; // 중간 지점
+          }
 
-                for (let i = 1; i <= count; i++) {
-                    const button = document.createElement("button");
-                    button.innerText = `관광지 ${i}`;
-                    button.setAttribute("data-index", i);
-                    if (i === 1) button.classList.add("active");
-                    button.onclick = () => handleTouristButtonClick(button);
-                    btnContainer.appendChild(button);
-                }
-            }
+          // mapx와 mapy를 사용하여 TMap.LonLat 객체 생성
+          const lonLat = new Tmapv2.LatLng(location.lat, location.lng);
 
-            // 관광지 버튼 클릭 시 active 상태 변경
-            function handleTouristButtonClick(button) {
-                document.querySelectorAll(".buttons button").forEach(btn => {
-                    btn.classList.remove("active");
-                });
-                button.classList.add("active");
-                renderTouristSites();  // 관광지 리스트 다시 렌더링
-            }
+          // 마커 생성
+          const marker = new Tmapv2.Marker({
+            position: lonLat,
+            icon: markerIcon,
+            iconSize: new Tmapv2.Size(65, 30),
+            title : site.name,
+            map: map
+          });
 
-            // 카테고리 체크박스 동적 생성
-            function createCategoryCheckboxes() {
-                fetch("/get_categories")
-                    .then(response => response.json())
-                    .then(data => {
-                        categories = data.categories || [];
-                        const categoryContainer = document.getElementById("categories");
-                        
-                        // '전체' 이외 기존 체크박스 제거
-                        const existingCheckboxes = categoryContainer.querySelectorAll('input[type="checkbox"]:not([value="전체"])');
-                        existingCheckboxes.forEach(cb => cb.parentElement.remove());
 
-                        // 새 카테고리 체크박스 추가
-                        categories.forEach(category => {
-                            const label = document.createElement("label");
-                            label.innerHTML = `<input type="checkbox" value="${category}" onchange="handleCategoryChange(this)"> ${category}`;
-                            categoryContainer.appendChild(label);
-                        });
-                    })
-                    .catch(err => console.error("카테고리 로드 실패:", err));
-            }
+          markers.push(marker);
+        } else {
+          console.error(`유효하지 않은 위치 정보: ${site.name}`);
+        }
+      }
+    });
 
-            // 카테고리 변경 시 이벤트 처리
-            function handleCategoryChange(checkbox) {
-                const allCheckbox = document.querySelector(".categories input[value='전체']");
-                if (checkbox.value === "전체") {
-                    if (checkbox.checked) {
-                        document.querySelectorAll(".categories input[type='checkbox']:not([value='전체'])").forEach(cb => cb.checked = false);
-                        activeCategories = ["전체"];
-                    }
-                } else {
-                    if (checkbox.checked) {
-                        if (activeCategories.includes("전체")) {
-                            allCheckbox.checked = false;
-                            activeCategories = [];
-                        }
-                        activeCategories.push(checkbox.value);
-                    } else {
-                        activeCategories = activeCategories.filter(cat => cat !== checkbox.value);
-                        if (activeCategories.length === 0) {
-                            allCheckbox.checked = true;
-                            activeCategories = ["전체"];
-                        }
-                    }
-                }
-                fetchTouristSites(); // 필터링된 관광지 불러오기
+    // 모든 마커를 포함하는 경계 설정 (선택 사항)
+    if (markers.length > 0) {
+      const bounds = new Tmapv2.LatLngBounds();
+      for (var i = 0; i < markers.length; i++) {
+        bounds.extend(markers[i].getPosition());
+      }
+      map.fitBounds(bounds);
+    }
+  }
 
-                
-            }
-            // 선택 완료 상태 확인 → 버튼 표시 및 활성화
-            function updateSelectionStatus() {
-                const selectedCount = Object.keys(selectedSites).length;
-                const confirmContainer = document.getElementById('confirmContainer');
-                const finalConfirmBtn = document.getElementById('final-confirm-btn');
+  function clearMarkers() {
+    markers.forEach(marker => marker.setMap(null));
+    markers = [];
+  }
 
-                if (selectedCount === count) {
-                    confirmContainer.style.display = 'block';
-                    finalConfirmBtn.disabled = false;
-                } else {
-                    confirmContainer.style.display = 'none';
-                    finalConfirmBtn.disabled = true;
-                }
+  function createTouristButtons() {
+    const btnContainer = document.getElementById("tourist-buttons");
+    btnContainer.innerHTML = '';
+    for (let i = 1; i <= count; i++) {
+      const button = document.createElement("button");
+      button.innerText = `관광지 ${i}`;
+      button.setAttribute("data-index", i);
+      if (i === 1) button.classList.add("active");
+      button.onclick = () => handleTouristButtonClick(button);
+      btnContainer.appendChild(button);
 
-                
-            }
+      if (i < count) {
+        const arrow = document.createElement("div");
+        arrow.className = "arrow-down";
+        btnContainer.appendChild(arrow);
+      }
+    }
+  }
 
-            // 관광지 선택 / 선택 취소 처리
-            function handleSiteSelection(button, siteId, siteName, lat, lon, address = '', category = '', image = '') {
-                const activeButton = document.querySelector(".buttons button.active");
-                const buttonIndex = parseInt(activeButton.getAttribute("data-index"), 10);
-                const parsedLat = parseFloat(lat);
-                const parsedLon = parseFloat(lon);
 
-                if (button.classList.contains("select-btn")) {
-                    if (selectedSites[buttonIndex]) {
-                        const prevSelectedBtn = document.querySelector(`button[data-site-id="${selectedSites[buttonIndex].id}"]`);
-                        if (prevSelectedBtn) {
-                            prevSelectedBtn.textContent = "선택";
-                            prevSelectedBtn.classList.remove("cancel-btn");
-                            prevSelectedBtn.classList.add("select-btn");
-                        }
-                    }
+  function handleTouristButtonClick(button) {
+    const buttons = document.querySelectorAll(".buttons button");
+    buttons.forEach(btn => {
+      btn.classList.remove("active", "focused");
+      if (btn.getAttribute("data-index") === button.getAttribute("data-index")) {
+        btn.classList.add("active", "focused");
+      }
+    });
+    renderTouristSites();
+  }
 
-                    //필요한 모든 정보 저장
-                    selectedSites[buttonIndex] = {
-                        id: siteId || `site_${buttonIndex}`,
-                        name: siteName,
-                        address: address,
-                        category: category,
-                        image: image,
-                        lat: lat,
-                        lon: lon,
-                        index: buttonIndex,
-                    };
+  function createCategoryCheckboxes() {
+    fetch("/get_categories")
+      .then(response => response.json())
+      .then(data => {
+        categories = data.categories || [];
+        const categoryContainer = document.getElementById("categories");
+        const existingCheckboxes = categoryContainer.querySelectorAll('input[type="checkbox"]:not([value="전체"])');
+        existingCheckboxes.forEach(checkbox => checkbox.parentElement.remove());
+        categories.forEach(category => {
+          const label = document.createElement("label");
+          label.innerHTML = `<input type="checkbox" value="${category}" onchange="handleCategoryChange(this)"> ${category}`;
+          categoryContainer.appendChild(label);
+        });
+      })
+      .catch(err => console.error("카테고리 로드 실패:", err));
+  }
 
-                    button.textContent = "선택 취소";
-                    button.classList.remove("select-btn");
-                    button.classList.add("cancel-btn");
-                    button.setAttribute("data-site-id", siteId);
-                    document.querySelector(`.buttons button[data-index="${buttonIndex}"]`).classList.add("selected");
+  function handleCategoryChange(checkbox) {
+    const allCheckbox = document.querySelector(".categories input[value='전체']");
+    if (checkbox.value === "전체") {
+      if (checkbox.checked) {
+        document.querySelectorAll(".categories input[type='checkbox']:not([value='전체'])").forEach(cb => {
+          cb.checked = false;
+        });
+        activeCategories = ["전체"];
+      }
+    } else {
+      if (checkbox.checked) {
+        if (activeCategories.includes("전체")) {
+          allCheckbox.checked = false;
+          activeCategories = activeCategories.filter(cat => cat !== "전체");
+        }
+        activeCategories.push(checkbox.value);
+      } else {
+        activeCategories = activeCategories.filter(cat => cat !== checkbox.value);
+        if (activeCategories.length === 0) {
+          allCheckbox.checked = true;
+          activeCategories = ["전체"];
+        }
+      }
+    }
+    fetchTouristSites();
+  }
 
-                    if (!isNaN(parsedLat) && !isNaN(parsedLon)) {
-                        showMarkerOnMap(parsedLat, parsedLon, siteName, siteId);
-                    }
-                } else {
-                    // 선택 취소
-                    delete selectedSites[buttonIndex];
-                    button.textContent = "선택";
-                    button.classList.remove("cancel-btn");
-                    button.classList.add("select-btn");
-                    button.removeAttribute("data-site-id");
-                    document.querySelector(`.buttons button[data-index="${buttonIndex}"]`).classList.remove("selected");
+function handleSiteSelection(button, siteId, siteName, site) {
+  console.log("handleSiteSelection 호출됨");
+  console.log("siteId:", siteId);
+  console.log("siteName:", siteName);
+  console.log("site:", site);
 
-                    if (markers[siteId]) {
-                        markers[siteId].setMap(null);
-                        delete markers[siteId];
-                    }
-                }
+  const activeButton = document.querySelector(".buttons button.active");
+  const buttonIndex = activeButton.getAttribute("data-index");
 
-                updateSelectionStatus();
-            }
+  if (button.classList.contains("select-btn")) {
+    // 이전에 선택된 버튼이 있는 경우, 텍스트를 "선택"으로 변경하고 스타일을 업데이트합니다.
+    if (selectedSites[buttonIndex]) {
+      const prevSelectedBtn = document.querySelector(`button[data-site-id="${selectedSites[buttonIndex].id}"]`);
+      if (prevSelectedBtn) {
+        prevSelectedBtn.textContent = "선택";
+        prevSelectedBtn.classList.remove("cancel-btn");
+        prevSelectedBtn.classList.add("select-btn");
+      }
+    }
 
-            
+    // 위치 정보 처리
+    try {
+      const locationData = parseLocation(site.location);
+      if (!locationData) {
+        console.error(`유효하지 않은 위치 정보: ${siteName}`);
+        alert("유효하지 않은 위치 정보입니다."); // 사용자에게 알림
+        return;
+      }
 
-            // 최종 확인 버튼 클릭 → 다음 페이지로 이동
-            function moveToProcessPage() {
-                const sortedSites = Object.values(selectedSites).sort((a, b) => a.index - b.index);
+      selectedSites[buttonIndex] = {
+        id: siteId,
+        name: siteName,
+        location: site.location,
+        index: Number(buttonIndex)
+      };
 
-                const sitesPayload = sortedSites.map(site => ({
-                    name: site.name,
-                    address: site.address,
-                    category: site.category,
-                    image: site.image,
-                    lat: parseFloat(site.lat),
-                    lon: parseFloat(site.lon)
-                }));
+      button.textContent = "선택 취소";
+      button.classList.remove("select-btn");
+      button.classList.add("cancel-btn");
+      button.setAttribute("data-site-id", siteId);
 
-                console.log("전송할 관광지 목록:", sitesPayload);
+      activeButton.textContent = siteName;
+      activeButton.classList.add("selected");
 
-                fetch("/optimize_route", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ sites: sitesPayload })
-                })
-                .then(res => {
-                    if (!res.ok) throw new Error("서버 응답 오류");
-                    return res.json();
-                })
-                .then(data => {
-                    console.log("서버 응답:", data);
-                    if (!data.optimized) return alert("최적 경로 계산 실패");
+      // 첫 번째 관광지 선택 시 지도를 해당 위치로 이동 및 줌 설정
+      if (Object.keys(selectedSites).length === 1) {
+        const newCenter = new Tmapv2.LatLng(locationData.lat, locationData.lng);
+        map.setCenter(newCenter);
+        map.setZoom(15); // 원하는 줌 레벨로 설정
+      }
 
-                    const optimized = data.optimized;
-                    const params = new URLSearchParams();
+      // 다음 버튼 활성화 (선택 사항)
+      const nextIndex = Number(buttonIndex) + 1;
+      const nextButton = document.querySelector(`.buttons button[data-index="${nextIndex}"]`);
+      if (nextButton) {
+        handleTouristButtonClick(nextButton);
+      }
+    } catch (error) {
+      console.error("위치 정보 처리 중 오류 발생:", error);
+      alert("위치 정보 처리 중 오류가 발생했습니다."); // 사용자에게 알림
+      return;
+    }
+  } else {
+    delete selectedSites[buttonIndex];
+    button.textContent = "선택";
+    button.classList.remove("cancel-btn");
+    button.classList.add("select-btn");
+    button.removeAttribute("data-site-id");
 
-                    optimized.forEach((site, index) => {
-                        params.append(`site${index + 1}_name`, encodeURIComponent(site.name));
-                        params.append(`site${index + 1}_location`, encodeURIComponent(site.address));
-                        params.append(`site${index + 1}_lat`, site.lat);
-                        params.append(`site${index + 1}_lon`, site.lon);
-                        params.append(`site${index + 1}_image`, encodeURIComponent(site.image));  
+    const touristButton = document.querySelector(`.buttons button[data-index="${buttonIndex}"]`);
+    touristButton.classList.remove("selected");
+    touristButton.innerText = `관광지 ${buttonIndex}`;
+  }
 
-                    });
+  updateSelectionStatus();
+  updateMapMarkers();
+}
 
-                    params.append('city', encodeURIComponent(city));
-                    params.append('count', optimized.length);
+function updateSelectionStatus() {
+  const selectedCount = Object.keys(selectedSites).length;
+  const confirmContainer = document.getElementById('confirmContainer');
+  const finalConfirmBtn = document.getElementById('final-confirm-btn');
 
-                    window.location.href = `/process?${params.toString()}`;
-                })
-                .catch(err => {
-                    console.error("fetch 오류:", err);
-                    alert("서버 오류 또는 네트워크 문제로 경로 계산에 실패했습니다.");
-                });
-            }
+  if (selectedCount === count) {
+    confirmContainer.style.display = 'block';
+    finalConfirmBtn.disabled = false;
 
-            // 관광지 리스트 API 요청
-            function fetchTouristSites() {
-                if (!city) return;
-                const queryCategories = `&categories=${encodeURIComponent(activeCategories.join(","))}`;
-                const queryUrl = `/get_tourist_sites?city=${encodeURIComponent(city)}${queryCategories}`;
+    // 기존 경로 삭제
+    clearTmapPath();
 
-                fetch(queryUrl)
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            sites = data.sites || [];
-                            renderTouristSites();
-                        } else {
-                            console.error("서버 오류:", data.error);
-                        }
-                    })
-                    .catch(err => console.error("요청 실패:", err));
-            }
+    // 선택된 관광지 목록을 순회하면서 경로 요청
+    const siteKeys = Object.keys(selectedSites);
+    for (let i = 0; i < siteKeys.length - 1; i++) {
+      const startSite = selectedSites[siteKeys[i]];
+      const endSite = selectedSites[siteKeys[i + 1]];
 
-            // 관광지 리스트를 화면에 렌더링하는 함수
-            function renderTouristSites() {
-                const resultContainer = document.getElementById("results");
-                resultContainer.innerHTML = ""; // 기존 결과 초기화
+      if (startSite && endSite && startSite.location && endSite.location) {
+        const startLocation = parseLocation(startSite.location);
+        const endLocation = parseLocation(endSite.location);
 
-                // 관광지 데이터가 없을 경우 메시지 출력
-                if (!sites || sites.length === 0) {
-                    resultContainer.innerHTML = `<li style="text-align: center; padding: 30px;">해당 지역의 관광지가 없습니다.</li>`;
-                    return;
-                }
+        if (startLocation && endLocation) {
+          const start = new Tmapv2.LatLng(startLocation.lat, startLocation.lng);
+          const end = new Tmapv2.LatLng(endLocation.lat, endLocation.lng);
+          getTmapPath(start, end);
+        } else {
+          console.warn("유효하지 않은 위치 정보:", startSite.name, endSite.name);
+        }
+      }
+    }
 
-                // 현재 활성화된 관광지 버튼 (ex. 관광지 1, 관광지 2 등) 가져오기
-                const activeButton = document.querySelector(".buttons button.active");
-                const buttonIndex = activeButton ? activeButton.getAttribute("data-index") : null;
+    adjustMapBounds(); // 모든 마커가 보이도록 지도 경계 조정 (마지막 선택 시에만 호출)
+  } else {
+    confirmContainer.style.display = 'none';
+    finalConfirmBtn.disabled = true;
+    clearTmapPath(); // 선택이 완료되지 않았을 때 경로 삭제
+  }
+}
 
-                // 현재 버튼에 이미 선택된 관광지가 있다면 가져오기
-                const selectedSite = buttonIndex ? selectedSites[buttonIndex] : null;
+function adjustMapBounds() {
+  const bounds = new Tmapv2.LatLngBounds();
+  let hasValidLocation = false;
 
-                // 관광지 목록을 순회하며 UI 요소 생성
-                sites.forEach(site => {
-                    const li = document.createElement("li"); // 관광지 항목 컨테이너
+  for (const key in selectedSites) {
+    if (selectedSites.hasOwnProperty(key)) {
+      const site = selectedSites[key];
+      if (site && site.location) {
+        const location = parseLocation(site.location);
+        if (location) {
+          const latLng = new Tmapv2.LatLng(location.lat, location.lng);
+          bounds.extend(latLng);
+          hasValidLocation = true;
+        } else {
+          console.warn(`유효하지 않은 위치 정보: ${site.name}`);
+        }
+      } else {
+        console.warn(`위치 정보가 없습니다: ${site.name}`);
+      }
+    }
+  }
 
-                    // 관광지 정보 출력 영역 생성
-                    const infoDiv = document.createElement("div");
-                    infoDiv.className = "site-info";
-                    const category = site.category ? `(${site.category})` : ""; // 카테고리가 있으면 표시
-                    infoDiv.innerHTML = `<strong>${site.name}</strong> ${category}<br><small style="color: #666;">${site.address || '위치 정보 없음'}</small>`;
-                    li.appendChild(infoDiv);
+  if (hasValidLocation) {
+    // 모든 마커를 포함하는 최소 경계를 찾고 지도를 조정합니다.
+    map.fitBounds(bounds);
+  } else {
+    // 유효한 위치 정보가 없는 경우, 기본 위치로 지도를 설정합니다.
+    const cityCoordinates = {
+      "서울": { lat: 37.5665, lng: 126.9780 },
+      "청주": { lat: 36.6424341, lng: 127.4890319 },
+      "부산": { lat: 35.1796, lng: 129.0756 },
+      "제주": { lat: 33.4996, lng: 126.5312 }
+    };
+    const center = cityCoordinates[city] || cityCoordinates["서울"];
+    map.setCenter(new Tmapv2.LatLng(center.lat, center.lng));
+    map.setZoom(12);
+  }
+}
 
-                    // 선택/선택 취소 버튼 생성
-                    const actionButton = document.createElement("button");
+  function moveToProcessPage() {
+    const sortedSites = Object.values(selectedSites).sort((a, b) => a.index - b.index);
+    const params = new URLSearchParams();
 
-                    // 현재 버튼에서 이미 선택된 관광지인 경우
-                    if (selectedSite && selectedSite.id === site.id) {
-                        actionButton.textContent = "선택 취소";
-                        actionButton.classList.add("cancel-btn");
-                        actionButton.setAttribute("data-site-id", site.id);
-                    } else {
-                        // 아직 선택되지 않은 관광지인 경우
-                        actionButton.textContent = "선택";
-                        actionButton.classList.add("select-btn");
-                    }
+    sortedSites.forEach((site, index) => {
+      params.append(`site${index + 1}_name`, encodeURIComponent(site.name));
+      params.append(`site${index + 1}_location`, encodeURIComponent(site.location || ''));
+    });
 
-                    // 버튼 클릭 시 선택 처리 함수 호출
-                    actionButton.onclick = () => {
-                    handleSiteSelection(
-                        actionButton,
-                        site.id,
-                        site.name,
-                        site.mapy,     // lat
-                        site.mapx,     // lon
-                        site.address || '',
-                        site.category || '',
-                        site.image || ''
-                    );
-                };
-                    li.appendChild(actionButton); // 버튼 추가
-                    resultContainer.appendChild(li); // 리스트에 항목 추가
-                });
-            }
+    params.append('city', encodeURIComponent(city));
+    params.append('count', count);
 
-            // 초기 실행 함수
-            function init() {
-                initMap();                  
-                createTouristButtons();     
-                createCategoryCheckboxes(); 
-                fetchTouristSites();        
-                drawSelectedMarkers();
-            }
+    window.location.href = `/process?${params.toString()}`;
+  }
 
-            init(); // 페이지 로딩 시 초기화 실행
-        </script>
-    </body>
-    </html>
 
+  function renderTouristSites() {
+    const resultContainer = document.getElementById("results");
+    resultContainer.innerHTML = "";
+    if (!sites || sites.length === 0) {
+      resultContainer.innerHTML = `<li style="text-align: center; padding: 30px;">해당 지역의 관광지가 없습니다.</li>`;
+      return;
+    }
+
+    const activeButton = document.querySelector(".buttons button.active");
+    const buttonIndex = activeButton ? activeButton.getAttribute("data-index") : null;
+    const selectedSite = buttonIndex ? selectedSites[buttonIndex] : null;
+
+    sites.forEach(site => {
+      const li = document.createElement("li");
+      const infoDiv = document.createElement("div");
+      infoDiv.className = "site-info";
+      const category = site.category ? `(${site.category})` : "";
+      const address = site.address || "위치 정보 없음";
+
+      infoDiv.innerHTML = `<strong>${site.name}</strong> ${category}<br><small style="color: #666;">${address}</small>`;
+      li.appendChild(infoDiv);
+
+      const actionButton = document.createElement("button");
+      if (selectedSite && selectedSite.id === site.id) {
+        actionButton.textContent = "선택 취소";
+        actionButton.classList.add("cancel-btn");
+        actionButton.setAttribute("data-site-id", site.id);
+      } else {
+        actionButton.textContent = "선택";
+        actionButton.classList.add("select-btn");
+      }
+      actionButton.onclick = () => handleSiteSelection(actionButton, site.id, site.name, site);
+      li.appendChild(actionButton);
+      resultContainer.appendChild(li);
+    });
+  }
+
+ function parseLocation(locationStr) {
+    if (!locationStr) {
+      console.warn("위치 정보가 없습니다.");
+      return null; // 또는 기본 위치 정보 객체 반환
+    }
+
+    // 객체인 경우
+    if (typeof locationStr === 'object') {
+      // location 객체가 mapx, mapy를 가지고 있는 경우
+      if (locationStr.mapx !== undefined && locationStr.mapy !== undefined) {
+        const lng = parseFloat(locationStr.mapx);
+        const lat = parseFloat(locationStr.mapy);
+
+        if (!isNaN(lng) && !isNaN(lat)) {
+          return { lng, lat };
+        } else {
+          console.warn("유효하지 않은 mapx 또는 mapy 값:", locationStr);
+          return null;
+        }
+      }
+      else if (locationStr.lng !== undefined && locationStr.lat !== undefined) {
+        const lng = parseFloat(locationStr.lng);
+        const lat = parseFloat(locationStr.lat);
+
+        if (!isNaN(lng) && !isNaN(lat)) {
+          return { lng, lat };
+        } else {
+          console.warn("유효하지 않은 lng 또는 lat 값:", locationStr);
+          return null;
+        }
+      }
+
+      else {
+        console.warn("유효하지 않은 위치 정보 형식 (객체):", locationStr);
+        return null;
+      }
+    }
+
+    // 문자열인 경우
+    if (typeof locationStr === 'string') {
+      // 먼저 JSON 문자열인지 확인
+      try {
+        const jsonData = JSON.parse(locationStr);
+        return parseLocation(jsonData); // 재귀 호출
+      } catch (e) {
+        // JSON 파싱 실패시 쉼표로 구분된 좌표인지 확인
+        const parts = locationStr.split(',');
+        if (parts.length === 2) {
+          const lng = parseFloat(parts[0].trim());
+          const lat = parseFloat(parts[1].trim());
+
+          if (!isNaN(lng) && !isNaN(lat)) {
+            return { lng, lat };
+          } else {
+            console.warn("유효하지 않은 좌표 문자열:", locationStr);
+            return null;
+          }
+        } else {
+          console.warn("유효하지 않은 위치 정보 형식:", locationStr);
+          return null;
+        }
+      }
+    }
+
+    console.warn("유효하지 않은 위치 정보 타입:", typeof locationStr, locationStr);
+    return null;
+  }
+
+  function fetchTouristSites() {
+    if (!city) return;
+    const queryCategories = `&categories=${encodeURIComponent(activeCategories.join(","))}`;
+    const queryUrl = `/get_tourist_sites?city=${encodeURIComponent(city)}${queryCategories}`;
+
+    console.log("요청 URL:", queryUrl);
+
+    fetch(queryUrl)
+      .then(response => response.json())
+      .then(data => {
+        console.log("받은 데이터:", data);
+        if (data.success) {
+          sites = data.sites || [];
+          renderTouristSites();
+        } else {
+          console.error("서버 오류:", data.error);
+        }
+      })
+      .catch(err => console.error("요청 실패:", err));
+  }
+
+  function init() {
+    if (typeof Tmapv2 !== 'undefined') {
+      initializeMap();
+      createTouristButtons();
+      createCategoryCheckboxes();
+      fetchTouristSites();
+      const firstButton = document.querySelector('.buttons button[data-index="1"]');
+      if (firstButton) {
+        handleTouristButtonClick(firstButton);
+      }
+      tmapLoaded = true;
+      updateMapMarkers(); // 초기 지도 설정 후 마커 업데이트
+    } else {
+      console.error("Tmapv2 API 스크립트 로드 실패");
+      // Tmap API 로드 실패 시 대체 UI를 표시하거나, 오류 메시지를 표시할 수 있습니다.
+      setTimeout(init, 500); // 0.5초 후에 다시 시도
+    }
+  }
+
+  function tmapApiLoaded() {
+    console.log("Tmapv2 API 로드 완료");
+    init(); // Tmapv2 API 로드 완료 후 init 함수 호출
+  }
+
+function getTmapPath(start, end) {
+  const apiUrl = "https://apis.openapi.sk.com/tmap/routes/pedestrian?version=1&format=json";
+
+  // start와 end 객체 내용 확인
+  console.log("Start 객체:", start);
+  console.log("End 객체:", end);
+
+  // 좌표 값을 가져오는 방식에 따라 수정
+  const startX = typeof start.lng === 'function' ? parseFloat(start.lng()) : parseFloat(start.lng);
+  const startY = typeof start.lat === 'function' ? parseFloat(start.lat()) : parseFloat(start.lat);
+  const endX = typeof end.lng === 'function' ? parseFloat(end.lng()) : parseFloat(end.lng);
+  const endY = typeof end.lat === 'function' ? parseFloat(end.lat()) : parseFloat(end.lat());
+
+  const requestData = {
+    "startX": startX,
+    "startY": startY,
+    "endX": endX,
+    "endY": endY,
+    "reqCoordType": "WGS84GEO",
+    "resCoordType": "WGS84GEO",
+    "startName": "출발지",
+    "endName": "도착지"
+  };
+
+  console.log("Tmap API 요청 데이터:", requestData);
+
+  $.ajax({
+    method: "POST",
+    url: apiUrl,
+    async: false,
+    headers: {
+      "Accept": "application/json",
+      "Content-Type": "application/json; charset=utf-8",
+      "appKey": "Mb9cttQ9De2UcPzNfNwCl7ZRY31kNiUqPjCAeZne"
+    },
+    data: JSON.stringify(requestData),
+    success: function(response) {
+      const resultData = response.features;
+      drawTmapPath(resultData);
+    },
+    error: function(request, status, error) {
+      console.error("경로 요청 실패:", error);
+      console.error("오류 메시지:", request.responseText);
+    }
+  });
+}
+
+
+function drawTmapPath(pathData) {
+  for (let i in pathData) {
+    const geometry = pathData[i].geometry;
+    if (geometry.type === "LineString") {
+      const coords = geometry.coordinates;
+      const line = new Tmapv2.Polyline({
+        path: coords.map(coord => new Tmapv2.LatLng(coord[1], coord[0])),
+        strokeColor: "#DD0000",
+        strokeWeight: 6,
+        map: map
+      });
+      polylines.push(line);
+    }
+  }
+}
+
+function clearTmapPath() {
+  for (let i in polylines) {
+    polylines[i].setMap(null);
+  }
+  polylines = [];
+}
+
+  window.onload = init;
+</script>
+</body>
+</html>
