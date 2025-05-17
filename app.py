@@ -4,6 +4,8 @@ from apscheduler.triggers.interval import IntervalTrigger
 import pymysql
 import atexit
 import sys
+import random
+import string
 
 # tourist_attraction.py에서 함수 가져오기
 from apistudy.tourist_attraction import get_tourist_sites_from_api, save_tourist_sites_to_db
@@ -79,7 +81,7 @@ def get_tourist_sites():
         connection = pymysql.connect(**db_config)
         with connection.cursor() as cursor:
             # SQL 쿼리 수정: mapx, mapy 컬럼 추가
-            sql = "SELECT id, name, address, mapx, mapy, image FROM tourist_attraction WHERE address LIKE %s"
+            sql = "SELECT id, name, address, mapx, mapy, image, category FROM tourist_attraction WHERE address LIKE %s"  # category 컬럼 추가
             params = [f"%{city}%"]
 
             if categories and categories != "전체":
@@ -108,19 +110,133 @@ def get_tourist_sites():
             connection.close()
 
 
-
 @app.route('/process')
 def process():
-    return render_template('process.html',
-                           city=request.args.get('city'),
-                           count=request.args.get('count'))
-
-
-@app.route('/live')
-def live():
     city = request.args.get('city')
     count = request.args.get('count')
-    return render_template('live.html', city=city, count=count)
+    # count 변수를 정수형으로 변환
+    try:
+        count = int(count)  # count를 int형으로 변환
+    except ValueError:
+        return "잘못된 count 값입니다.", 400
+
+    # site 정보를 딕셔너리로 변환
+    site_data = {}
+    for i in range(1, count + 1):
+        site_data[i] = {
+            'name': request.args.get(f'site{i}_name'),
+            'location': request.args.get(f'site{i}_location'),
+            'image': request.args.get(f'site{i}_image'),
+            'address': request.args.get(f'site{i}_address'),
+            'id': request.args.get(f'site{i}_id')
+        }
+
+    return render_template('process.html', city=city, count=count, site_data=site_data)
+
+
+
+@app.route('/live', methods=['POST'])
+def live():
+    city = request.form.get('city')
+    count = request.form.get('count')  # count 값을 request.form 에서 가져옴
+
+    try:
+        count = int(count)
+    except ValueError:
+        return "잘못된 count 값입니다.", 400
+
+    # 8자리의 고유 usercode 생성 (중복 확인 로직 추가)
+    while True:
+        usercode = ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
+        try:
+            connection = pymysql.connect(**db_config)
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT 1 FROM user_travel_data WHERE usercode = %s", (usercode,))
+                if not cursor.fetchone():
+                    break  # 중복되지 않는 usercode 생성 완료
+        except Exception as e:
+            print(f"usercode 중복 확인 오류: {e}")
+        finally:
+            if 'connection' in locals():
+                connection.close()
+
+    # process.html 에서 전달받은 관광지 ID 추출 (request.form 사용)
+    tourist_sites = []
+    for i in range(1, count + 1):
+        site_id = request.form.get(f'site{i}_id')
+        tourist_sites.append(site_id)
+
+    # mission 테이블에서 category를 이용하여 mission id 가져오기 (랜덤으로 1개 선택, None 처리 추가)
+    missions = []
+    try:
+        connection = pymysql.connect(**db_config)
+        with connection.cursor() as cursor:
+            for i in range(1, count + 1):
+                site_id = request.form.get(f'site{i}_id')
+                cursor.execute("SELECT category FROM tourist_attraction WHERE id = %s", (site_id,))
+                category_result = cursor.fetchone()
+                category = category_result['category'] if category_result else None  # category가 None일 경우 처리
+
+                if category:  # category가 존재하는 경우에만 쿼리 실행
+                    cursor.execute("SELECT id FROM mission WHERE category = %s ORDER BY RAND() LIMIT 1", (category,))
+                    mission_id_result = cursor.fetchone()
+                    mission_id = mission_id_result['id'] if mission_id_result else None  # mission_id가 None일 경우 처리
+                    missions.append(mission_id)
+                else:
+                    missions.append(None)  # category가 없을 경우 None을 추가
+
+
+    except Exception as e:
+        print(f"미션 ID 조회 오류: {e}")
+        return "오류 발생!", 500
+    finally:
+        if 'connection' in locals():
+            connection.close()
+
+    try:
+        connection = pymysql.connect(**db_config)
+        with connection.cursor() as cursor:
+            # SQL 쿼리 수정: count에 따라 컬럼 수 동적으로 조정
+            sql = f"""
+                INSERT INTO user_travel_data (usercode, tourist_site_1, tourist_site_2, tourist_site_3, mission_1, mission_2, mission_3) 
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
+            """
+            # SQL 쿼리와 값을 count에 맞춰서 동적으로 생성해야 합니다.
+            # 현재는 count가 3 이상일 때 오류가 발생합니다.
+            # count에 따라 컬럼과 값을 동적으로 생성하는 로직이 필요합니다.
+
+            cursor.execute(sql, (usercode, *tourist_sites, *missions))  # * 연산자를 사용해서 리스트의 요소를 개별 매개변수로 전달
+            connection.commit()
+    except Exception as e:
+        print(f"데이터베이스 삽입 오류: {e}")
+        connection.rollback()
+        return "오류 발생!", 500
+    finally:
+        if 'connection' in locals():
+            connection.close()
+
+    return render_template('live.html', city=city, count=count, usercode=usercode)
+
+
+
+def get_mission_id_by_category(category):
+    """tourist_attraction 테이블의 카테고리와 같은 category를 가진 mission의 id를 반환합니다.
+        (구현 필요:  tourist_attraction 테이블과 mission 테이블의 관계에 따라 수정해야 합니다.)"""
+    # 이 부분은 tourist_attraction과 mission 테이블의 관계와 데이터 구조에 따라 구현해야 합니다.
+    # 예시:  두 테이블의 category 컬럼을 비교하여 mission id를 찾는 로직 추가
+    try:
+        connection = pymysql.connect(**db_config)
+        with connection.cursor() as cursor:
+            sql = "SELECT id FROM mission WHERE category = %s LIMIT 1"  # 중복 방지를 위해 LIMIT 1 추가
+            cursor.execute(sql, (category,))
+            result = cursor.fetchone()
+            return result['id'] if result else None
+    except Exception as e:
+        print(f"미션 ID 조회 오류: {e}")
+        return None
+    finally:
+        if 'connection' in locals():
+            connection.close()
 
 def update_tourist_attractions():
     """

@@ -58,7 +58,7 @@
         .site-item:hover {
             background-color: #f8f9fa;
         }
-        
+
         .site-info {
             flex: 1;
         }
@@ -98,33 +98,37 @@
             font-size: 14px;
             color: #343a40;
         }
+        .confirm-btn-container { /* 버튼을 감싸는 컨테이너 추가 */
+            text-align: center; /* 가운데 정렬 */
+            margin-top: 40px; /* 위쪽 여백 조정 */
+        }
         .confirm-btn {
-            display: block;
-            margin: 40px auto 0;
+            display: inline-block; /* 인라인 블록 요소로 변경 */
             padding: 14px 30px;
             font-size: 18px;
             font-weight: bold;
-            background-color: #28a745;
-            color: white;
+            background-color: #4CAF50; /* 밝은 초록색 */
+            color: white; /* 흰색 글씨 */
             border: none;
             border-radius: 8px;
             cursor: pointer;
             transition: background 0.3s;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* 그림자 효과 추가 */
         }
-        
+
         .confirm-btn:hover {
-            background-color: #218838;
+            background-color: #45a049; /* 더 진한 초록색으로 변경 */
         }
         .route-summary {
-            background-color: transparent;   
-            border: none;                    
-            padding: 0;                      
+            background-color: transparent;
+            border: none;
+            padding: 0;
             text-align: center;
             font-size: 17px;
             font-weight: 500;
             margin: 16px 0 10px;
             color: #333;
-            box-shadow: none;              
+            box-shadow: none;
         }
         .site-placeholder {
             width: 150px;
@@ -161,9 +165,9 @@
         .route-arrow {
             margin: 0 10px;
             font-weight: bold;
-            font-size: 30px;    
+            font-size: 30px;
             color: #343a40;
-            
+
             animation: blink-arrow 1.2s infinite alternate;
         }
         .travel-time {
@@ -173,7 +177,7 @@
             border-radius: 20px;
             font-size: 13px;
             color: #856404;
-            text-align: left;      
+            text-align: left;
             width: fit-content;
         }
         .image-container {
@@ -258,105 +262,113 @@
 
 </head>
 <body>
-    <div class="container">
-        <div id="map"></div>
-        <div id="routeSummary" class="route-summary"></div>
-        <h1>선택된 관광지 목록</h1>
-        <ul class="site-list" id="siteList"></ul>
-        <button class="confirm-btn" onclick="goToLive()">여행 확정</button>
-
+<div class="container">
+    <div id="map"></div>
+    <div id="routeSummary" class="route-summary"></div>
+    <h1>선택된 관광지 목록</h1>
+    <ul class="site-list" id="siteList"></ul>
+    <div class="confirm-btn-container">  <!-- 버튼을 감싸는 컨테이너 추가 -->
+        <form method="POST" action="/live">
+            {% for i in range(1, count|int + 1) %}
+                <input type="hidden" name="site{{ i }}_id" value="{{ site_data[i].id }}">
+            {% endfor %}
+            <input type="hidden" name="city" value="{{ city }}">
+            <input type="hidden" name="count" value="{{ count }}">
+            <button class="confirm-btn" type="submit">여행 확정</button>
+        </form>
     </div>
+</div>
 
-    <script>
-        
-        const params = new URLSearchParams(window.location.search);
-        const siteList = document.getElementById('siteList');
-        const routeSummary = document.getElementById("routeSummary");
-        let routeNames = [];
-        
-        function confirmTrip() {
-            alert("여행이 확정되었습니다!");
-            // 또는 window.location.href = "/submit-final"; 와 같이 실제 이동 처리도 가능
+<script>
 
+    const params = new URLSearchParams(window.location.search);
+    const siteList = document.getElementById('siteList');
+    const routeSummary = document.getElementById("routeSummary");
+    let routeNames = [];
+
+    function confirmTrip() {
+        alert("여행이 확정되었습니다!");
+        // 또는 window.location.href = "/submit-final"; 와 같이 실제 이동 처리도 가능
+
+    }
+
+    for (let i = 1; i <= 3; i++) {
+        const name = params.get(`site${i}_name`) ? decodeURIComponent(params.get(`site${i}_name`)) : '';
+        const locationParam = params.get(`site${i}_location`) ? decodeURIComponent(params.get(`site${i}_location`)) : '';
+        const address = params.get(`site${i}_address`) ? decodeURIComponent(params.get(`site${i}_address`)) : '주소 정보 없음';
+        const imageUrl = params.get(`site${i}_image`) ? decodeURIComponent(params.get(`site${i}_image`)) : '';
+
+        let location = "위치 정보 없음";
+        try {
+            const locObj = JSON.parse(locationParam);
+            if (locObj.mapx && locObj.mapy) {
+                location = `위도: ${locObj.mapy}, 경도: ${locObj.mapx}`;
+            } else if (locObj.lat && locObj.lng) {
+                location = `위도: ${locObj.lat}, 경도: ${locObj.lng}`;
+            }
+        } catch (e) {
+            location = locationParam || "위치 정보 없음";
         }
 
-        for (let i = 1; i <= 3; i++) {
-            const name = params.get(`site${i}_name`) ? decodeURIComponent(params.get(`site${i}_name`)) : '';
-            const locationParam = params.get(`site${i}_location`) ? decodeURIComponent(params.get(`site${i}_location`)) : '';
-            const address = params.get(`site${i}_address`) ? decodeURIComponent(params.get(`site${i}_address`)) : '주소 정보 없음';
-            const imageUrl = params.get(`site${i}_image`) ? decodeURIComponent(params.get(`site${i}_image`)) : '';
+        if (name) {
+            routeNames.push(name); // 경로에 추가
+            const li = document.createElement('li');
+            li.className = 'site-item';
 
-            let location = "위치 정보 없음";
-            try {
-                const locObj = JSON.parse(locationParam);
-                if (locObj.mapx && locObj.mapy) {
-                    location = `위도: ${locObj.mapy}, 경도: ${locObj.mapx}`;
-                } else if (locObj.lat && locObj.lng) {
-                    location = `위도: ${locObj.lat}, 경도: ${locObj.lng}`;
-                }
-            } catch (e) {
-                location = locationParam || "위치 정보 없음";
-            }
+            const isLast = (i === 3 || !params.get(`site${i + 1}_name`));
+            const arrowBlock = !isLast
+                ? `
+                <div class="arrow-time-block">
+                    <div class="down-arrow">↓</div>
+                    <div class="travel-time">예상 소요 시간: 20분</div>
+                </div>
+                `
+                : '';
 
-            if (name) {
-                routeNames.push(name); // 경로에 추가
-                const li = document.createElement('li');
-                li.className = 'site-item';
+            li.innerHTML = `
+                <div class="image-container">
+                    ${imageUrl ?
+                        `<img src="${imageUrl}" alt="${name}" class="site-image">` :
+                        `<div class="site-placeholder">이미지 없음</div>`}
 
-                const isLast = (i === 3 || !params.get(`site${i + 1}_name`));
-                const arrowBlock = !isLast
-                    ? `
-                    <div class="arrow-time-block">
-                        <div class="down-arrow">↓</div>
-                        <div class="travel-time">예상 소요 시간: 20분</div>
-                    </div>
-                    `
-                    : '';
-
-                li.innerHTML = `
-                    <div class="image-container">
-                        ${imageUrl ? 
-                            `<img src="${imageUrl}" alt="${name}" class="site-image">` :
-                            `<div class="site-placeholder">이미지 없음</div>`}
-                        
-                    </div>
-                    <div class="site-info">
-                        <div class="site-name">${name}</div>
-                        <div class="site-location">${address}</div>
-                        <div class="site-extra">추가 정보 1: 여기에 텍스트 입력</div>
-                        <div class="site-extra">추가 정보 2: 여기에 텍스트 입력</div>
-                    </div>
-                `;
-                siteList.appendChild(li);
-                if (!isLast) {
-                    const arrowDiv = document.createElement('div');
-                    arrowDiv.innerHTML = `
-                        <div class="arrow-time-wrapper">
-                            <div class="arrow-column">
-                                <div class="down-arrow">↓</div>
-                            </div>
-                            <div class="time-column">
-                                <div class="travel-time">예상 소요 시간: 20분</div>
-                            </div>
+                </div>
+                <div class="site-info">
+                    <div class="site-name">${name}</div>
+                    <div class="site-location">${address}</div>
+                    <div class="site-extra">추가 정보 1: 여기에 텍스트 입력</div>
+                    <div class="site-extra">추가 정보 2: 여기에 텍스트 입력</div>
+                </div>
+            `;
+            siteList.appendChild(li);
+            if (!isLast) {
+                const arrowDiv = document.createElement('div');
+                arrowDiv.innerHTML = `
+                    <div class="arrow-time-wrapper">
+                        <div class="arrow-column">
+                            <div class="down-arrow">↓</div>
                         </div>
-                        <hr class="section-divider">
-                    `;
-                    siteList.appendChild(arrowDiv);
-                }
+                        <div class="time-column">
+                            <div class="travel-time">예상 소요 시간: 20분</div>
+                        </div>
+                    </div>
+                    <hr class="section-divider">
+                `;
+                siteList.appendChild(arrowDiv);
             }
         }
+    }
 
-        function goToLive() {
-            const params = new URLSearchParams(window.location.search);
-            const city = params.get("city");
-            const count = params.get("count");
-            window.location.href = `/live?city=${encodeURIComponent(city)}&count=${encodeURIComponent(count)}`;
-        }
+    function goToLive() {
+        const params = new URLSearchParams(window.location.search);
+        const city = params.get("city");
+        const count = params.get("count");
+        window.location.href = `/live?city=${encodeURIComponent(city)}&count=${encodeURIComponent(count)}`;
+    }
 
-        // 경로 요약 텍스트 표시
+    // 경로 요약 텍스트 표시
 
-        if (routeNames.length >= 1) {
-            routeSummary.innerHTML = routeNames
+    if (routeNames.length >= 1) {
+        routeSummary.innerHTML = routeNames
             .map((name, index) => {
                 const tag = `<span class="route-tag">${name}</span>`;
                 return index < routeNames.length - 1
@@ -364,11 +376,11 @@
                     : tag;
             })
             .join('');
-        } else if (routeNames.length === 1) {
-            routeSummary.textContent = routeNames[0];
-        } else {
-            routeSummary.textContent = "선택된 관광지가 없습니다.";
-        }
-    </script>
+    } else if (routeNames.length === 1) {
+        routeSummary.textContent = routeNames[0];
+    } else {
+        routeSummary.textContent = "선택된 관광지가 없습니다.";
+    }
+</script>
 </body>
 </html>
