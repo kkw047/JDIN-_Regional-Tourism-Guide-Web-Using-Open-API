@@ -220,7 +220,18 @@
             flex: 1;
             padding-left: 20px;
         }
-
+        .divider-line {
+            width: 100%;
+            height: 1px;
+            background-color: #ddd;
+            margin: 20px 0 0 0;
+        }
+        .section-divider {
+            border: none;
+            border-top: 1px solid #ddd;
+            margin: 20px 0;
+            width: 100%;
+        }
         .travel-time {
             background-color: #fff3cd;
             border: 1px solid #ffeeba;
@@ -319,14 +330,16 @@
                 siteList.appendChild(li);
                 if (!isLast) {
                     const arrowDiv = document.createElement('div');
-                    arrowDiv.className = 'arrow-time-wrapper';
                     arrowDiv.innerHTML = `
-                        <div class="arrow-column">
-                            <div class="down-arrow">↓</div>
+                        <div class="arrow-time-wrapper">
+                            <div class="arrow-column">
+                                <div class="down-arrow">↓</div>
+                            </div>
+                            <div class="time-column">
+                                <div class="travel-time">예상 소요 시간: 20분</div>
+                            </div>
                         </div>
-                        <div class="time-column">
-                            <div class="travel-time">예상 소요 시간: 20분</div>
-                        </div>
+                        <hr class="section-divider">
                     `;
                     siteList.appendChild(arrowDiv);
                 }
