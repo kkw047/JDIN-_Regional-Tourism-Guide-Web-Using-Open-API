@@ -31,23 +31,34 @@
             padding: 0;
         }
         .site-item {
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
             padding: 20px;
             border-bottom: 1px solid #eee;
-            display: flex;
-            align-items: center;
             transition: all 0.3s;
+            flex-direction: row;
+        }
+
+        .site-image {
+            width: 150px;
+            height: auto;
+            margin-right: 20px;
+            border-radius: 6px;
+            flex-shrink: 0;
+        }
+        #map {
+            width: 100%;
+            height: 500px;
+            background-color: #dcdcdc;
+            border: 1px solid #ccc;
+            margin-bottom: 20px;
+            border-radius: 8px;
         }
         .site-item:hover {
             background-color: #f8f9fa;
         }
-        .site-number {
-            font-size: 24px;
-            font-weight: bold;
-            color: #ff8800;
-            margin-right: 20px;
-            min-width: 40px;
-            text-align: center;
-        }
+        
         .site-info {
             flex: 1;
         }
@@ -78,34 +89,284 @@
         .back-btn:hover {
             background-color: #5a6268;
         }
+        .site-extra {
+            background-color: #f1f3f5;
+            border: 1px solid #ced4da;
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin-top: 8px;
+            font-size: 14px;
+            color: #343a40;
+        }
+        .confirm-btn {
+            display: block;
+            margin: 40px auto 0;
+            padding: 14px 30px;
+            font-size: 18px;
+            font-weight: bold;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        
+        .confirm-btn:hover {
+            background-color: #218838;
+        }
+        .route-summary {
+            background-color: transparent;   
+            border: none;                    
+            padding: 0;                      
+            text-align: center;
+            font-size: 17px;
+            font-weight: 500;
+            margin: 16px 0 10px;
+            color: #333;
+            box-shadow: none;              
+        }
+        .site-placeholder {
+            width: 150px;
+            height: auto;
+            aspect-ratio: 3 / 2;
+            background-color: #dee2e6;
+            margin-right: 20px;
+            border-radius: 6px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #adb5bd;
+            font-size: 14px;
+        }
+        .route-tag {
+            display: inline-block;
+            background-color: #e0f7fa;
+            color: #007baf;
+            padding: 8px 16px;
+            border-radius: 30px;
+            margin: 6px;
+            font-size: 24px;
+            font-weight: 600;
+            box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s, background-color 0.3s;
+        }
+
+        .route-tag:hover {
+            transform: scale(1.05);
+            background-color: #cdeffc;
+        }
+
+        .route-arrow {
+            margin: 0 10px;
+            font-weight: bold;
+            font-size: 30px;    
+            color: #343a40;
+            
+            animation: blink-arrow 1.2s infinite alternate;
+        }
+        .travel-time {
+            padding: 6px 12px;
+            background-color: #fff3cd;
+            border: 1px solid #ffeeba;
+            border-radius: 20px;
+            font-size: 13px;
+            color: #856404;
+            text-align: left;      
+            width: fit-content;
+        }
+        .image-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-right: 20px;
+        }
+
+        .arrow-time-block {
+            display: flex;
+            flex-direction: column; /* 가로 → 세로 정렬 */
+            align-items: center;     /* 가운데 정렬 */
+            margin: 30px 0;
+        }
+
+        .down-arrow {
+            font-size: 60px;
+            color: #f0ad4e;
+            margin-bottom: 8px;
+            animation: bounce 1.2s infinite alternate;
+        }
+
+        .arrow-time-wrapper {
+            display: flex;
+            justify-content: flex-start;
+            align-items: flex-start;
+            margin: 30px 0;
+        }
+
+        .arrow-column {
+            width: 150px;
+            text-align: center;
+            margin-left: 20px;
+        }
+
+        .down-arrow {
+            font-size: 60px;
+            color: #f0ad4e;
+            animation: bounce 1.2s infinite alternate;
+        }
+
+        .time-column {
+            flex: 1;
+            padding-left: 20px;
+        }
+        .divider-line {
+            width: 100%;
+            height: 1px;
+            background-color: #ddd;
+            margin: 20px 0 0 0;
+        }
+        .section-divider {
+            border: none;
+            border-top: 1px solid #ddd;
+            margin: 20px 0;
+            width: 100%;
+        }
+        .travel-time {
+            background-color: #fff3cd;
+            border: 1px solid #ffeeba;
+            border-radius: 20px;
+            font-size: 13px;
+            color: #856404;
+            padding: 6px 12px;
+            display: inline-block;
+            text-align: left;
+            margin-left: 20px;
+            margin-top: 30px;
+        }
+        @keyframes bounce {
+            from { transform: translateY(0); opacity: 0.6; }
+            to { transform: translateY(6px); opacity: 1; }
+        }
+
+        @keyframes blink-arrow {
+            from { opacity: 0.4; }
+            to { opacity: 1; }
+        }
     </style>
+    <script src="https://apis.openapi.sk.com/tmap/jsv2?version=1&appKey=Mb9cttQ9De2UcPzNfNwCl7ZRY31kNiUqPjCAeZne&callback=tmapApiLoaded"></script>
+
 </head>
 <body>
     <div class="container">
+        <div id="map"></div>
+        <div id="routeSummary" class="route-summary"></div>
         <h1>선택된 관광지 목록</h1>
         <ul class="site-list" id="siteList"></ul>
+        <button class="confirm-btn" onclick="goToLive()">여행 확정</button>
+
     </div>
 
     <script>
+        
         const params = new URLSearchParams(window.location.search);
         const siteList = document.getElementById('siteList');
+        const routeSummary = document.getElementById("routeSummary");
+        let routeNames = [];
+        
+        function confirmTrip() {
+            alert("여행이 확정되었습니다!");
+            // 또는 window.location.href = "/submit-final"; 와 같이 실제 이동 처리도 가능
+
+        }
 
         for (let i = 1; i <= 3; i++) {
             const name = params.get(`site${i}_name`) ? decodeURIComponent(params.get(`site${i}_name`)) : '';
-            const location = params.get(`site${i}_location`) ? decodeURIComponent(params.get(`site${i}_location`)) : '';
+            const locationParam = params.get(`site${i}_location`) ? decodeURIComponent(params.get(`site${i}_location`)) : '';
+            const address = params.get(`site${i}_address`) ? decodeURIComponent(params.get(`site${i}_address`)) : '주소 정보 없음';
+            const imageUrl = params.get(`site${i}_image`) ? decodeURIComponent(params.get(`site${i}_image`)) : '';
+
+            let location = "위치 정보 없음";
+            try {
+                const locObj = JSON.parse(locationParam);
+                if (locObj.mapx && locObj.mapy) {
+                    location = `위도: ${locObj.mapy}, 경도: ${locObj.mapx}`;
+                } else if (locObj.lat && locObj.lng) {
+                    location = `위도: ${locObj.lat}, 경도: ${locObj.lng}`;
+                }
+            } catch (e) {
+                location = locationParam || "위치 정보 없음";
+            }
 
             if (name) {
+                routeNames.push(name); // 경로에 추가
                 const li = document.createElement('li');
                 li.className = 'site-item';
+
+                const isLast = (i === 3 || !params.get(`site${i + 1}_name`));
+                const arrowBlock = !isLast
+                    ? `
+                    <div class="arrow-time-block">
+                        <div class="down-arrow">↓</div>
+                        <div class="travel-time">예상 소요 시간: 20분</div>
+                    </div>
+                    `
+                    : '';
+
                 li.innerHTML = `
-                    <div class="site-number">${i}</div>
+                    <div class="image-container">
+                        ${imageUrl ? 
+                            `<img src="${imageUrl}" alt="${name}" class="site-image">` :
+                            `<div class="site-placeholder">이미지 없음</div>`}
+                        
+                    </div>
                     <div class="site-info">
                         <div class="site-name">${name}</div>
-                        <div class="site-location">${location || '위치 정보 없음'}</div>
+                        <div class="site-location">${address}</div>
+                        <div class="site-extra">추가 정보 1: 여기에 텍스트 입력</div>
+                        <div class="site-extra">추가 정보 2: 여기에 텍스트 입력</div>
                     </div>
                 `;
                 siteList.appendChild(li);
+                if (!isLast) {
+                    const arrowDiv = document.createElement('div');
+                    arrowDiv.innerHTML = `
+                        <div class="arrow-time-wrapper">
+                            <div class="arrow-column">
+                                <div class="down-arrow">↓</div>
+                            </div>
+                            <div class="time-column">
+                                <div class="travel-time">예상 소요 시간: 20분</div>
+                            </div>
+                        </div>
+                        <hr class="section-divider">
+                    `;
+                    siteList.appendChild(arrowDiv);
+                }
             }
+        }
+
+        function goToLive() {
+            const params = new URLSearchParams(window.location.search);
+            const city = params.get("city");
+            const count = params.get("count");
+            window.location.href = `/live?city=${encodeURIComponent(city)}&count=${encodeURIComponent(count)}`;
+        }
+
+        // 경로 요약 텍스트 표시
+        if (routeNames.length >= 2) {
+            routeSummary.innerHTML = routeNames
+            .map((name, index) => {
+                const tag = `<span class="route-tag">${name}</span>`;
+                return index < routeNames.length - 1
+                    ? `${tag}<span class="route-arrow">→</span>`
+                    : tag;
+            })
+            .join('');
+        } else if (routeNames.length === 1) {
+            routeSummary.textContent = routeNames[0];
+        } else {
+            routeSummary.textContent = "선택된 관광지가 없습니다.";
         }
     </script>
 </body>

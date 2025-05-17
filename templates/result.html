@@ -448,8 +448,11 @@ function handleSiteSelection(button, siteId, siteName, site) {
         id: siteId,
         name: siteName,
         location: site.location,
+        image: site.image,
+        address: site.address || "주소 정보 없음",
         index: Number(buttonIndex)
       };
+
 
       button.textContent = "선택 취소";
       button.classList.remove("select-btn");
@@ -510,7 +513,7 @@ function updateSelectionStatus() {
     for (let i = 0; i < siteKeys.length - 1; i++) {
       const startSite = selectedSites[siteKeys[i]];
       const endSite = selectedSites[siteKeys[i + 1]];
-
+      
       if (startSite && endSite && startSite.location && endSite.location) {
         const startLocation = parseLocation(startSite.location);
         const endLocation = parseLocation(endSite.location);
@@ -577,8 +580,10 @@ function adjustMapBounds() {
     const params = new URLSearchParams();
 
     sortedSites.forEach((site, index) => {
-      params.append(`site${index + 1}_name`, encodeURIComponent(site.name));
-      params.append(`site${index + 1}_location`, encodeURIComponent(site.location || ''));
+        params.append(`site${index + 1}_name`, encodeURIComponent(site.name));
+        params.append(`site${index + 1}_location`, encodeURIComponent(site.location || ''));
+        params.append(`site${index + 1}_image`, encodeURIComponent(site.image || ''));
+        params.append(`site${index + 1}_address`, encodeURIComponent(site.address || '주소 정보 없음'));
     });
 
     params.append('city', encodeURIComponent(city));
