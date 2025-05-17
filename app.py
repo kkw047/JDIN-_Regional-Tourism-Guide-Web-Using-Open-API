@@ -217,6 +217,7 @@ def live():
 
     return render_template('live.html', city=city, count=count, usercode=usercode)
 
+
 def get_mission_id_by_category(category):
     """tourist_attraction 테이블의 카테고리와 같은 category를 가진 mission의 id를 반환합니다.
         (구현 필요:  tourist_attraction 테이블과 mission 테이블의 관계에 따라 수정해야 합니다.)"""
