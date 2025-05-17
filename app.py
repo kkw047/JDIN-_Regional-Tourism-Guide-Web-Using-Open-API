@@ -116,6 +116,12 @@ def process():
                            count=request.args.get('count'))
 
 
+@app.route('/live')
+def live():
+    city = request.args.get('city')
+    count = request.args.get('count')
+    return render_template('live.html', city=city, count=count)
+
 def update_tourist_attractions():
     """
     tourist_attraction.py에 정의된 함수들을 사용해서 관광 데이터를 갱신합니다.
