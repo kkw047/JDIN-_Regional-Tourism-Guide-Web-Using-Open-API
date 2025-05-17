@@ -33,9 +33,11 @@
         .site-item {
             display: flex;
             align-items: flex-start;
+            justify-content: center;
             padding: 20px;
             border-bottom: 1px solid #eee;
             transition: all 0.3s;
+            flex-direction: row;
         }
 
         .site-image {
@@ -109,22 +111,7 @@
             cursor: pointer;
             transition: background 0.3s;
         }
-        .route-tag {
-            display: inline-block;
-            background-color: #e9ecef;
-            color: #343a40;
-            padding: 6px 12px;
-            border-radius: 20px;
-            margin: 4px;
-            font-size: 15px;
-            font-weight: 500;
-        }
-        .route-arrow {
-            margin: 0 6px;
-            font-weight: bold;
-            color: #495057;
-        }
-
+        
         .confirm-btn:hover {
             background-color: #218838;
         }
@@ -160,7 +147,7 @@
             padding: 8px 16px;
             border-radius: 30px;
             margin: 6px;
-            font-size: 16px;
+            font-size: 20px;
             font-weight: 600;
             box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
             transition: transform 0.3s, background-color 0.3s;
@@ -174,21 +161,20 @@
         .route-arrow {
             margin: 0 10px;
             font-weight: bold;
-            font-size: 18px;
+            font-size: 25px;    
             color: #343a40;
             vertical-align: middle;
             animation: blink-arrow 1.2s infinite alternate;
         }
         .travel-time {
-            margin-top: 16px;
             padding: 6px 12px;
             background-color: #fff3cd;
             border: 1px solid #ffeeba;
             border-radius: 20px;
             font-size: 13px;
             color: #856404;
+            text-align: left;      
             width: fit-content;
-            text-align: left;
         }
         .image-container {
             display: flex;
@@ -197,18 +183,59 @@
             margin-right: 20px;
         }
 
-        .down-arrow {
-            font-size: 40px;
-            color: #eabb74;
-            margin-top: 40px;
+        .arrow-time-block {
+            display: flex;
+            flex-direction: column; /* 가로 → 세로 정렬 */
+            align-items: center;     /* 가운데 정렬 */
+            margin: 30px 0;
         }
+
         .down-arrow {
+            font-size: 60px;
+            color: #f0ad4e;
+            margin-bottom: 8px;
             animation: bounce 1.2s infinite alternate;
         }
 
+        .arrow-time-wrapper {
+            display: flex;
+            justify-content: flex-start;
+            align-items: flex-start;
+            margin: 30px 0;
+        }
+
+        .arrow-column {
+            width: 150px;
+            text-align: center;
+            margin-left: 20px;
+        }
+
+        .down-arrow {
+            font-size: 60px;
+            color: #f0ad4e;
+            animation: bounce 1.2s infinite alternate;
+        }
+
+        .time-column {
+            flex: 1;
+            padding-left: 20px;
+        }
+
+        .travel-time {
+            background-color: #fff3cd;
+            border: 1px solid #ffeeba;
+            border-radius: 20px;
+            font-size: 13px;
+            color: #856404;
+            padding: 6px 12px;
+            display: inline-block;
+            text-align: left;
+            margin-left: 20px;
+            margin-top: 30px;
+        }
         @keyframes bounce {
-            from { transform: translateY(0); }
-            to { transform: translateY(5px); }
+            from { transform: translateY(0); opacity: 0.6; }
+            to { transform: translateY(6px); opacity: 1; }
         }
 
         @keyframes blink-arrow {
@@ -265,11 +292,14 @@
                 const li = document.createElement('li');
                 li.className = 'site-item';
 
-                // 마지막 관광지인지 확인 (3번째거나 다음 관광지가 없을 때)
                 const isLast = (i === 3 || !params.get(`site${i + 1}_name`));
-                const arrowHTML = !isLast ? `<div class="down-arrow">↓</div>` : '';
-                const travelTimeHTML = !isLast
-                    ? `<div class="travel-time">예상 소요 시간: 20분</div>`
+                const arrowBlock = !isLast
+                    ? `
+                    <div class="arrow-time-block">
+                        <div class="down-arrow">↓</div>
+                        <div class="travel-time">예상 소요 시간: 20분</div>
+                    </div>
+                    `
                     : '';
 
                 li.innerHTML = `
@@ -277,17 +307,29 @@
                         ${imageUrl ? 
                             `<img src="${imageUrl}" alt="${name}" class="site-image">` :
                             `<div class="site-placeholder">이미지 없음</div>`}
-                        ${arrowHTML}
+                        
                     </div>
                     <div class="site-info">
                         <div class="site-name">${name}</div>
                         <div class="site-location">${address}</div>
                         <div class="site-extra">추가 정보 1: 여기에 텍스트 입력</div>
                         <div class="site-extra">추가 정보 2: 여기에 텍스트 입력</div>
-                        ${travelTimeHTML}
                     </div>
                 `;
                 siteList.appendChild(li);
+                if (!isLast) {
+                    const arrowDiv = document.createElement('div');
+                    arrowDiv.className = 'arrow-time-wrapper';
+                    arrowDiv.innerHTML = `
+                        <div class="arrow-column">
+                            <div class="down-arrow">↓</div>
+                        </div>
+                        <div class="time-column">
+                            <div class="travel-time">예상 소요 시간: 20분</div>
+                        </div>
+                    `;
+                    siteList.appendChild(arrowDiv);
+                }
             }
         }
 
