@@ -87,7 +87,7 @@ def get_tourist_sites():
                 category_list = categories.split(",")
                 like_conditions = []
                 for category in category_list:
-                    like_conditions.append("name LIKE %s")
+                    like_conditions.append("category LIKE %s")
                     params.append(f"%{category}%")
 
                 sql += " AND (" + " OR ".join(like_conditions) + ")"
