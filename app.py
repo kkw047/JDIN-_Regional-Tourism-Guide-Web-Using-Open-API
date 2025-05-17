@@ -108,7 +108,6 @@ def get_tourist_sites():
             connection.close()
 
 
-
 @app.route('/process')
 def process():
     return render_template('process.html',
@@ -149,9 +148,6 @@ scheduler.add_job(
 # 애플리케이션 종료 시 스케줄러도 종료
 atexit.register(lambda: scheduler.shutdown())
 
-
 if __name__ == '__main__':
     print("스케줄러가 실행 중입니다...")
     app.run(host='0.0.0.0', port=5000, debug=True)
-
-
