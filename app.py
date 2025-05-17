@@ -22,7 +22,6 @@ db_config = {
     'cursorclass': pymysql.cursors.DictCursor
 }
 
-
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -65,8 +64,6 @@ def get_categories():
     finally:
         if 'connection' in locals():
             connection.close()
-
-
 
 
 @app.route('/get_tourist_sites', methods=['GET'])
@@ -140,10 +137,12 @@ def process():
 @app.route('/live', methods=['POST'])
 def live():
     city = request.form.get('city')
-    count = request.form.get('count')  # count 값을 request.form 에서 가져옴
+    count = request.form.get('count')
 
     try:
         count = int(count)
+        if count < 1 or count > 3:  # count 범위 검사 추가
+            return "관광지 개수는 1~3개여야 합니다.", 400
     except ValueError:
         return "잘못된 count 값입니다.", 400
 
@@ -164,50 +163,48 @@ def live():
 
     # process.html 에서 전달받은 관광지 ID 추출 (request.form 사용)
     tourist_sites = []
+    missions = []
     for i in range(1, count + 1):
         site_id = request.form.get(f'site{i}_id')
         tourist_sites.append(site_id)
 
-    # mission 테이블에서 category를 이용하여 mission id 가져오기 (랜덤으로 1개 선택, None 처리 추가)
-    missions = []
-    try:
-        connection = pymysql.connect(**db_config)
-        with connection.cursor() as cursor:
-            for i in range(1, count + 1):
-                site_id = request.form.get(f'site{i}_id')
+        try:
+            connection = pymysql.connect(**db_config)
+            with connection.cursor() as cursor:
                 cursor.execute("SELECT category FROM tourist_attraction WHERE id = %s", (site_id,))
                 category_result = cursor.fetchone()
-                category = category_result['category'] if category_result else None  # category가 None일 경우 처리
+                category = category_result['category'] if category_result else None
 
-                if category:  # category가 존재하는 경우에만 쿼리 실행
+                if category:
                     cursor.execute("SELECT id FROM mission WHERE category = %s ORDER BY RAND() LIMIT 1", (category,))
                     mission_id_result = cursor.fetchone()
-                    mission_id = mission_id_result['id'] if mission_id_result else None  # mission_id가 None일 경우 처리
+                    mission_id = mission_id_result['id'] if mission_id_result else None
                     missions.append(mission_id)
                 else:
-                    missions.append(None)  # category가 없을 경우 None을 추가
-
-
-    except Exception as e:
-        print(f"미션 ID 조회 오류: {e}")
-        return "오류 발생!", 500
-    finally:
-        if 'connection' in locals():
-            connection.close()
+                    missions.append(None)
+        except Exception as e:
+            print(f"미션 ID 조회 오류: {e}")
+            return "오류 발생!", 500
+        finally:
+            if 'connection' in locals():
+                connection.close()
 
     try:
         connection = pymysql.connect(**db_config)
         with connection.cursor() as cursor:
-            # SQL 쿼리 수정: count에 따라 컬럼 수 동적으로 조정
-            sql = f"""
-                INSERT INTO user_travel_data (usercode, tourist_site_1, tourist_site_2, tourist_site_3, mission_1, mission_2, mission_3) 
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
-            """
-            # SQL 쿼리와 값을 count에 맞춰서 동적으로 생성해야 합니다.
-            # 현재는 count가 3 이상일 때 오류가 발생합니다.
-            # count에 따라 컬럼과 값을 동적으로 생성하는 로직이 필요합니다.
+            # SQL 쿼리와 매개변수를 동적으로 생성
+            columns = ", ".join(
+                [f"tourist_site_{i}" for i in range(1, count + 1)] + [f"mission_{i}" for i in range(1, count + 1)])
+            placeholders = ", ".join(["%s"] * (2 * count))  # 매개변수 자리 표시자 생성
 
-            cursor.execute(sql, (usercode, *tourist_sites, *missions))  # * 연산자를 사용해서 리스트의 요소를 개별 매개변수로 전달
+            sql = f"""
+                   INSERT INTO user_travel_data (usercode, {columns}) 
+                   VALUES (%s, {placeholders})
+               """
+
+            params = [usercode] + tourist_sites + missions  # 매개변수 리스트 생성
+
+            cursor.execute(sql, params)
             connection.commit()
     except Exception as e:
         print(f"데이터베이스 삽입 오류: {e}")
@@ -218,8 +215,6 @@ def live():
             connection.close()
 
     return render_template('live.html', city=city, count=count, usercode=usercode)
-
-
 
 def get_mission_id_by_category(category):
     """tourist_attraction 테이블의 카테고리와 같은 category를 가진 mission의 id를 반환합니다.
