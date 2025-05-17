@@ -354,7 +354,8 @@
         }
 
         // 경로 요약 텍스트 표시
-        if (routeNames.length >= 2) {
+
+        if (routeNames.length >= 1) {
             routeSummary.innerHTML = routeNames
             .map((name, index) => {
                 const tag = `<span class="route-tag">${name}</span>`;
