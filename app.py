@@ -67,6 +67,8 @@ def get_categories():
             connection.close()
 
 
+
+
 @app.route('/get_tourist_sites', methods=['GET'])
 def get_tourist_sites():
     city = request.args.get('city')
@@ -119,7 +121,6 @@ def process():
         count = int(count)  # count를 int형으로 변환
     except ValueError:
         return "잘못된 count 값입니다.", 400
-
     # site 정보를 딕셔너리로 변환
     site_data = {}
     for i in range(1, count + 1):
@@ -135,6 +136,7 @@ def process():
 
 
 
+
 @app.route('/live', methods=['POST'])
 def live():
     city = request.form.get('city')
@@ -144,6 +146,7 @@ def live():
         count = int(count)
         if count < 1 or count > 3:  # count 범위 검사 추가
             return "관광지 개수는 1~3개여야 합니다.", 400
+
     except ValueError:
         return "잘못된 count 값입니다.", 400
 
@@ -165,9 +168,11 @@ def live():
     # process.html 에서 전달받은 관광지 ID 추출 (request.form 사용)
     tourist_sites = []
     missions = []
+
     for i in range(1, count + 1):
         site_id = request.form.get(f'site{i}_id')
         tourist_sites.append(site_id)
+
 
         try:
             connection = pymysql.connect(**db_config)
@@ -193,6 +198,7 @@ def live():
     try:
         connection = pymysql.connect(**db_config)
         with connection.cursor() as cursor:
+
             # SQL 쿼리와 매개변수를 동적으로 생성
             columns = ", ".join(
                 [f"tourist_site_{i}" for i in range(1, count + 1)] + [f"mission_{i}" for i in range(1, count + 1)])
@@ -206,6 +212,7 @@ def live():
             params = [usercode] + tourist_sites + missions  # 매개변수 리스트 생성
 
             cursor.execute(sql, params)
+
             connection.commit()
     except Exception as e:
         print(f"데이터베이스 삽입 오류: {e}")
@@ -216,6 +223,7 @@ def live():
             connection.close()
 
     return render_template('live.html', city=city, count=count, usercode=usercode)
+
 
 
 def get_mission_id_by_category(category):

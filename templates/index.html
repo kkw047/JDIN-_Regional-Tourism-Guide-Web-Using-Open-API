@@ -131,24 +131,47 @@
 <body>
     <div class="container">
         <h1>관광지 검색</h1>
-        <form method="post" action="/submit" id="search-form">
-            <!-- 도시 선택 -->
-            <label for="tourist_location">도시를 선택하세요:</label>
-            <select name="tourist_location" id="tourist_location" required>
-                <option value="none" selected>도시를 선택하세요</option>
-                <option value="서울">서울</option>
-                <option value="청주">청주</option>
-                <option value="부산">부산</option>
-                <option value="제주">제주</option>
-            </select>
+       <form method="post" action="/submit" id="search-form">
+    <!-- 도시 선택 -->
+    <label for="tourist_location">도시를 선택하세요:</label>
+    <select name="tourist_location" id="tourist_location" required>
+        <option value="none" selected>도시를 선택하세요</option>
+        <option value="서울">서울</option>
+        <option value="청주">청주</option>
+        <option value="부산">부산</option>
+        <option value="제주">제주</option>
+    </select>
 
-            <!-- 관광지 수 선택 (슬라이더) -->
-            <label for="tourist_sites_count">관광지 수:</label>
-            <input type="range" name="tourist_sites_count" id="tourist_sites_count" min="1" max="3" value="1">
-            <div class="range-value" id="range-value">1</div>
+    <!-- 관광지 수 선택 (슬라이더) -->
+    <label for="tourist_sites_count">관광지 수:</label>
+    <input type="range" name="tourist_sites_count" id="tourist_sites_count" min="1" max="3" value="1">
+    <div class="range-value" id="range-value">1</div>
 
-            <button type="submit">검색</button>
-
+    <button type="submit">검색</button>
+    <div class="error" id="error-message" style="display: none; text-align:left; margin-left:140px; margin-top:4px;"></div>
+</form>
+<div style="margin-top:20px; text-align:center;">
+    <div style="display: flex; justify-content: flex-start; align-items: center; width: 100%; max-width: 400px; margin: 0 auto;">
+        <input type="text" id="userText" placeholder="사용자 코드를 입력하세요" style="width:180px; padding:8px; margin-right:8px;">
+        <button type="button" onclick="submitText()" style="padding:6px 12px; font-size:14px;">저장된 여행경로</button>
+    </div>
+    <div class="error" id="usercode-error-message" style="display: none; text-align:left; margin-left:225px; margin-top:4px;"></div>
+</div>
+<script>
+    function submitText() {
+        const text = document.getElementById('userText').value;
+        const usercodeErrorMessage = document.getElementById('usercode-error-message');
+        if (text.trim() === "") {
+            usercodeErrorMessage.style.display = "block";
+            usercodeErrorMessage.textContent = "사용자 코드를 입력하세요!";
+            return;
+        }
+        usercodeErrorMessage.style.display = "none";
+        // live.html로 이동 (GET 파라미터로 코드 전달)
+        window.location.href = `/live?code=${encodeURIComponent(text)}`;
+    }
+</script>
+    </script>
             <!-- 에러 메시지 -->
             <div class="error" id="error-message" style="display: none;"></div>
         </form>
@@ -189,6 +212,7 @@
             // 에러 메시지 숨기기
             errorMessage.style.display = "none";
         });
+    
     </script>
 </body>
 </html>
