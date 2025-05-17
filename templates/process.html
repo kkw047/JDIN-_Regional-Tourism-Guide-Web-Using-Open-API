@@ -132,6 +132,20 @@
             color: #606662;
             box-shadow: 0 2px 8px rgba(0, 123, 255, 0.1);
         }
+        .site-placeholder {
+            width: 150px;
+            height: auto;
+            aspect-ratio: 3 / 2;
+            background-color: #dee2e6;
+            margin-right: 20px;
+            border-radius: 6px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #adb5bd;
+            font-size: 14px;
+        }
     </style>
     <script src="https://apis.openapi.sk.com/tmap/jsv2?version=1&appKey=Mb9cttQ9De2UcPzNfNwCl7ZRY31kNiUqPjCAeZne&callback=tmapApiLoaded"></script>
 
@@ -182,7 +196,9 @@
                 const li = document.createElement('li');
                 li.className = 'site-item';
                 li.innerHTML = `
-                    ${imageUrl ? `<img src="${imageUrl}" alt="${name}" class="site-image">` : ''}
+                    ${imageUrl ? 
+                        `<img src="${imageUrl}" alt="${name}" class="site-image">` :
+                        `<div class="site-placeholder">이미지 없음</div>`}
                     <div class="site-number">${i}</div>
                     <div class="site-info">
                         <div class="site-name">${name}</div>
