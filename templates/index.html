@@ -148,7 +148,26 @@
             <div class="range-value" id="range-value">1</div>
 
             <button type="submit">검색</button>
-
+            <div class="error" id="error-message" style="display: none;"></div>
+    </form>
+    <div style="margin-top:20px; text-align:center;">
+    <div style="display: flex; justify-content: flex-start; align-items: center; width: 100%; max-width: 400px; margin: 0 auto;">
+        <input type="text" id="userText" placeholder="사용자 코드를 입력하세요" style="width:180px; padding:8px; margin-right:8px;">
+        <button type="button" onclick="submitText()" style="padding:6px 12px; font-size:14px;">저장된 여행경로</button>
+    </div>
+</div>
+<script>
+    function submitText() {
+        const text = document.getElementById('userText').value;
+        if (text.trim() === "") {
+            alert("사용자 코드를 입력하세요!");
+            return;
+        }
+        // live.html로 이동 (GET 파라미터로 코드 전달)
+        window.location.href = `/live?code=${encodeURIComponent(text)}`;
+    }
+</script>
+    </script>
             <!-- 에러 메시지 -->
             <div class="error" id="error-message" style="display: none;"></div>
         </form>
@@ -189,6 +208,7 @@
             // 에러 메시지 숨기기
             errorMessage.style.display = "none";
         });
+    
     </script>
 </body>
 </html>
