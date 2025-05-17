@@ -575,22 +575,23 @@ function adjustMapBounds() {
   }
 }
 
-  function moveToProcessPage() {
+function moveToProcessPage() {
     const sortedSites = Object.values(selectedSites).sort((a, b) => a.index - b.index);
     const params = new URLSearchParams();
 
     sortedSites.forEach((site, index) => {
         params.append(`site${index + 1}_name`, encodeURIComponent(site.name));
-        params.append(`site${index + 1}_location`, encodeURIComponent(site.location || ''));
-        params.append(`site${index + 1}_image`, encodeURIComponent(site.image || ''));
-        params.append(`site${index + 1}_address`, encodeURIComponent(site.address || '주소 정보 없음'));
+        params.append(`site${index + 1}_location`, encodeURIComponent(site.location)); // 수정: location 객체 그대로 전달
+        params.append(`site${index + 1}_image`, encodeURIComponent(site.image));
+        params.append(`site${index + 1}_address`, encodeURIComponent(site.address));
+        params.append(`site${index + 1}_id`, site.id); // site.id 추가
     });
 
     params.append('city', encodeURIComponent(city));
     params.append('count', count);
 
     window.location.href = `/process?${params.toString()}`;
-  }
+}
 
 
   function renderTouristSites() {
