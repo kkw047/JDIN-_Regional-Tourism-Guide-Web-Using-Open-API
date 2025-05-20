@@ -136,10 +136,31 @@ def process():
 
 @app.route('/mission_popup')
 def mission_popup():
-    # mission.html 템플릿을 렌더링합니다.
-    # 이 시점에서는 단순히 팝업 창을 띄우는 것이 목적이므로,
-    # 특별한 데이터 없이 mission.html만 렌더링합니다.
-    return render_template('mission.html')
+    ids_str = request.args.get('ids', '')
+    ids = [int(id) for id in ids_str.split(',') if id.isdigit()]
+    missions = []
+
+    try:
+        connection = pymysql.connect(**db_config)
+        with connection.cursor() as cursor:
+            for site_id in ids:
+                # 관광지의 카테고리를 찾는다
+                cursor.execute("SELECT category FROM tourist_attraction WHERE id = %s", (site_id,))
+                category_result = cursor.fetchone()
+                if category_result:
+                    category = category_result['category']
+                    # 해당 카테고리에 맞는 랜덤 미션 하나 가져오기
+                    cursor.execute("SELECT title, content FROM mission WHERE category = %s ORDER BY RAND() LIMIT 1", (category,))
+                    mission = cursor.fetchone()
+                    if mission:
+                        missions.append(mission)
+    except Exception as e:
+        print(f"미션 팝업 오류: {e}")
+    finally:
+        if 'connection' in locals():
+            connection.close()
+
+    return render_template('mission.html', missions=missions)
 
 
 @app.route('/live', methods=['POST'])
@@ -241,8 +262,7 @@ def get_mission_id_by_category(category):
         return None
     finally:
         if 'connection' in locals():
-            connection.close()
-
+            connection.close(
 def update_tourist_attractions():
     """
     tourist_attraction.py에 정의된 함수들을 사용해서 관광 데이터를 갱신합니다.

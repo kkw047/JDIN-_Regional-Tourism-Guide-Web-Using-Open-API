@@ -309,19 +309,24 @@ style.innerHTML = `
     const siteList = document.getElementById('siteList');
     const routeSummary = document.getElementById("routeSummary");
     let routeNames = [];
-function openMissionWindow() {
-        // 팝업 창의 크기와 위치를 설정합니다.
-        const width = 800;  // 팝업 창의 너비
-        const height = 600; // 팝업 창의 높이
-        // 화면 중앙에 팝업이 뜨도록 위치 계산
+
+    function openMissionWindow() {
+        const params = new URLSearchParams(window.location.search);
+        const count = parseInt(params.get("count")) || 0;
+        let ids = [];
+        for (let i = 1; i <= count; i++) {
+            const id = params.get(`site${i}_id`);
+            if (id) ids.push(id);
+        }
+
+        const width = 800;
+        const height = 600;
         const left = (window.screen.width / 2) - (width / 2);
         const top = (window.screen.height / 2) - (height / 2);
 
-        // 새 팝업 창을 엽니다.
-        // '/mission_popup'은 Flask 서버의 라우트 (아래 2번 참조)
-        // '_blank'는 새 창을 열도록 지시합니다.
-        // 세 번째 인자는 팝업 창의 속성 (크기, 위치, 스크롤바, 크기 조절 가능 여부 등)
-        window.open('/mission_popup', '_blank', `width=${width},height=${height},left=${left},top=${top},scrollbars=yes,resizable=yes`);
+        const url = `/mission_popup?ids=${ids.join(',')}`;
+
+        window.open(url, '_blank', `width=${width},height=${height},left=${left},top=${top},scrollbars=yes,resizable=yes`);
     }
 
     function confirmTrip() {

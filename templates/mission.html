@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>미션 목록</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f8f9fa;
+            color: #333;
+        }
+        .container {
+            max-width: 700px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #343a40;
+            text-align: center;
+            margin-bottom: 25px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #eee;
+        }
+        .mission-section {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            background-color: #ffffff;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        .mission-section h2 {
+            color: #007bff;
+            font-size: 1.5em;
+            margin-top: 0;
+            margin-bottom: 10px;
+        }
+        .mission-section p {
+            font-size: 1.0em;
+            line-height: 1.6;
+            margin-bottom: 5px;
+        }
+        .mission-section ul {
+            list-style: none;
+            padding: 0;
+            margin-top: 15px;
+        }
+        .mission-section li {
+            background-color: #f0f8ff;
+            border: 1px solid #cce5ff;
+            padding: 10px 15px;
+            margin-bottom: 8px;
+            border-radius: 5px;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        .mission-section li strong {
+            color: #0056b3;
+            margin-right: 10px;
+            font-size: 1.1em;
+            margin-bottom: 5px;
+        }
+        .close-button {
+            display: block;
+            width: 150px;
+            margin: 30px auto 0;
+            padding: 10px 15px;
+            background-color: #6c757d;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 1em;
+            cursor: pointer;
+            text-align: center;
+            transition: background-color 0.2s ease;
+        }
+        .close-button:hover {
+            background-color: #5a6268;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>미션 목록</h1>
+
+    <div class="mission-section">
+        <h2>미션 소개</h2>
+        <p>여행을 더욱 즐겁게 만들어 줄 미션들입니다!</p>
+    </div>
+
+    {% if missions %}
+    <div class="mission-section">
+        <h2>추천 미션</h2>
+        <ul>
+            {% for mission in missions %}
+            <li>
+                <strong>{{ mission.title }}</strong>
+                <span>{{ mission.content }}</span>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% else %}
+    <div class="mission-section">
+        <p>선택된 미션이 없습니다.</p>
+    </div>
+    {% endif %}
+
+    <button class="close-button" onclick="window.close()">닫기</button>
+</div>
+</body>
+</html>
