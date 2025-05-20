@@ -134,6 +134,12 @@ def process():
 
     return render_template('process.html', city=city, count=count, site_data=site_data)
 
+@app.route('/mission_popup')
+def mission_popup():
+    # mission.html 템플릿을 렌더링합니다.
+    # 이 시점에서는 단순히 팝업 창을 띄우는 것이 목적이므로,
+    # 특별한 데이터 없이 mission.html만 렌더링합니다.
+    return render_template('mission.html')
 
 
 @app.route('/live', methods=['POST'])
