@@ -83,10 +83,25 @@
             background-color: #28a745;
         }
 
+        .status-button.waiting.blinking,
+        .status-button.in-progress.blinking {
+            animation: blinker 1s linear infinite;
+        }
+
+        @keyframes blinker {
+            50% {
+                opacity: 0.5;
+            }
+        }
+
         .arrow {
             font-size: 24px;
             margin: 5px 0;
             text-align: center;
+        }
+
+        .arrow.blinking {
+            animation: blinker 1s linear infinite;
         }
 
         .popup {
@@ -199,11 +214,11 @@
                     <button class="status-button waiting"
                         onclick="openPopup('site', '{{ usercode }}', {{ i + 1 }}, 2)">대기</button>
                     {% elif statuses[i] == 2 %}
-                    <button class="status-button in-progress"
+                    <button class="status-button in-progress blinking"
                         onclick="openCompletePopup('{{ usercode }}', {{ i + 1 }})">진행중</button>
                     {% elif statuses[i] == 1 %}
                     <button class="status-button completed"
-                        onclick="openCancelPopup('site', '{{ usercode }}', {{ i + 1 }})">완료</button>
+                        onclick="openPopup('site', '{{ usercode }}', {{ i + 1 }}, 0)">완료</button>
                     {% endif %}
                 </div>
 
@@ -217,11 +232,11 @@
                     <button class="status-button waiting"
                         onclick="openPopup('route', '{{ usercode }}', {{ i + 1 }}, 2)">대기</button>
                     {% elif routes[i].status == 2 %}
-                    <button class="status-button in-progress"
-                        onclick="openCompletePopup('route', '{{ usercode }}', {{ i + 1 }})">진행중</button>
+                    <button class="status-button in-progress blinking"
+                        onclick="openPopup('route', '{{ usercode }}', {{ i + 1 }}, 1)">진행중</button>
                     {% elif routes[i].status == 1 %}
                     <button class="status-button completed"
-                        onclick="openCancelPopup('route', '{{ usercode }}', {{ i + 1 }})">완료</button>
+                        onclick="openPopup('route', '{{ usercode }}', {{ i + 1 }}, 0)">완료</button>
                     {% endif %}
                 </div>
                 {% endif %}
@@ -233,12 +248,12 @@
             <h2>상태 변경</h2>
             <p id="popupMessage"></p>
             <button onclick="updateStatus()">예</button>
-            <button onclick="closePopup()">아니오</button>
+            <button onclick="openCancelPopup()">아니오</button>
         </div>
 
         <div class="popup" id="cancelPopup">
             <h2>취소 확인</h2>
-            <p id="cancelMessage">여행을 되돌아가시겠습니까?</p>
+            <p>취소하시겠습니까?</p>
             <button onclick="cancelStatus()">예</button>
             <button onclick="closePopup()">아니오</button>
         </div>
@@ -257,7 +272,6 @@
         let map;
         let markers = [];
         let polylines = [];
-        let currentPositionMarker = null; // 현재 위치 마커
         let usercode = '{{ usercode }}';
         let currentType = '';
         let currentNumber = 0;
@@ -287,12 +301,16 @@
                     popupMessage = "여행을 시작하시겠습니까?";
                 } else if (statuses[number - 1] === 2) {
                     popupMessage = "여행을 완료하셨습니까?";
+                } else if (statuses[number - 1] === 1) {
+                    popupMessage = "여행을 취소하시겠습니까?";
                 }
             } else if (type === 'route') {
                 if (routes[number - 1].status === 0) {
                     popupMessage = "경로를 시작하시겠습니까?";
                 } else if (routes[number - 1].status === 2) {
-                    popupMessage = "경로를 완료하셨습니까?";
+                    popupMessage = "경로를 완료하시겠습니까?";
+                } else if (routes[number - 1].status === 1) {
+                    popupMessage = "경로를 취소하시겠습니까?";
                 }
             }
             document.getElementById('popupMessage').innerText = popupMessage;
@@ -303,9 +321,8 @@
             document.getElementById('popupOverlay').style.display = 'block';
         }
 
-        function openCompletePopup(type, usercode, number) {
+        function openCompletePopup(usercode, number) {
             console.log("openCompletePopup 호출", usercode, number);
-             currentType = type;
             currentUsercode = usercode;
             currentNumber = number;
 
@@ -315,29 +332,11 @@
             document.getElementById('popupOverlay').style.display = 'block';
         }
 
-        function openCancelPopup(type, usercode, number) {
-            console.log("openCancelPopup 호출", usercode, number);
-            currentType = type;
-            currentUsercode = usercode;
-            currentNumber = number;
-            let status;
-
-            if (type === 'site') {
-                status = statuses[number - 1];
-            } else if (type === 'route') {
-                status = routes[number - 1].status;
-            }
-
-            // 완료 상태일 때만 팝업을 띄움
-            if (status === 1) {
-                document.getElementById('statusPopup').style.display = 'none';
-                document.getElementById('cancelPopup').style.display = 'block';
-                document.getElementById('completePopup').style.display = 'none';
-                document.getElementById('popupOverlay').style.display = 'block';
-            } else {
-                // 완료 상태가 아니면 아무 동작도 하지 않음
-                closePopup();
-            }
+        function openCancelPopup() {
+            document.getElementById('statusPopup').style.display = 'none';
+            document.getElementById('cancelPopup').style.display = 'block';
+            document.getElementById('completePopup').style.display = 'none';
+            document.getElementById('popupOverlay').style.display = 'block';
         }
 
         function closePopup() {
@@ -438,62 +437,38 @@
             closePopup();
         }
 
-        async function cancelStatus() {
-            try {
-                let targetNumber = currentNumber;
-                let previousNumber;
-
-                if (currentType === 'site') {
-                    previousNumber = currentNumber - 1;
-                } else if (currentType === 'route') {
-                    previousNumber = currentNumber;
-                }
-
-                // 취소 API 호출 전에 이전 상태로 되돌릴 대상 확인
-                if (previousNumber < 1) {
-                    // 처음 항목을 "진행 중"으로 변경하는 경우, 이전 상태로 되돌릴 필요가 없으므로 바로 종료
-                    if (currentType === 'site' && statuses[currentNumber - 1] === 0) {
-                        closePopup();
-                        return;
+        function cancelStatus() {
+            fetch('/update_cancel', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    usercode: usercode,
+                    site_number: currentNumber
+                })
+            })
+                .then(response => {
+                     if (!response.ok) {
+                        throw new Error('Network response was not ok');
                     }
-                    alert('이전 상태로 되돌릴 수 없습니다.');
-                    closePopup();
-                    return;
-                }
-
-                // 1. 이전 관광지 또는 경로를 "진행 중(2)" 상태로 변경
-                if (currentType === 'site') {
-                    await updateSiteStatus(previousNumber, 2); // 이전 관광지를 진행 중으로 변경
-                } else if (currentType === 'route') {
-                    await updateRouteStatus(previousNumber, 2); // 이전 경로를 진행 중으로 변경
-                    // 관광지 상태도 업데이트
-                    await updateSiteStatus(previousNumber, 2);
-                }
-                 // 2. 현재 관광지 또는 경로 및 이후 항목들을 "대기 중(0)" 상태로 변경
-                if (currentType === 'site') {
-                      await updateSiteStatus(currentNumber, 0); // 현재 관광지를 대기 중으로 변경
-                    if(currentNumber < touristSites.length){
-                         await updateRouteStatus(currentNumber, 0);
-                     }
-                } else if (currentType === 'route') {
-                      await updateRouteStatus(currentNumber, 0); // 현재 경로를 대기 중으로 변경
-                        if((currentNumber +1 ) <= touristSites.length){
-                           await updateSiteStatus(currentNumber + 1, 0);
-                       }
-
-                }
-                    for (let i = 1; i < previousNumber; i++) {
-                        await updateSiteStatus(i, 0); // 이전 관광지 상태를 0으로 변경
-                        await updateRouteStatus(i, 0); // 이전 경로 상태를 0으로 변경 (경로는 관광지 사이에 있으므로 i 사용)
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.status === 'success') {
+                        location.reload();
+                    } else {
+                        alert('상태 취소 실패: ' + data.message);
                     }
-                location.reload(); // 페이지 리로드
-            } catch (error) {
-                console.error('Error:', error);
-                alert('상태 취소 중 오류 발생');
-            }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('상태 취소 중 오류 발생');
+                });
 
             closePopup();
         }
+
         // 특정 관광지의 상태를 업데이트하는 함수
         async function updateSiteStatus(siteNumber, status) {
             try {
@@ -517,7 +492,7 @@
 
                 if (data.status === 'success') {
                     console.log(`관광지 ${siteNumber} 상태가 ${status}로 업데이트되었습니다.`);
-                    //location.reload(); // 페이지 리로드
+                    location.reload(); // 페이지 리로드
                 } else {
                     alert(`관광지 ${siteNumber} 상태 업데이트 실패: ` + data.message);
                 }
@@ -550,7 +525,7 @@
 
                 if (data.status === 'success') {
                     console.log(`경로 ${routeNumber} 상태가 ${status}로 업데이트되었습니다.`);
-                    //location.reload(); // 페이지 리로드
+                    location.reload(); // 페이지 리로드
                 } else {
                     alert(`경로 ${routeNumber} 상태 업데이트 실패: ` + data.message);
                 }
@@ -604,10 +579,6 @@
         function clearMarkers() {
             markers.forEach(marker => marker.setMap(null));
             markers = [];
-            if (currentPositionMarker) {
-                currentPositionMarker.setMap(null);
-                currentPositionMarker = null;
-            }
         }
 
         function updateMapMarkers() {
@@ -621,7 +592,6 @@
             touristSites.forEach((site, index) => {
                 if (site && site.mapy && site.mapx) {
                     let markerIcon;
-
                     if (index === 0) {
                         markerIcon = startIcon;
                     } else if (index === touristSites.length - 1) {
@@ -645,37 +615,6 @@
                     console.error(`유효하지 않은 위치 정보: ${site.name}`);
                 }
             });
-
-            // 현재 위치 마커 표시
-            let currentSiteIndex = statuses.findIndex(status => status === 2);
-            let currentRouteIndex = routes.findIndex(route => route.status === 2);
-
-            if (currentSiteIndex !== -1) {
-                // 관광지가 진행 중인 경우, 해당 관광지 위치에 마커 표시
-                const currentSite = touristSites[currentSiteIndex];
-                currentPositionMarker = new Tmapv2.Marker({
-                    position: new Tmapv2.LatLng(parseFloat(currentSite.mapy) + 0.005, parseFloat(currentSite.mapx)), // 기존 마커보다 약간 위
-                    icon: startIcon,
-                    iconSize: new Tmapv2.Size(65, 30),
-                    title: '현재 위치',
-                    map: map
-                });
-            } else if (currentRouteIndex !== -1) {
-                // 경로가 진행 중인 경우, 해당 경로의 중간 지점에 마커 표시
-                const startPoint = touristSites[currentRouteIndex];
-                const endPoint = touristSites[currentRouteIndex + 1];
-
-                const middleLat = (parseFloat(startPoint.mapy) + parseFloat(endPoint.mapy)) / 2;
-                const middleLng = (parseFloat(startPoint.mapx) + parseFloat(endPoint.mapx)) / 2;
-
-                currentPositionMarker = new Tmapv2.Marker({
-                    position: new Tmapv2.LatLng(middleLat, middleLng),
-                    icon: startIcon,
-                    iconSize: new Tmapv2.Size(65, 30),
-                    title: '현재 위치',
-                    map: map
-                });
-            }
             if (markers.length > 0) {
                 const bounds = new Tmapv2.LatLngBounds();
                 for (var i = 0; i < markers.length; i++) {
@@ -740,7 +679,7 @@
                 .then(results => {
                     results.forEach((response, index) => {
                         const resultData = response.features;
-                        drawTmapPath(resultData, index); // drawTmapPath에 index 전달
+                        drawTmapPath(resultData);
 
                         // 총 소요 시간과 총 거리 추출
                         let totalTime = 0;
@@ -764,42 +703,30 @@
                 });
         }
 
-        // drawTmapPath 함수 수정
-        function drawTmapPath(pathData, index) {
+        function drawTmapPath(pathData) {
             if (!pathData) {
                 console.warn("경로 데이터가 없습니다.");
                 return;
             }
 
-            const polyline = polylines[index];
-            // 기존 polyline이 존재하면 제거
-            if (polyline) {
-                polyline.setMap(null);
-            }
-            let coords=[];
             for (let i in pathData) {
                 const geometry = pathData[i].geometry;
                 if (geometry.type === "LineString") {
-                    coords = geometry.coordinates;
-                    console.log('coords',coords);
+                    const coords = geometry.coordinates;
                     const line = new Tmapv2.Polyline({
                         path: coords.map(coord => new Tmapv2.LatLng(coord[1], coord[0])),
                         strokeColor: "#DD0000",
                         strokeWeight: 6,
                         map: map
                     });
-
-                    polylines[index] =line;
-
+                    polylines.push(line);
                 }
             }
         }
 
         function clearPolylines() {
             for (let i in polylines) {
-                if (polylines[i]) {
-                    polylines[i].setMap(null);
-                }
+                polylines[i].setMap(null);
             }
             polylines = [];
         }
