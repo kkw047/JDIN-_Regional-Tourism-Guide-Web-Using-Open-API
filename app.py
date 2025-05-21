@@ -124,16 +124,14 @@ def process():
     # site 정보를 딕셔너리로 변환
     site_data = {}
     for i in range(1, count + 1):
-        site_data[i] = {
+        site_data[f'site{i}'] = {   # ← 이 구조 중요
             'name': request.args.get(f'site{i}_name'),
             'location': request.args.get(f'site{i}_location'),
             'image': request.args.get(f'site{i}_image'),
             'address': request.args.get(f'site{i}_address'),
             'id': request.args.get(f'site{i}_id')
         }
-
     return render_template('process.html', city=city, count=count, site_data=site_data)
-
 @app.route('/mission_popup')
 def mission_popup():
     ids_str = request.args.get('ids', '')
@@ -262,7 +260,7 @@ def get_mission_id_by_category(category):
         return None
     finally:
         if 'connection' in locals():
-            connection.close(
+            connection.close()
 def update_tourist_attractions():
     """
     tourist_attraction.py에 정의된 함수들을 사용해서 관광 데이터를 갱신합니다.
