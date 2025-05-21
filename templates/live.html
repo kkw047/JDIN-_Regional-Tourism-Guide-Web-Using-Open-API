@@ -1,1 +1,842 @@
 <!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>실시간 여행 현황</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f8f9fa;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #343a40;
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #eee;
+        }
+
+        #map {
+            width: 100%;
+            height: 500px;
+            background-color: #dcdcdc;
+            border: 1px solid #ccc;
+            margin-bottom: 20px;
+            border-radius: 8px;
+        }
+
+        .site-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .site-item {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            align-items: center;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 15px;
+        }
+
+        .site-info {
+            text-align: left;
+            margin-bottom: 10px;
+        }
+
+        .status-button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            width: 150px;
+            text-align: center;
+            margin: 5px 0;
+        }
+
+        .status-button.waiting {
+            background-color: #dc3545;
+        }
+
+        .status-button.in-progress {
+            background-color: #007bff;
+        }
+
+        .status-button.completed {
+            background-color: #28a745;
+        }
+
+        .arrow {
+            font-size: 24px;
+            margin: 5px 0;
+            text-align: center;
+        }
+
+        .popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            padding: 20px;
+            border: 1px solid #ccc;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            display: none;
+        }
+
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+            display: none;
+        }
+
+        .site-row {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+
+        .arrow-row {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            margin: 5px 0;
+        }
+
+        .button-row {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            margin: 5px 0;
+        }
+
+        /* Tmap 관련 스타일 추가 */
+        .tmap-marker img {
+            width: 65px;
+            height: 30px;
+        }
+
+        .travel-time {
+            padding: 8px 16px;
+            background-color: #fff3cd;
+            border: 1px solid #ffeeba;
+            border-radius: 20px;
+            font-size: 16px;
+            color: #856404;
+            text-align: left;
+            width: fit-content;
+            margin-top: auto;
+        }
+
+        .site-image {
+            width: 150px;
+            height: 100px;
+            margin-right: 20px;
+            border-radius: 6px;
+            flex-shrink: 0;
+        }
+
+        .site-placeholder {
+            width: 150px;
+            height: auto;
+            aspect-ratio: 3 / 2;
+            background-color: #dee2e6;
+            margin-right: 20px;
+            border-radius: 6px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #adb5bd;
+            font-size: 14px;
+        }
+    </style>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://apis.openapi.sk.com/tmap/jsv2?version=1&appKey=Mb9cttQ9De2UcPzNfNwCl7ZRY31kNiUqPjCAeZne&callback=tmapApiLoaded"></script>
+</head>
+
+<body>
+    <div class="container">
+        <h1>실시간 여행 현황</h1>
+        <div id="map"></div>
+
+        <ul class="site-list">
+            {% for i in range(count) %}
+            <li class="site-item">
+                <div class="site-info">
+                    {{ tourist_sites[i].name }}
+                </div>
+
+                <div class="button-row">
+                    {% if statuses[i] == 0 %}
+                    <button class="status-button waiting"
+                        onclick="openPopup('site', '{{ usercode }}', {{ i + 1 }}, 2)">대기</button>
+                    {% elif statuses[i] == 2 %}
+                    <button class="status-button in-progress"
+                        onclick="openCompletePopup('{{ usercode }}', {{ i + 1 }})">진행중</button>
+                    {% elif statuses[i] == 1 %}
+                    <button class="status-button completed"
+                        onclick="openCancelPopup('site', '{{ usercode }}', {{ i + 1 }})">완료</button>
+                    {% endif %}
+                </div>
+
+                {% if i < count - 1 %}
+                <div class="arrow-row">
+                    <div class="arrow {% if routes[i].status == 2 %}blinking{% endif %}">↓</div>
+                </div>
+
+                <div class="button-row">
+                    {% if routes[i].status == 0 %}
+                    <button class="status-button waiting"
+                        onclick="openPopup('route', '{{ usercode }}', {{ i + 1 }}, 2)">대기</button>
+                    {% elif routes[i].status == 2 %}
+                    <button class="status-button in-progress"
+                        onclick="openCompletePopup('route', '{{ usercode }}', {{ i + 1 }})">진행중</button>
+                    {% elif routes[i].status == 1 %}
+                    <button class="status-button completed"
+                        onclick="openCancelPopup('route', '{{ usercode }}', {{ i + 1 }})">완료</button>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </li>
+            {% endfor %}
+        </ul>
+
+        <div class="popup" id="statusPopup">
+            <h2>상태 변경</h2>
+            <p id="popupMessage"></p>
+            <button onclick="updateStatus()">예</button>
+            <button onclick="closePopup()">아니오</button>
+        </div>
+
+        <div class="popup" id="cancelPopup">
+            <h2>취소 확인</h2>
+            <p id="cancelMessage">여행을 되돌아가시겠습니까?</p>
+            <button onclick="cancelStatus()">예</button>
+            <button onclick="closePopup()">아니오</button>
+        </div>
+
+        <div class="popup" id="completePopup">
+            <h2>여행 완료 확인</h2>
+            <p>여행을 완료하셨습니까?</p>
+            <button onclick="completeStatus()">예</button>
+            <button onclick="closePopup()">아니오</button>
+        </div>
+
+        <div class="overlay" id="popupOverlay"></div>
+    </div>
+
+    <script>
+        let map;
+        let markers = [];
+        let polylines = [];
+        let currentPositionMarker = null; // 현재 위치 마커
+        let usercode = '{{ usercode }}';
+        let currentType = '';
+        let currentNumber = 0;
+        let newStatus = 0;
+        let touristSites = {{ tourist_sites | tojson }};
+        let statuses = {{ statuses | tojson }};
+        let routes = {{ routes | tojson }};
+        let tmapLoaded = false;
+        let infoWindow;
+        const apiKey = "Mb9cttQ9De2UcPzNfNwCl7ZRY31kNiUqPjCAeZne"; // 여기에 API 키를 입력하세요
+        const startIcon = "/static/start.png";
+        const middleIcon = "/static/middle.png";
+        const endIcon = "/static/end.png";
+        // 지도 초기화 시 city 변수를 정의합니다.
+        let city = "서울"; // 기본 도시를 서울로 설정 (또는 다른 기본값)
+
+        function openPopup(type, usercode, number, status) {
+            console.log("openPopup 호출", type, usercode, number, status);
+            currentType = type;
+            currentUsercode = usercode;
+            currentNumber = number;
+            newStatus = status;
+
+            let popupMessage = "";
+            if (type === 'site') {
+                if (statuses[number - 1] === 0) {
+                    popupMessage = "여행을 시작하시겠습니까?";
+                } else if (statuses[number - 1] === 2) {
+                    popupMessage = "여행을 완료하셨습니까?";
+                }
+            } else if (type === 'route') {
+                if (routes[number - 1].status === 0) {
+                    popupMessage = "경로를 시작하시겠습니까?";
+                } else if (routes[number - 1].status === 2) {
+                    popupMessage = "경로를 완료하셨습니까?";
+                }
+            }
+            document.getElementById('popupMessage').innerText = popupMessage;
+
+            document.getElementById('statusPopup').style.display = 'block';
+            document.getElementById('cancelPopup').style.display = 'none';
+            document.getElementById('completePopup').style.display = 'none';
+            document.getElementById('popupOverlay').style.display = 'block';
+        }
+
+        function openCompletePopup(type, usercode, number) {
+            console.log("openCompletePopup 호출", usercode, number);
+             currentType = type;
+            currentUsercode = usercode;
+            currentNumber = number;
+
+            document.getElementById('statusPopup').style.display = 'none';
+            document.getElementById('cancelPopup').style.display = 'none';
+            document.getElementById('completePopup').style.display = 'block';
+            document.getElementById('popupOverlay').style.display = 'block';
+        }
+
+        function openCancelPopup(type, usercode, number) {
+            console.log("openCancelPopup 호출", usercode, number);
+            currentType = type;
+            currentUsercode = usercode;
+            currentNumber = number;
+            let status;
+
+            if (type === 'site') {
+                status = statuses[number - 1];
+            } else if (type === 'route') {
+                status = routes[number - 1].status;
+            }
+
+            // 완료 상태일 때만 팝업을 띄움
+            if (status === 1) {
+                document.getElementById('statusPopup').style.display = 'none';
+                document.getElementById('cancelPopup').style.display = 'block';
+                document.getElementById('completePopup').style.display = 'none';
+                document.getElementById('popupOverlay').style.display = 'block';
+            } else {
+                // 완료 상태가 아니면 아무 동작도 하지 않음
+                closePopup();
+            }
+        }
+
+        function closePopup() {
+            document.getElementById('statusPopup').style.display = 'none';
+            document.getElementById('cancelPopup').style.display = 'none';
+            document.getElementById('completePopup').style.display = 'none';
+            document.getElementById('popupOverlay').style.display = 'none';
+        }
+
+        async function updateStatus() {
+            let url = '/update_status';
+            let data = {
+                usercode: usercode,
+                site_number: currentNumber,
+                new_status: newStatus
+            };
+
+            if (currentType === 'route') {
+                url = '/update_route_status';
+                data.route_number = currentNumber;
+            }
+
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+
+                const result = await response.json();
+
+                if (result.status === 'success') {
+                    // 상태 업데이트 성공 시 다음 상태 변경 로직 추가
+                    if (currentType === 'site') {
+                        // 현재 관광지 완료 -> 다음 경로 진행중으로 변경
+                        if (currentNumber < touristSites.length) {
+                            await updateRouteStatus(currentNumber, 2); // 다음 경로를 진행 중으로 변경
+                        }
+                    } else if (currentType === 'route') {
+                        // 현재 경로 완료 -> 다음 관광지 진행중으로 변경
+                        if (currentNumber + 1 <= touristSites.length) {
+                            await updateSiteStatus(currentNumber + 1, 2); // 다음 관광지를 진행 중으로 변경
+                        }
+                    }
+                    location.reload();
+                } else {
+                    alert('상태 업데이트 실패: ' + result.message);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('상태 업데이트 중 오류 발생');
+            }
+
+            closePopup();
+        }
+
+        async function completeStatus() {
+            try {
+                const response = await fetch('/update_status', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        usercode: usercode,
+                        site_number: currentNumber,
+                        new_status: 1
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    // 상태 업데이트 성공 시 다음 상태 변경 로직 추가
+                    // 마지막 관광지가 아닌 경우에만 updateRouteStatus 호출
+                    if (currentNumber < touristSites.length) {
+                        await updateRouteStatus(currentNumber, 2); // 다음 경로를 진행 중으로 변경
+                    }
+                    location.reload();
+                } else {
+                    alert('상태 업데이트 실패: ' + data.message);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('상태 업데이트 중 오류 발생');
+            }
+
+            closePopup();
+        }
+
+        async function cancelStatus() {
+            try {
+                let targetNumber = currentNumber;
+                let previousNumber;
+
+                if (currentType === 'site') {
+                    previousNumber = currentNumber - 1;
+                } else if (currentType === 'route') {
+                    previousNumber = currentNumber;
+                }
+
+                // 취소 API 호출 전에 이전 상태로 되돌릴 대상 확인
+                if (previousNumber < 1) {
+                    // 처음 항목을 "진행 중"으로 변경하는 경우, 이전 상태로 되돌릴 필요가 없으므로 바로 종료
+                    if (currentType === 'site' && statuses[currentNumber - 1] === 0) {
+                        closePopup();
+                        return;
+                    }
+                    alert('이전 상태로 되돌릴 수 없습니다.');
+                    closePopup();
+                    return;
+                }
+
+                // 1. 이전 관광지 또는 경로를 "진행 중(2)" 상태로 변경
+                if (currentType === 'site') {
+                    await updateSiteStatus(previousNumber, 2); // 이전 관광지를 진행 중으로 변경
+                } else if (currentType === 'route') {
+                    await updateRouteStatus(previousNumber, 2); // 이전 경로를 진행 중으로 변경
+                    // 관광지 상태도 업데이트
+                    await updateSiteStatus(previousNumber, 2);
+                }
+                 // 2. 현재 관광지 또는 경로 및 이후 항목들을 "대기 중(0)" 상태로 변경
+                if (currentType === 'site') {
+                      await updateSiteStatus(currentNumber, 0); // 현재 관광지를 대기 중으로 변경
+                    if(currentNumber < touristSites.length){
+                         await updateRouteStatus(currentNumber, 0);
+                     }
+                } else if (currentType === 'route') {
+                      await updateRouteStatus(currentNumber, 0); // 현재 경로를 대기 중으로 변경
+                        if((currentNumber +1 ) <= touristSites.length){
+                           await updateSiteStatus(currentNumber + 1, 0);
+                       }
+
+                }
+                    for (let i = 1; i < previousNumber; i++) {
+                        await updateSiteStatus(i, 0); // 이전 관광지 상태를 0으로 변경
+                        await updateRouteStatus(i, 0); // 이전 경로 상태를 0으로 변경 (경로는 관광지 사이에 있으므로 i 사용)
+                    }
+                location.reload(); // 페이지 리로드
+            } catch (error) {
+                console.error('Error:', error);
+                alert('상태 취소 중 오류 발생');
+            }
+
+            closePopup();
+        }
+        // 특정 관광지의 상태를 업데이트하는 함수
+        async function updateSiteStatus(siteNumber, status) {
+            try {
+                const response = await fetch('/update_status', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        usercode: usercode,
+                        site_number: siteNumber,
+                        new_status: status
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    console.log(`관광지 ${siteNumber} 상태가 ${status}로 업데이트되었습니다.`);
+                    //location.reload(); // 페이지 리로드
+                } else {
+                    alert(`관광지 ${siteNumber} 상태 업데이트 실패: ` + data.message);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('관광지 상태 업데이트 중 오류 발생');
+            }
+        }
+
+        // 특정 경로의 상태를 업데이트하는 함수
+        async function updateRouteStatus(routeNumber, status) {
+            try {
+                const response = await fetch('/update_route_status', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        usercode: usercode,
+                        route_number: routeNumber,
+                        new_status: status
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    console.log(`경로 ${routeNumber} 상태가 ${status}로 업데이트되었습니다.`);
+                    //location.reload(); // 페이지 리로드
+                } else {
+                    alert(`경로 ${routeNumber} 상태 업데이트 실패: ` + data.message);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('경로 상태 업데이트 중 오류 발생');
+            }
+        }
+
+        function initializeMap() {
+            const cityCoordinates = {
+                "서울": {
+                    lat: 37.5665,
+                    lng: 126.9780
+                },
+                "청주": {
+                    lat: 36.6424341,
+                    lng: 127.4890319
+                },
+                "부산": {
+                    lat: 35.1796,
+                    lng: 129.0756
+                },
+                "제주": {
+                    lat: 33.4996,
+                    lng: 126.5312
+                }
+            };
+
+            const center = cityCoordinates[city] || cityCoordinates["서울"];
+
+            map = new Tmapv2.Map("map", {
+                center: new Tmapv2.LatLng(center.lat, center.lng),
+                width: "100%",
+                height: "500px",
+                zoom: 12
+            });
+
+            infoWindow = new Tmapv2.InfoWindow({
+                position: new Tmapv2.LatLng(0, 0),
+                border: '0px solid #FFFFFF',
+                background: '#333333',
+                color: '#ffffff',
+                text: '',
+                visible: false,
+                padding: '5px',
+                align: 'center'
+            });
+            infoWindow.setMap(map);
+        }
+        function clearMarkers() {
+            markers.forEach(marker => marker.setMap(null));
+            markers = [];
+            if (currentPositionMarker) {
+                currentPositionMarker.setMap(null);
+                currentPositionMarker = null;
+            }
+        }
+
+        function updateMapMarkers() {
+            if (!tmapLoaded) {
+                console.warn("Tmap API가 아직 로드되지 않았습니다. 마커 업데이트를 연기합니다.");
+                return;
+            }
+
+            clearMarkers();
+
+            touristSites.forEach((site, index) => {
+                if (site && site.mapy && site.mapx) {
+                    let markerIcon;
+
+                    if (index === 0) {
+                        markerIcon = startIcon;
+                    } else if (index === touristSites.length - 1) {
+                        markerIcon = endIcon;
+                    } else {
+                        markerIcon = middleIcon;
+                    }
+
+                    const lonLat = new Tmapv2.LatLng(site.mapy, site.mapx);
+
+                    const marker = new Tmapv2.Marker({
+                        position: lonLat,
+                        icon: markerIcon,
+                        iconSize: new Tmapv2.Size(65, 30),
+                        title: site.name,
+                        map: map
+                    });
+
+                    markers.push(marker);
+                } else {
+                    console.error(`유효하지 않은 위치 정보: ${site.name}`);
+                }
+            });
+
+            // 현재 위치 마커 표시
+            let currentSiteIndex = statuses.findIndex(status => status === 2);
+            let currentRouteIndex = routes.findIndex(route => route.status === 2);
+
+            if (currentSiteIndex !== -1) {
+                // 관광지가 진행 중인 경우, 해당 관광지 위치에 마커 표시
+                const currentSite = touristSites[currentSiteIndex];
+                currentPositionMarker = new Tmapv2.Marker({
+                    position: new Tmapv2.LatLng(parseFloat(currentSite.mapy) + 0.005, parseFloat(currentSite.mapx)), // 기존 마커보다 약간 위
+                    icon: startIcon,
+                    iconSize: new Tmapv2.Size(65, 30),
+                    title: '현재 위치',
+                    map: map
+                });
+            } else if (currentRouteIndex !== -1) {
+                // 경로가 진행 중인 경우, 해당 경로의 중간 지점에 마커 표시
+                const startPoint = touristSites[currentRouteIndex];
+                const endPoint = touristSites[currentRouteIndex + 1];
+
+                const middleLat = (parseFloat(startPoint.mapy) + parseFloat(endPoint.mapy)) / 2;
+                const middleLng = (parseFloat(startPoint.mapx) + parseFloat(endPoint.mapx)) / 2;
+
+                currentPositionMarker = new Tmapv2.Marker({
+                    position: new Tmapv2.LatLng(middleLat, middleLng),
+                    icon: startIcon,
+                    iconSize: new Tmapv2.Size(65, 30),
+                    title: '현재 위치',
+                    map: map
+                });
+            }
+            if (markers.length > 0) {
+                const bounds = new Tmapv2.LatLngBounds();
+                for (var i = 0; i < markers.length; i++) {
+                    bounds.extend(markers[i].getPosition());
+                }
+                map.fitBounds(bounds);
+            }
+        }
+        // 경로를 그리는 함수
+        function getTmapPath() {
+            if (!tmapLoaded) {
+                console.warn("Tmap API가 아직 로드되지 않았습니다. 경로 요청을 연기합니다.");
+                return;
+            }
+
+            // 기존 경로 삭제
+            clearPolylines();
+            travelInfos = []; // 소요 시간과 거리 정보 초기화
+
+            if (touristSites.length < 2) {
+                console.warn("경로를 그리려면 2개 이상의 위치가 필요합니다.");
+                return;
+            }
+
+            // 각 지점들을 순차적으로 연결하는 경로 요청
+            let promises = [];
+            for (let i = 0; i < touristSites.length - 1; i++) {
+                const startPoint = touristSites[i];
+                const endPoint = touristSites[i + 1];
+
+                if (!startPoint || !endPoint || !startPoint.mapx || !startPoint.mapy || !endPoint.mapx || !endPoint.mapy) {
+                    console.error("시작점 또는 종료점 좌표가 유효하지 않습니다.");
+                    continue;
+                }
+
+                // Tmap API에 요청할 데이터 설정
+                const requestData = {
+                    startX: startPoint.mapx,
+                    startY: startPoint.mapy,
+                    endX: endPoint.mapx,
+                    endY: endPoint.mapy,
+                    reqCoordType: "WGS84GEO",
+                    resCoordType: "WGS84GEO",
+                    startName: touristSites[i].name,
+                    endName: touristSites[i + 1].name
+                };
+                // Tmap API 호출
+                const promise = $.ajax({
+                    method: "POST",
+                    url: "https://apis.openapi.sk.com/tmap/routes/pedestrian?version=1&format=json",
+                    headers: {
+                        "Accept": "application/json",
+                        "Content-Type": "application/json; charset=utf-8",
+                        "appKey": apiKey
+                    },
+                    data: JSON.stringify(requestData)
+                });
+                promises.push(promise);
+            }
+
+            Promise.all(promises)
+                .then(results => {
+                    results.forEach((response, index) => {
+                        const resultData = response.features;
+                        drawTmapPath(resultData, index); // drawTmapPath에 index 전달
+
+                        // 총 소요 시간과 총 거리 추출
+                        let totalTime = 0;
+                        let totalDistance = 0;
+
+                        resultData.forEach(feature => {
+                            totalTime += (feature.properties.totalTime || 0);
+                            totalDistance += (feature.properties.totalDistance || 0);
+                        });
+
+                        const timeInMinutes = Math.round(totalTime / 60);
+                        travelInfos[index] = {
+                            time: timeInMinutes,
+                            distance: totalDistance
+                        };
+                    });
+                })
+                .catch(error => {
+                    console.error("경로 요청 실패:", error);
+                    console.error("오류 메시지:", error.responseText);
+                });
+        }
+
+        // drawTmapPath 함수 수정
+        function drawTmapPath(pathData, index) {
+            if (!pathData) {
+                console.warn("경로 데이터가 없습니다.");
+                return;
+            }
+
+            const polyline = polylines[index];
+            // 기존 polyline이 존재하면 제거
+            if (polyline) {
+                polyline.setMap(null);
+            }
+            let coords=[];
+            for (let i in pathData) {
+                const geometry = pathData[i].geometry;
+                if (geometry.type === "LineString") {
+                    coords = geometry.coordinates;
+                    console.log('coords',coords);
+                    const line = new Tmapv2.Polyline({
+                        path: coords.map(coord => new Tmapv2.LatLng(coord[1], coord[0])),
+                        strokeColor: "#DD0000",
+                        strokeWeight: 6,
+                        map: map
+                    });
+
+                    polylines[index] =line;
+
+                }
+            }
+        }
+
+        function clearPolylines() {
+            for (let i in polylines) {
+                if (polylines[i]) {
+                    polylines[i].setMap(null);
+                }
+            }
+            polylines = [];
+        }
+        function init() {
+            if (typeof Tmapv2 !== 'undefined') {
+                initializeMap();
+                tmapLoaded = true;
+                updateMapMarkers();
+                getTmapPath();
+            } else {
+                console.error("Tmapv2 API 스크립트 로드 실패");
+                setTimeout(init, 500);
+            }
+        }
+
+        function tmapApiLoaded() {
+            console.log("Tmapv2 API 로드 완료");
+            init();
+        }
+        window.tmapApiLoaded = tmapApiLoaded;
+
+        function onError(error) {
+            alert("경로 요청 중 오류가 발생했습니다: " + error);
+            console.error("경로 요청 오류:", error);
+        }
+
+        $(document).ready(function () {
+            init();
+
+            // 페이지 로드 시 첫 번째 관광지 상태를 2(진행 중)로 변경 (한 번만 실행)
+            let firstSiteProcessed = localStorage.getItem('firstSiteProcessed');
+            if (!firstSiteProcessed) {
+                updateSiteStatus(1, 2);
+                localStorage.setItem('firstSiteProcessed', 'true');
+            }
+        });
+    </script>
+</body>
+
+</html>
