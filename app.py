@@ -111,6 +111,9 @@ def get_tourist_sites():
 
 @app.route('/process')
 def process():
+    import json  # JSON 처리를 위한 모듈 추가
+    from urllib.parse import unquote  # URL 디코딩을 위한 함수 추가
+
     city = request.args.get('city')
     count = request.args.get('count')
     # count 변수를 정수형으로 변환
@@ -122,15 +125,27 @@ def process():
     # site 정보를 딕셔너리로 변환
     site_data = {}
     for i in range(1, count + 1):
+        # location은 JSON 문자열로 전달되므로 디코딩 후 파싱
+        location_str = request.args.get(f'site{i}_location')
+        if location_str:
+            try:
+                location_str = unquote(location_str)  # URL 디코딩
+                location = json.loads(location_str)  # JSON 파싱
+            except json.JSONDecodeError:
+                location = {}  # 파싱 실패 시 빈 객체로 설정
+        else:
+            location = {}
+
         site_data[i] = {
             'name': request.args.get(f'site{i}_name'),
-            'location': request.args.get(f'site{i}_location'),
+            'location': location,  # 파싱된 location 객체 사용
             'image': request.args.get(f'site{i}_image'),
             'address': request.args.get(f'site{i}_address'),
             'id': request.args.get(f'site{i}_id')
         }
 
     return render_template('process.html', city=city, count=count, site_data=site_data)
+
 
 
 

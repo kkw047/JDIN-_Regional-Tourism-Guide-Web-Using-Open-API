@@ -513,7 +513,7 @@ function updateSelectionStatus() {
     for (let i = 0; i < siteKeys.length - 1; i++) {
       const startSite = selectedSites[siteKeys[i]];
       const endSite = selectedSites[siteKeys[i + 1]];
-      
+
       if (startSite && endSite && startSite.location && endSite.location) {
         const startLocation = parseLocation(startSite.location);
         const endLocation = parseLocation(endSite.location);
@@ -581,7 +581,8 @@ function moveToProcessPage() {
 
     sortedSites.forEach((site, index) => {
         params.append(`site${index + 1}_name`, encodeURIComponent(site.name));
-        params.append(`site${index + 1}_location`, encodeURIComponent(site.location)); // 수정: location 객체 그대로 전달
+        // location 객체를 JSON 문자열로 변환 후 인코딩
+        params.append(`site${index + 1}_location`, encodeURIComponent(JSON.stringify(site.location)));
         params.append(`site${index + 1}_image`, encodeURIComponent(site.image));
         params.append(`site${index + 1}_address`, encodeURIComponent(site.address));
         params.append(`site${index + 1}_id`, site.id); // site.id 추가
@@ -592,6 +593,7 @@ function moveToProcessPage() {
 
     window.location.href = `/process?${params.toString()}`;
 }
+
 
 
   function renderTouristSites() {
