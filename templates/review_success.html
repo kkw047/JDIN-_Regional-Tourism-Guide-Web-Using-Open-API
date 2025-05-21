@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>후기 제출 완료!</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans KR', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #e6ffed 0%, #b3ffda 100%); /* 연두색 계열 배경 */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            color: #333;
+            text-align: center;
+        }
+
+        .success-container {
+            background-color: white;
+            padding: 50px 40px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+            max-width: 500px;
+            width: 90%;
+            animation: fadeInScale 0.8s ease-out; /* 등장 애니메이션 */
+        }
+
+        .icon-check {
+            font-size: 80px;
+            color: #28a745; /* 초록색 체크 마크 */
+            margin-bottom: 25px;
+            animation: bounceIn 0.8s ease-out; /* 아이콘 바운스 애니메이션 */
+        }
+
+        h1 {
+            font-size: 32px;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-weight: 700;
+        }
+
+        p {
+            font-size: 18px;
+            line-height: 1.6;
+            color: #555;
+            margin-bottom: 30px;
+        }
+
+        .home-button {
+            display: inline-block;
+            padding: 15px 30px;
+            background-color: #4CAF50; /* 버튼 색상: 은은한 연두색 계열로 변경 */
+            color: white;
+            text-decoration: none;
+            border-radius: 50px; /* 아주 둥근 버튼 */
+            font-size: 18px;
+            font-weight: 500;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            box-shadow: 0 4px 10px rgba(76, 175, 80, 0.3); /* 그림자 색상도 버튼에 맞게 변경 */
+        }
+
+        .home-button:hover {
+            background-color: #45a049; /* 호버 시 더 진한 연두색 계열로 변경 */
+            transform: translateY(-3px); /* 약간 위로 떠오르는 효과 */
+        }
+
+        /* 애니메이션 키프레임 */
+        @keyframes fadeInScale {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        @keyframes bounceIn {
+            0%, 20%, 40%, 60%, 80%, 100% {
+                animation-timing-function: cubic-bezier(0.215, 0.610, 0.355, 1.000);
+            }
+            0% {
+                opacity: 0;
+                transform: scale3d(0.3, 0.3, 0.3);
+            }
+            20% {
+                transform: scale3d(1.1, 1.1, 1.1);
+            }
+            40% {
+                transform: scale3d(0.9, 0.9, 0.9);
+            }
+            60% {
+                opacity: 1;
+                transform: scale3d(1.03, 1.03, 1.03);
+            }
+            80% {
+                transform: scale3d(0.97, 0.97, 0.97);
+            }
+            100% {
+                opacity: 1;
+                transform: scale3d(1, 1, 1);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="success-container">
+        <!-- 체크 마크 아이콘 (유니코드 문자) -->
+        <div class="icon-check">✓</div>
+        <h1>후기가 성공적으로 제출되었습니다!</h1>
+        <p>소중한 의견을 남겨주셔서 감사합니다.<br>더 나은 서비스를 제공하는 데 큰 도움이 됩니다.</p>
+        <a href="/" class="home-button">메인으로 돌아가기</a>
+    </div>
+</body>
+</html>

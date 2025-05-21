@@ -273,45 +273,50 @@ def review_page(usercode):
 def submit_review():
     """
     후기 페이지에서 제출된 데이터를 받아 데이터베이스의 `review` 테이블에 저장
-    - review_text -> content
-    - recommendation ('recommend'/'not_recommend') -> rating (1 또는 0)
+    별점 부여(1-5) -> raitng
     """
     usercode = request.form.get('usercode')
 
     conn = None
     try:
-        conn = pymysql.connect(**db_config)
+        conn = connection = pymysql.connect(**db_config)
         with conn.cursor() as cursor:
             # 폼 데이터를 순회하며 각 관광지에 대한 후기 추출 및 저장
             for key, value in request.form.items():
-                if key.startswith('review_text_'): # 후기 텍스트 필드 식별
+                if key.startswith('review_text_'):  # 후기 텍스트 필드 식별
                     site_id = key.replace('review_text_', '')
-                    review_content = value.strip() # 공백 제거
-                    recommendation_raw = request.form.get(f'recommend_{site_id}') # 해당 관광지의 추천 여부
+                    review_content = value.strip()  # 공백 제거
 
-                    # rating 컬럼에 저장할 값 매핑: 'recommend' -> 1, 'not_recommend' -> 0
-                    rating_value = None
-                    if recommendation_raw == 'recommend':
-                        rating_value = 1
-                    elif recommendation_raw == 'not_recommend':
-                        rating_value = 0
+                    # 변경: 별점 입력 필드에서 값 가져오기
+                    rating_str = request.form.get(f'rating_{site_id}')  # 'rating_' 접두사로 변경
+                    rating_value = None  # 기본값은 None (NULL 허용 시)
+
+                    if rating_str:
+                        try:
+                            rating_value = int(rating_str)  # 문자열을 정수로 변환
+                            # 별점 범위 유효성 검사 (1~5점)
+                            if not (1 <= rating_value <= 5):
+                                rating_value = None  # 유효하지 않은 값은 None으로 처리하거나 기본값 설정
+                        except ValueError:
+                            rating_value = None  # 정수로 변환 불가능한 경우 None
 
                     # tourist_attraction_id와 content (또는 rating) 값이 하나라도 있다면 저장
                     # rating_value가 0인 경우도 저장되도록 'is not None'을 사용
+                    # (여기서는 1~5점이므로 0은 해당 없지만, Null 허용을 위해)
                     if site_id and (review_content or rating_value is not None):
                         sql = """
-                        INSERT INTO review (tourist_attraction_id, content, rating)
-                        VALUES (%s, %s, %s)
-                        """
+                           INSERT INTO review (tourist_attraction_id, content, rating)
+                           VALUES (%s, %s, %s)
+                           """
                         cursor.execute(sql, (site_id, review_content, rating_value))
-            conn.commit() # 모든 후기 저장 후 한 번만 커밋
+            conn.commit()  # 모든 후기 저장 후 한 번만 커밋
 
         return redirect(url_for('review_success'))
 
     except Exception as e:
         print(f"Error submitting review for usercode {usercode}: {e}", file=sys.stderr)
         if conn:
-            conn.rollback() # 오류 발생 시 롤백
+            conn.rollback()  # 오류 발생 시 롤백
         return "후기를 제출하는 중 오류가 발생했습니다.", 500
     finally:
         if conn:
@@ -320,7 +325,7 @@ def submit_review():
 @app.route('/review_success')
 def review_success():
     """후기 제출 성공 페이지."""
-    return "<h1>후기가 성공적으로 제출되었습니다! 감사합니다.</h1><p><a href='/'>홈으로 돌아가기</a></p>"
+    return render_template('review_success.html')
 
 def get_mission_id_by_category(category):
     """tourist_attraction 테이블의 카테고리와 같은 category를 가진 mission의 id를 반환합니다.
