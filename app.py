@@ -272,14 +272,11 @@ def review_page(usercode):
 @app.route('/submit_review', methods=['POST'])
 def submit_review():
     """
-    후기 페이지에서 제출된 데이터를 받아 데이터베이스의 `reviews` 테이블에 저장합니다.
+    후기 페이지에서 제출된 데이터를 받아 데이터베이스의 `review` 테이블에 저장
     - review_text -> content
-    - recommendation ('recommend'/'not_recommend') -> rating ('추천'/'비추천')
+    - recommendation ('recommend'/'not_recommend') -> rating (1 또는 0)
     """
-    usercode = request.form.get('usercode') # 이 usercode는 현재 `reviews` 테이블에 저장되지 않습니다.
-    if not usercode:
-        print("Warning: Usercode is missing in submit_review request.")
-        # return "사용자 코드가 누락되었습니다.", 400 # 굳이 에러를 낼 필요는 없음 (reviews 테이블에 usercode가 없으므로)
+    usercode = request.form.get('usercode')
 
     conn = None
     try:
@@ -292,18 +289,18 @@ def submit_review():
                     review_content = value.strip() # 공백 제거
                     recommendation_raw = request.form.get(f'recommend_{site_id}') # 해당 관광지의 추천 여부
 
-                    # rating 컬럼에 저장할 값 매핑
+                    # rating 컬럼에 저장할 값 매핑: 'recommend' -> 1, 'not_recommend' -> 0
                     rating_value = None
                     if recommendation_raw == 'recommend':
-                        rating_value = '추천'
+                        rating_value = 1
                     elif recommendation_raw == 'not_recommend':
-                        rating_value = '비추천'
+                        rating_value = 0
 
                     # tourist_attraction_id와 content (또는 rating) 값이 하나라도 있다면 저장
-                    # (즉, site_id가 유효하고, 사용자가 후기를 작성했거나 추천/비추천을 선택했다면)
-                    if site_id and (review_content or rating_value):
+                    # rating_value가 0인 경우도 저장되도록 'is not None'을 사용
+                    if site_id and (review_content or rating_value is not None):
                         sql = """
-                        INSERT INTO reviews (tourist_attraction_id, content, rating)
+                        INSERT INTO review (tourist_attraction_id, content, rating)
                         VALUES (%s, %s, %s)
                         """
                         cursor.execute(sql, (site_id, review_content, rating_value))
