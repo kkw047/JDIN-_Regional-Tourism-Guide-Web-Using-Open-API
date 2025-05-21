@@ -236,10 +236,9 @@ def review_page(usercode):
     """
     사용자 코드를 받아 해당 여행에 대한 관광지 목록을 조회하고 후기 페이지를 렌더링합니다.
     """
-    conn = None
     try:
-        conn = pymysql.connect(**db_config)
-        with conn.cursor() as cursor:
+        connection = pymysql.connect(**db_config)
+        with connection.cursor() as cursor:
             # user_travel_data 테이블에서 해당 usercode의 데이터 조회
             cursor.execute(f"SELECT * FROM user_travel_data WHERE usercode = %s", (usercode,))
             user_data = cursor.fetchone()
@@ -266,61 +265,64 @@ def review_page(usercode):
         print(f"Error in review_page for usercode {usercode}: {e}")
         return "후기 페이지를 불러오는 중 오류가 발생했습니다.", 500
     finally:
-        if conn:
-            conn.close()
+        if connection:
+            connection.close()
 
 @app.route('/submit_review', methods=['POST'])
 def submit_review():
     """
     후기 페이지에서 제출된 데이터를 받아 데이터베이스의 `review` 테이블에 저장
-    별점 부여(1-5) -> raitng
+    별점 부여(1-5) -> rating
+    - 후기 텍스트 공백 유지
+    - 별점 미입력 시 기본값 3
     """
     usercode = request.form.get('usercode')
 
-    conn = None
     try:
-        conn = connection = pymysql.connect(**db_config)
-        with conn.cursor() as cursor:
+        connection = pymysql.connect(**db_config)
+        with connection.cursor() as cursor:
             # 폼 데이터를 순회하며 각 관광지에 대한 후기 추출 및 저장
             for key, value in request.form.items():
                 if key.startswith('review_text_'):  # 후기 텍스트 필드 식별
                     site_id = key.replace('review_text_', '')
-                    review_content = value.strip()  # 공백 제거
+                    review_content = value  # .strip() 제거하여 공백 유지
 
                     # 변경: 별점 입력 필드에서 값 가져오기
                     rating_str = request.form.get(f'rating_{site_id}')  # 'rating_' 접두사로 변경
-                    rating_value = None  # 기본값은 None (NULL 허용 시)
+                    rating_value = 3  # 기본값으로 3 설정
 
-                    if rating_str:
+                    if rating_str: # 별점 문자열이 있다면 (사용자가 선택했다면)
                         try:
-                            rating_value = int(rating_str)  # 문자열을 정수로 변환
+                            int_val = int(rating_str)
                             # 별점 범위 유효성 검사 (1~5점)
-                            if not (1 <= rating_value <= 5):
-                                rating_value = None  # 유효하지 않은 값은 None으로 처리하거나 기본값 설정
+                            if 1 <= int_val <= 5:
+                                rating_value = int_val
+                            # else: 유효하지 않은 값은 기본값 3 유지
                         except ValueError:
-                            rating_value = None  # 정수로 변환 불가능한 경우 None
+                            pass # 정수로 변환 불가능한 경우 기본값 3 유지
+                    # else: rating_str이 없는 경우 (사용자가 선택하지 않은 경우) 기본값 3 유지
 
                     # tourist_attraction_id와 content (또는 rating) 값이 하나라도 있다면 저장
-                    # rating_value가 0인 경우도 저장되도록 'is not None'을 사용
-                    # (여기서는 1~5점이므로 0은 해당 없지만, Null 허용을 위해)
+                    # (여기서는 review_content가 비어있어도 rating_value가 3으로 저장될 수 있음)
                     if site_id and (review_content or rating_value is not None):
                         sql = """
                            INSERT INTO review (tourist_attraction_id, content, rating)
                            VALUES (%s, %s, %s)
                            """
                         cursor.execute(sql, (site_id, review_content, rating_value))
-            conn.commit()  # 모든 후기 저장 후 한 번만 커밋
+            connection.commit()  # 모든 후기 저장 후 한 번만 커밋
 
         return redirect(url_for('review_success'))
 
     except Exception as e:
         print(f"Error submitting review for usercode {usercode}: {e}", file=sys.stderr)
-        if conn:
-            conn.rollback()  # 오류 발생 시 롤백
+        if connection:
+            connection.rollback()  # 오류 발생 시 롤백
         return "후기를 제출하는 중 오류가 발생했습니다.", 500
     finally:
-        if conn:
-            conn.close()
+        if connection:
+            connection.close()
+
 
 @app.route('/review_success')
 def review_success():
@@ -363,10 +365,10 @@ def update_tourist_attractions():
 
 def get_site_details_by_id(site_id):
     """tourist_attraction 테이블에서 site_id에 해당하는 관광지 상세 정보를 조회합니다."""
-    conn = None
+
     try:
-        conn = pymysql.connect(**db_config)
-        with conn.cursor() as cursor:
+        connection = pymysql.connect(**db_config)
+        with connection.cursor() as cursor:
             sql = "SELECT id, name, image, address FROM tourist_attraction WHERE id = %s"
             cursor.execute(sql, (site_id,))
             return cursor.fetchone()
@@ -374,8 +376,8 @@ def get_site_details_by_id(site_id):
         print(f"Error fetching site details for {site_id}: {e}")
         return None
     finally:
-        if conn:
-            conn.close()
+        if connection:
+            connection.close()
 
 
 # 스케줄러 설정
