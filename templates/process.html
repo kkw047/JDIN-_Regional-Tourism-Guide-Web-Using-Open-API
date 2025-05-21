@@ -1,24 +1,28 @@
 <!DOCTYPE html>
 <html lang="ko">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>선택된 관광지 결과</title>
     <style>
+        /* 스타일은 result.html과 동일하게 유지 */
         body {
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 20px;
             background-color: #f8f9fa;
         }
+
         .container {
             max-width: 800px;
             margin: 0 auto;
             background-color: white;
             padding: 30px;
             border-radius: 10px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         }
+
         h1 {
             color: #343a40;
             text-align: center;
@@ -26,10 +30,12 @@
             padding-bottom: 15px;
             border-bottom: 2px solid #eee;
         }
+
         .site-list {
             list-style: none;
             padding: 0;
         }
+
         .site-item {
             display: flex;
             align-items: flex-start;
@@ -47,6 +53,7 @@
             border-radius: 6px;
             flex-shrink: 0;
         }
+
         #map {
             width: 100%;
             height: 500px;
@@ -55,6 +62,7 @@
             margin-bottom: 20px;
             border-radius: 8px;
         }
+
         .site-item:hover {
             background-color: #f8f9fa;
         }
@@ -62,16 +70,19 @@
         .site-info {
             flex: 1;
         }
+
         .site-name {
             font-size: 20px;
             font-weight: bold;
             margin-bottom: 8px;
             color: #333;
         }
+
         .site-location {
             color: #6c757d;
             font-size: 16px;
         }
+
         .back-btn {
             display: block;
             width: 200px;
@@ -86,9 +97,11 @@
             text-align: center;
             transition: all 0.3s;
         }
+
         .back-btn:hover {
             background-color: #5a6268;
         }
+
         .site-extra {
             background-color: #f1f3f5;
             border: 1px solid #ced4da;
@@ -98,27 +111,38 @@
             font-size: 14px;
             color: #343a40;
         }
-        .confirm-btn-container { /* 버튼을 감싸는 컨테이너 추가 */
-            text-align: center; /* 가운데 정렬 */
-            margin-top: 40px; /* 위쪽 여백 조정 */
+
+        .confirm-btn-container {
+            /* 버튼을 감싸는 컨테이너 추가 */
+            text-align: center;
+            /* 가운데 정렬 */
+            margin-top: 40px;
+            /* 위쪽 여백 조정 */
         }
+
         .confirm-btn {
-            display: inline-block; /* 인라인 블록 요소로 변경 */
+            display: inline-block;
+            /* 인라인 블록 요소로 변경 */
             padding: 14px 30px;
             font-size: 18px;
             font-weight: bold;
-            background-color: #4CAF50; /* 밝은 초록색 */
-            color: white; /* 흰색 글씨 */
+            background-color: #4CAF50;
+            /* 밝은 초록색 */
+            color: white;
+            /* 흰색 글씨 */
             border: none;
             border-radius: 8px;
             cursor: pointer;
             transition: background 0.3s;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* 그림자 효과 추가 */
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            /* 그림자 효과 추가 */
         }
 
         .confirm-btn:hover {
-            background-color: #45a049; /* 더 진한 초록색으로 변경 */
+            background-color: #45a049;
+            /* 더 진한 초록색으로 변경 */
         }
+
         .route-summary {
             background-color: transparent;
             border: none;
@@ -130,6 +154,7 @@
             color: #333;
             box-shadow: none;
         }
+
         .site-placeholder {
             width: 150px;
             height: auto;
@@ -144,6 +169,7 @@
             color: #adb5bd;
             font-size: 14px;
         }
+
         .route-tag {
             display: inline-block;
             background-color: #e0f7fa;
@@ -170,6 +196,7 @@
 
             animation: blink-arrow 1.2s infinite alternate;
         }
+
         .travel-time {
             padding: 6px 12px;
             background-color: #fff3cd;
@@ -180,6 +207,7 @@
             text-align: left;
             width: fit-content;
         }
+
         .image-container {
             display: flex;
             flex-direction: column;
@@ -189,8 +217,10 @@
 
         .arrow-time-block {
             display: flex;
-            flex-direction: column; /* 가로 → 세로 정렬 */
-            align-items: center;     /* 가운데 정렬 */
+            flex-direction: column;
+            /* 가로 → 세로 정렬 */
+            align-items: center;
+            /* 가운데 정렬 */
             margin: 30px 0;
         }
 
@@ -224,18 +254,21 @@
             flex: 1;
             padding-left: 20px;
         }
+
         .divider-line {
             width: 100%;
             height: 1px;
             background-color: #ddd;
             margin: 20px 0 0 0;
         }
+
         .section-divider {
             border: none;
             border-top: 1px solid #ddd;
             margin: 20px 0;
             width: 100%;
         }
+
         .travel-time {
             background-color: #fff3cd;
             border: 1px solid #ffeeba;
@@ -248,84 +281,133 @@
             margin-left: 20px;
             margin-top: 30px;
         }
+
         @keyframes bounce {
-            from { transform: translateY(0); opacity: 0.6; }
-            to { transform: translateY(6px); opacity: 1; }
+            from {
+                transform: translateY(0);
+                opacity: 0.6;
+            }
+
+            to {
+                transform: translateY(6px);
+                opacity: 1;
+            }
         }
 
         @keyframes blink-arrow {
-            from { opacity: 0.4; }
-            to { opacity: 1; }
+            from {
+                opacity: 0.4;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        /* Tmap 관련 스타일 추가 */
+        .tmap-marker img {
+            width: 65px;
+            height: 30px;
         }
     </style>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://apis.openapi.sk.com/tmap/jsv2?version=1&appKey=Mb9cttQ9De2UcPzNfNwCl7ZRY31kNiUqPjCAeZne&callback=tmapApiLoaded"></script>
 
 </head>
+
 <body>
-<div class="container">
-    <div id="map"></div>
-    <div id="routeSummary" class="route-summary"></div>
-    <h1>선택된 관광지 목록</h1>
-    <ul class="site-list" id="siteList"></ul>
-    <div class="confirm-btn-container">  <!-- 버튼을 감싸는 컨테이너 추가 -->
-        <form method="POST" action="/live">
-            {% for i in range(1, count|int + 1) %}
+    <div class="container">
+        <div id="map"></div>
+        <div id="routeSummary" class="route-summary"></div>
+        <h1>선택된 관광지 목록</h1>
+        <ul class="site-list" id="siteList"></ul>
+        <div class="confirm-btn-container">
+            <!-- 버튼을 감싸는 컨테이너 추가 -->
+            <form method="POST" action="/live">
+                {% for i in range(1, count|int + 1) %}
                 <input type="hidden" name="site{{ i }}_id" value="{{ site_data[i].id }}">
-            {% endfor %}
-            <input type="hidden" name="city" value="{{ city }}">
-            <input type="hidden" name="count" value="{{ count }}">
-            <button class="confirm-btn" type="submit">여행 확정</button>
-        </form>
+                {% endfor %}
+                <input type="hidden" name="city" value="{{ city }}">
+                <input type="hidden" name="count" value="{{ count }}">
+                <button class="confirm-btn" type="submit">여행 확정</button>
+            </form>
+        </div>
     </div>
-</div>
 
-<script>
+    <script>
+        // Tmap 관련 전역 변수
+        let map;
+        let markers = [];
+        let polylines = [];
+        let tmapLoaded = false;
+        let infoWindow;
+        const apiKey = "Mb9cttQ9De2UcPzNfNwCl7ZRY31kNiUqPjCAeZne"; // 여기에 API 키를 입력하세요
+        const startIcon = "/static/start.png";
+        const middleIcon = "/static/middle.png";
+        const endIcon = "/static/end.png";
 
-    const params = new URLSearchParams(window.location.search);
-    const siteList = document.getElementById('siteList');
-    const routeSummary = document.getElementById("routeSummary");
-    let routeNames = [];
+        const params = new URLSearchParams(window.location.search);
+        const siteList = document.getElementById('siteList');
+        const routeSummary = document.getElementById("routeSummary");
+        let routeNames = [];
+        let city = params.get('city'); // 도시 정보 가져오기
+        let count = params.get('count'); // 관광지 수 가져오기
 
-    function confirmTrip() {
-        alert("여행이 확정되었습니다!");
-        // 또는 window.location.href = "/submit-final"; 와 같이 실제 이동 처리도 가능
+        function confirmTrip() {
+            alert("여행이 확정되었습니다!");
+            // 또는 window.location.href = "/submit-final"; 와 같이 실제 이동 처리도 가능
 
-    }
-
-    for (let i = 1; i <= 3; i++) {
-        const name = params.get(`site${i}_name`) ? decodeURIComponent(params.get(`site${i}_name`)) : '';
-        const locationParam = params.get(`site${i}_location`) ? decodeURIComponent(params.get(`site${i}_location`)) : '';
-        const address = params.get(`site${i}_address`) ? decodeURIComponent(params.get(`site${i}_address`)) : '주소 정보 없음';
-        const imageUrl = params.get(`site${i}_image`) ? decodeURIComponent(params.get(`site${i}_image`)) : '';
-
-        let location = "위치 정보 없음";
-        try {
-            const locObj = JSON.parse(locationParam);
-            if (locObj.mapx && locObj.mapy) {
-                location = `위도: ${locObj.mapy}, 경도: ${locObj.mapx}`;
-            } else if (locObj.lat && locObj.lng) {
-                location = `위도: ${locObj.lat}, 경도: ${locObj.lng}`;
-            }
-        } catch (e) {
-            location = locationParam || "위치 정보 없음";
         }
 
-        if (name) {
-            routeNames.push(name); // 경로에 추가
-            const li = document.createElement('li');
-            li.className = 'site-item';
+        let selectedSitesArray = [];
 
-            const isLast = (i === 3 || !params.get(`site${i + 1}_name`));
-            const arrowBlock = !isLast
-                ? `
+        for (let i = 1; i <= count; i++) {
+            const name = params.get(`site${i}_name`) ? decodeURIComponent(params.get(`site${i}_name`)) : '';
+            const locationParam = params.get(`site${i}_location`) ? decodeURIComponent(params.get(`site${i}_location`)) : '';
+            const address = params.get(`site${i}_address`) ? decodeURIComponent(params.get(`site${i}_address`)) : '주소 정보 없음';
+            const imageUrl = params.get(`site${i}_image`) ? decodeURIComponent(params.get(`site${i}_image`)) : '';
+            let location = null;
+
+            // 위치 정보 파싱 및 확인
+            try {
+                const locObj = JSON.parse(locationParam);
+                if (locObj.mapx && locObj.mapy) {
+                    location = {
+                        lat: parseFloat(locObj.mapy),
+                        lng: parseFloat(locObj.mapx)
+                    };
+                } else if (locObj.lat && locObj.lng) {
+                    location = {
+                        lat: parseFloat(locObj.lat),
+                        lng: parseFloat(locObj.lng)
+                    };
+                }
+            } catch (e) {
+                console.error("위치 정보 파싱 오류:", e);
+            }
+
+            if (name && location) {
+                selectedSitesArray.push({
+                    name: name,
+                    location: location,
+                    address: address,
+                    imageUrl: imageUrl
+                }); // 경로에 추가
+                routeNames.push(name); // 경로에 추가
+                const li = document.createElement('li');
+                li.className = 'site-item';
+
+                const isLast = (i === count || !params.get(`site${i + 1}_name`));
+                const arrowBlock = !isLast ?
+                    `
                 <div class="arrow-time-block">
                     <div class="down-arrow">↓</div>
                     <div class="travel-time">예상 소요 시간: 20분</div>
                 </div>
-                `
-                : '';
+                ` :
+                    '';
 
-            li.innerHTML = `
+                li.innerHTML = `
                 <div class="image-container">
                     ${imageUrl ?
                         `<img src="${imageUrl}" alt="${name}" class="site-image">` :
@@ -339,10 +421,10 @@
                     <div class="site-extra">추가 정보 2: 여기에 텍스트 입력</div>
                 </div>
             `;
-            siteList.appendChild(li);
-            if (!isLast) {
-                const arrowDiv = document.createElement('div');
-                arrowDiv.innerHTML = `
+                siteList.appendChild(li);
+                if (!isLast) {
+                    const arrowDiv = document.createElement('div');
+                    arrowDiv.innerHTML = `
                     <div class="arrow-time-wrapper">
                         <div class="arrow-column">
                             <div class="down-arrow">↓</div>
@@ -353,34 +435,240 @@
                     </div>
                     <hr class="section-divider">
                 `;
-                siteList.appendChild(arrowDiv);
+                    siteList.appendChild(arrowDiv);
+                }
             }
         }
-    }
 
-    function goToLive() {
-        const params = new URLSearchParams(window.location.search);
-        const city = params.get("city");
-        const count = params.get("count");
-        window.location.href = `/live?city=${encodeURIComponent(city)}&count=${encodeURIComponent(count)}`;
-    }
 
-    // 경로 요약 텍스트 표시
+        function goToLive() {
+            const params = new URLSearchParams(window.location.search);
+            const city = params.get("city");
+            const count = params.get("count");
+            window.location.href = `/live?city=${encodeURIComponent(city)}&count=${encodeURIComponent(count)}`;
+        }
 
-    if (routeNames.length >= 1) {
-        routeSummary.innerHTML = routeNames
-            .map((name, index) => {
-                const tag = `<span class="route-tag">${name}</span>`;
-                return index < routeNames.length - 1
-                    ? `${tag}<span class="route-arrow">→</span>`
-                    : tag;
-            })
-            .join('');
-    } else if (routeNames.length === 1) {
-        routeSummary.textContent = routeNames[0];
-    } else {
-        routeSummary.textContent = "선택된 관광지가 없습니다.";
-    }
-</script>
+        // 경로 요약 텍스트 표시
+
+        if (routeNames.length >= 1) {
+            routeSummary.innerHTML = routeNames
+                .map((name, index) => {
+                    const tag = `<span class="route-tag">${name}</span>`;
+                    return index < routeNames.length - 1 ?
+                        `${tag}<span class="route-arrow">→</span>` :
+                        tag;
+                })
+                .join('');
+        } else if (routeNames.length === 1) {
+            routeSummary.textContent = routeNames[0];
+        } else {
+            routeSummary.textContent = "선택된 관광지가 없습니다.";
+        }
+
+        // Tmap 관련 함수
+        function initializeMap() {
+            const cityCoordinates = {
+                "서울": {
+                    lat: 37.5665,
+                    lng: 126.9780
+                },
+                "청주": {
+                    lat: 36.6424341,
+                    lng: 127.4890319
+                },
+                "부산": {
+                    lat: 35.1796,
+                    lng: 129.0756
+                },
+                "제주": {
+                    lat: 33.4996,
+                    lng: 126.5312
+                }
+            };
+
+            const center = cityCoordinates[city] || cityCoordinates["서울"];
+
+            map = new Tmapv2.Map("map", {
+                center: new Tmapv2.LatLng(center.lat, center.lng),
+                width: "100%",
+                height: "500px",
+                zoom: 12
+            });
+
+            infoWindow = new Tmapv2.InfoWindow({
+                position: new Tmapv2.LatLng(0, 0),
+                border: '0px solid #FFFFFF',
+                background: '#333333',
+                color: '#ffffff',
+                text: '',
+                visible: false,
+                padding: '5px',
+                align: 'center'
+            });
+            infoWindow.setMap(map);
+        }
+
+        function clearMarkers() {
+            markers.forEach(marker => marker.setMap(null));
+            markers = [];
+        }
+
+        function updateMapMarkers() {
+            if (!tmapLoaded) {
+                console.warn("Tmap API가 아직 로드되지 않았습니다. 마커 업데이트를 연기합니다.");
+                return;
+            }
+
+            clearMarkers();
+
+            selectedSitesArray.forEach((site, index) => {
+                if (site && site.location) {
+                    let markerIcon;
+                    if (index === 0) {
+                        markerIcon = startIcon;
+                    } else if (index === selectedSitesArray.length - 1) {
+                        markerIcon = endIcon;
+                    } else {
+                        markerIcon = middleIcon;
+                    }
+
+                    const lonLat = new Tmapv2.LatLng(site.location.lat, site.location.lng);
+
+                    const marker = new Tmapv2.Marker({
+                        position: lonLat,
+                        icon: markerIcon,
+                        iconSize: new Tmapv2.Size(65, 30),
+                        title: site.name,
+                        map: map
+                    });
+
+                    markers.push(marker);
+                } else {
+                    console.error(`유효하지 않은 위치 정보: ${site.name}`);
+                }
+            });
+
+            if (markers.length > 0) {
+                const bounds = new Tmapv2.LatLngBounds();
+                for (var i = 0; i < markers.length; i++) {
+                    bounds.extend(markers[i].getPosition());
+                }
+                map.fitBounds(bounds);
+            }
+        }
+
+        // 경로를 그리는 함수
+        function getTmapPath() {
+            if (!tmapLoaded) {
+                console.warn("Tmap API가 아직 로드되지 않았습니다. 경로 요청을 연기합니다.");
+                return;
+            }
+
+            // 기존 경로 삭제
+            clearPolylines();
+
+            if (selectedSitesArray.length < 2) {
+                console.warn("경로를 그리려면 2개 이상의 위치가 필요합니다.");
+                return;
+            }
+
+            // 각 지점들을 순차적으로 연결하는 경로 요청
+            for (let i = 0; i < selectedSitesArray.length - 1; i++) {
+                const startPoint = selectedSitesArray[i].location;
+                const endPoint = selectedSitesArray[i + 1].location;
+
+                if (!startPoint || !endPoint) {
+                    console.error("시작점 또는 종료점 좌표가 유효하지 않습니다.");
+                    continue;
+                }
+
+                // Tmap API에 요청할 데이터 설정
+                const requestData = {
+                    startX: startPoint.lng,
+                    startY: startPoint.lat,
+                    endX: endPoint.lng,
+                    endY: endPoint.lat,
+                    reqCoordType: "WGS84GEO",
+                    resCoordType: "WGS84GEO",
+                    startName: selectedSitesArray[i].name,
+                    endName: selectedSitesArray[i + 1].name
+                };
+
+                // Tmap API 호출
+                $.ajax({
+                    method: "POST",
+                    url: "https://apis.openapi.sk.com/tmap/routes/pedestrian?version=1&format=json",
+                    headers: {
+                        "Accept": "application/json",
+                        "Content-Type": "application/json; charset=utf-8",
+                        "appKey": apiKey
+                    },
+                    data: JSON.stringify(requestData),
+                    success: function(response) {
+                        const resultData = response.features;
+                        drawTmapPath(resultData);
+                    },
+                    error: function(request, status, error) {
+                        console.error("경로 요청 실패:", error);
+                        console.error("오류 메시지:", request.responseText);
+                    }
+                });
+            }
+        }
+
+        function drawTmapPath(pathData) {
+            if (!pathData) {
+                console.warn("경로 데이터가 없습니다.");
+                return;
+            }
+
+            for (let i in pathData) {
+                const geometry = pathData[i].geometry;
+                if (geometry.type === "LineString") {
+                    const coords = geometry.coordinates;
+                    const line = new Tmapv2.Polyline({
+                        path: coords.map(coord => new Tmapv2.LatLng(coord[1], coord[0])),
+                        strokeColor: "#DD0000",
+                        strokeWeight: 6,
+                        map: map
+                    });
+                    polylines.push(line);
+                }
+            }
+        }
+
+        function clearPolylines() {
+            for (let i in polylines) {
+                polylines[i].setMap(null);
+            }
+            polylines = [];
+        }
+
+        function init() {
+            if (typeof Tmapv2 !== 'undefined') {
+                initializeMap();
+                tmapLoaded = true;
+                updateMapMarkers();
+                getTmapPath();
+            } else {
+                console.error("Tmapv2 API 스크립트 로드 실패");
+                setTimeout(init, 500);
+            }
+        }
+
+        function tmapApiLoaded() {
+            console.log("Tmapv2 API 로드 완료");
+            init();
+        }
+        window.tmapApiLoaded = tmapApiLoaded;
+
+        function onError(error) {
+            alert("경로 요청 중 오류가 발생했습니다: " + error);
+            console.error("경로 요청 오류:", error);
+        }
+
+        window.onload = init;
+    </script>
 </body>
+
 </html>
