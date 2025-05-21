@@ -147,8 +147,6 @@ def process():
     return render_template('process.html', city=city, count=count, site_data=site_data)
 
 
-
-
 @app.route('/live', methods=['POST'])
 def live():
     city = request.form.get('city')
@@ -162,6 +160,7 @@ def live():
         return "잘못된 count 값입니다.", 400
 
     # 8자리의 고유 usercode 생성 (중복 확인 로직 추가)
+    usercode = ''  # usercode 초기화
     while True:
         usercode = ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
         try:
@@ -172,8 +171,10 @@ def live():
                     break  # 중복되지 않는 usercode 생성 완료
         except Exception as e:
             print(f"usercode 중복 확인 오류: {e}")
+            # 오류 발생 시 루프를 빠져나가거나, 적절한 오류 처리를 할 수 있습니다.
+            # 여기서는 간단히 로깅만 하고 다음 시도를 하도록 둡니다.
         finally:
-            if 'connection' in locals():
+            if 'connection' in locals() and connection.open:  # 연결 상태 확인
                 connection.close()
 
     # process.html 에서 전달받은 관광지 ID 추출 (request.form 사용)
@@ -186,51 +187,70 @@ def live():
         try:
             connection = pymysql.connect(**db_config)
             with connection.cursor() as cursor:
+                # 1. 관광지의 카테고리 정보 조회
                 cursor.execute("SELECT category FROM tourist_attraction WHERE id = %s", (site_id,))
                 category_result = cursor.fetchone()
-                category = category_result['category'] if category_result else None
 
-                if category:
-                    cursor.execute("SELECT id FROM mission WHERE category = %s ORDER BY RAND() LIMIT 1", (category,))
+                selected_category_for_mission = None
+                if category_result and category_result['category']:
+                    # 2. 쉼표로 구분된 카테고리 문자열을 리스트로 분리
+                    categories_list = [cat.strip() for cat in category_result['category'].split(',')]
+                    if categories_list:
+                        # 3. 분리된 카테고리 중 하나를 랜덤하게 선택
+                        selected_category_for_mission = random.choice(categories_list)
+
+                mission_id = None
+                if selected_category_for_mission:
+                    # 4. 선택된 단일 카테고리로 미션 검색
+                    cursor.execute("SELECT id FROM mission WHERE category = %s ORDER BY RAND() LIMIT 1",
+                                   (selected_category_for_mission,))
                     mission_id_result = cursor.fetchone()
-                    mission_id = mission_id_result['id'] if mission_id_result else None
-                    missions.append(mission_id)
-                else:
-                    missions.append(None)
+                    if mission_id_result:
+                        mission_id = mission_id_result['id']
+
+                missions.append(mission_id)
+
         except Exception as e:
-            print(f"미션 ID 조회 오류: {e}")
-            return "오류 발생!", 500
+            print(f"미션 ID 조회 오류 (site_id: {site_id}): {e}")
+            missions.append(None)  # 오류 발생 시 해당 미션은 None으로 추가
         finally:
-            if 'connection' in locals():
+            if 'connection' in locals() and connection.open:  # 연결 상태 확인
                 connection.close()
 
     try:
         connection = pymysql.connect(**db_config)
         with connection.cursor() as cursor:
             # SQL 쿼리와 매개변수를 동적으로 생성
-            columns = ", ".join(
-                [f"tourist_site_{i}" for i in range(1, count + 1)] + [f"mission_{i}" for i in range(1, count + 1)])
-            placeholders = ", ".join(["%s"] * (2 * count))  # 매개변수 자리 표시자 생성
+            columns_list = [f"tourist_site_{i}" for i in range(1, count + 1)] + \
+                           [f"mission_{i}" for i in range(1, count + 1)]
+            columns = ", ".join(columns_list)
+
+            # count에 맞춰 placeholders 생성
+            placeholders_list = ["%s"] * (count + count)  # 관광지 ID 개수 + 미션 ID 개수
+            placeholders = ", ".join(placeholders_list)
 
             sql = f"""
                    INSERT INTO user_travel_data (usercode, {columns}) 
                    VALUES (%s, {placeholders})
                """
 
-            params = [usercode] + tourist_sites + missions  # 매개변수 리스트 생성
+            # params 리스트 생성 시, tourist_sites와 missions 리스트의 길이를 count에 맞게 조정
+            # 만약 count보다 적은 관광지나 미션이 선택되었을 경우를 대비하여 None으로 채울 수 있습니다.
+            # 현재 로직에서는 tourist_sites는 count만큼 채워지고, missions도 count만큼 채워집니다 (성공 또는 None).
+            params = [usercode] + tourist_sites[:count] + missions[:count]
 
             cursor.execute(sql, params)
             connection.commit()
     except Exception as e:
         print(f"데이터베이스 삽입 오류: {e}")
-        connection.rollback()
+        if 'connection' in locals() and connection.open:  # 연결 상태 확인
+            connection.rollback()
         return "오류 발생!", 500
     finally:
-        if 'connection' in locals():
+        if 'connection' in locals() and connection.open:  # 연결 상태 확인
             connection.close()
 
     return render_template('live.html', city=city, count=count, usercode=usercode)
-
 def get_mission_id_by_category(category):
     """tourist_attraction 테이블의 카테고리와 같은 category를 가진 mission의 id를 반환합니다.
         (구현 필요:  tourist_attraction 테이블과 mission 테이블의 관계에 따라 수정해야 합니다.)"""
@@ -249,6 +269,114 @@ def get_mission_id_by_category(category):
     finally:
         if 'connection' in locals():
             connection.close()
+# app.py (새로운 라우트를 추가하세요)
+@app.route('/mission.html')
+def mission_page():
+    return render_template('mission.html')
+
+# 기존 /get_mission_details/<usercode> 라우트도 그대로 유지되어야 합니다.
+@app.route('/get_mission_details/<usercode>')
+def get_mission_details(usercode):
+    try:
+        connection = pymysql.connect(**db_config)
+        with connection.cursor() as cursor:
+            # Get mission IDs and their confirmed status from user_travel_data
+            # 모든 mission_X 와 mission_X_confirmed 필드를 가져오도록 SQL 수정
+            sql_user_missions = """
+                SELECT mission_1, mission_1_confirmed, 
+                       mission_2, mission_2_confirmed, 
+                       mission_3, mission_3_confirmed 
+                FROM user_travel_data 
+                WHERE usercode = %s
+            """
+            cursor.execute(sql_user_missions, (usercode,))
+            user_missions_status = cursor.fetchone()
+
+            missions_data = []
+            if user_missions_status:
+                for i in range(1, 4):  # Assuming up to mission_3
+                    mission_id = user_missions_status.get(f'mission_{i}')
+                    mission_confirmed = user_missions_status.get(f'mission_{i}_confirmed')
+
+                    # mission_confirmed가 None일 경우 (DB에 아직 값이 없을 수 있음) False로 간주
+                    if mission_confirmed is None:
+                        mission_confirmed = False
+                    else:
+                        mission_confirmed = bool(mission_confirmed)  # DB에서 TINYINT(1) 등으로 오면 0 또는 1이므로 boolean으로 변환
+
+                    if mission_id:
+                        # Get mission details from the mission table
+                        sql_mission_details = "SELECT title, content FROM mission WHERE id = %s"
+                        cursor.execute(sql_mission_details, (mission_id,))
+                        mission_detail = cursor.fetchone()
+                        if mission_detail:
+                            missions_data.append({
+                                'id': mission_id,
+                                'title': mission_detail['title'],
+                                'content': mission_detail['content'],
+                                'confirmed': mission_confirmed,  # 확정 상태 추가
+                                'mission_seq': i  # 미션 순번 추가 (1, 2, or 3)
+                            })
+        return jsonify({"success": True, "missions": missions_data})
+    except Exception as e:
+        print(f"미션 상세 정보 조회 오류: {e}")
+        return jsonify({"success": False, "error": str(e)})
+    finally:
+        if 'connection' in locals() and connection.open:
+            connection.close()
+
+
+@app.route('/update_mission_status', methods=['POST'])
+def update_mission_status():
+    data = request.get_json()
+    usercode = data.get('usercode')
+    mission_seq = data.get('mission_seq')  # 1, 2, or 3
+    is_confirmed = data.get('confirmed')  # true or false
+
+    if not all([usercode, mission_seq is not None, is_confirmed is not None]):
+        return jsonify({"success": False, "error": "필수 파라미터가 누락되었습니다."}), 400
+
+    if not isinstance(mission_seq, int) or not (1 <= mission_seq <= 3):
+        return jsonify({"success": False, "error": "잘못된 mission_seq 값입니다."}), 400
+
+    # DB의 TINYINT(1) 저장을 위해 boolean을 0 또는 1로 변환
+    confirmed_value = 1 if is_confirmed else 0
+
+    # 동적으로 컬럼 이름 생성
+    mission_confirmed_column = f'mission_{mission_seq}_confirmed'
+
+    try:
+        connection = pymysql.connect(**db_config)
+        with connection.cursor() as cursor:
+            # SQL UPDATE 문 구성
+            # 주의: 컬럼 이름을 직접 포맷팅할 때는 SQL 인젝션에 매우 주의해야 합니다.
+            # 여기서는 mission_seq가 1, 2, 3 중 하나임을 검증했으므로 안전하다고 가정합니다.
+            sql = f"UPDATE user_travel_data SET {mission_confirmed_column} = %s WHERE usercode = %s"
+
+            cursor.execute(sql, (confirmed_value, usercode))
+            connection.commit()
+
+            if cursor.rowcount > 0:
+                return jsonify({"success": True, "message": "미션 상태가 업데이트되었습니다."})
+            else:
+                return jsonify({"success": False, "error": "해당 usercode를 찾을 수 없거나 업데이트할 내용이 없습니다."}), 404
+
+    except Exception as e:
+        print(f"미션 상태 업데이트 오류: {e}")
+        if 'connection' in locals() and connection.open:
+            connection.rollback()
+        return jsonify({"success": False, "error": str(e)}), 500
+    finally:
+        if 'connection' in locals() and connection.open:
+            connection.close()
+
+
+
+
+
+
+
+
 
 def update_tourist_attractions():
     """
