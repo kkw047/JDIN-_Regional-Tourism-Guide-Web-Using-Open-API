@@ -231,6 +231,100 @@ def live():
 
     return render_template('live.html', city=city, count=count, usercode=usercode)
 
+@app.route('/review/<usercode>')
+def review_page(usercode):
+    """
+    사용자 코드를 받아 해당 여행에 대한 관광지 목록을 조회하고 후기 페이지를 렌더링합니다.
+    """
+    conn = None
+    try:
+        conn = pymysql.connect(**db_config)
+        with conn.cursor() as cursor:
+            # user_travel_data 테이블에서 해당 usercode의 데이터 조회
+            cursor.execute(f"SELECT * FROM user_travel_data WHERE usercode = %s", (usercode,))
+            user_data = cursor.fetchone()
+
+            if not user_data:
+                return "여행 데이터가 존재하지 않습니다.", 404
+
+            selected_site_ids = []
+            # user_travel_data 테이블의 tourist_site_1, tourist_site_2, tourist_site_3 컬럼에서 ID 추출
+            for i in range(1, 4): # 최대 3개 관광지 가정
+                site_key = f'tourist_site_{i}'
+                if site_key in user_data and user_data[site_key]:
+                    selected_site_ids.append(user_data[site_key])
+
+        sites_to_review = []
+        for site_id in selected_site_ids:
+            site_details = get_site_details_by_id(site_id)
+            if site_details:
+                sites_to_review.append(site_details)
+
+        return render_template('review.html', usercode=usercode, sites_to_review=sites_to_review)
+
+    except Exception as e:
+        print(f"Error in review_page for usercode {usercode}: {e}")
+        return "후기 페이지를 불러오는 중 오류가 발생했습니다.", 500
+    finally:
+        if conn:
+            conn.close()
+
+@app.route('/submit_review', methods=['POST'])
+def submit_review():
+    """
+    후기 페이지에서 제출된 데이터를 받아 데이터베이스의 `reviews` 테이블에 저장합니다.
+    - review_text -> content
+    - recommendation ('recommend'/'not_recommend') -> rating ('추천'/'비추천')
+    """
+    usercode = request.form.get('usercode') # 이 usercode는 현재 `reviews` 테이블에 저장되지 않습니다.
+    if not usercode:
+        print("Warning: Usercode is missing in submit_review request.")
+        # return "사용자 코드가 누락되었습니다.", 400 # 굳이 에러를 낼 필요는 없음 (reviews 테이블에 usercode가 없으므로)
+
+    conn = None
+    try:
+        conn = pymysql.connect(**db_config)
+        with conn.cursor() as cursor:
+            # 폼 데이터를 순회하며 각 관광지에 대한 후기 추출 및 저장
+            for key, value in request.form.items():
+                if key.startswith('review_text_'): # 후기 텍스트 필드 식별
+                    site_id = key.replace('review_text_', '')
+                    review_content = value.strip() # 공백 제거
+                    recommendation_raw = request.form.get(f'recommend_{site_id}') # 해당 관광지의 추천 여부
+
+                    # rating 컬럼에 저장할 값 매핑
+                    rating_value = None
+                    if recommendation_raw == 'recommend':
+                        rating_value = '추천'
+                    elif recommendation_raw == 'not_recommend':
+                        rating_value = '비추천'
+
+                    # tourist_attraction_id와 content (또는 rating) 값이 하나라도 있다면 저장
+                    # (즉, site_id가 유효하고, 사용자가 후기를 작성했거나 추천/비추천을 선택했다면)
+                    if site_id and (review_content or rating_value):
+                        sql = """
+                        INSERT INTO reviews (tourist_attraction_id, content, rating)
+                        VALUES (%s, %s, %s)
+                        """
+                        cursor.execute(sql, (site_id, review_content, rating_value))
+            conn.commit() # 모든 후기 저장 후 한 번만 커밋
+
+        return redirect(url_for('review_success'))
+
+    except Exception as e:
+        print(f"Error submitting review for usercode {usercode}: {e}", file=sys.stderr)
+        if conn:
+            conn.rollback() # 오류 발생 시 롤백
+        return "후기를 제출하는 중 오류가 발생했습니다.", 500
+    finally:
+        if conn:
+            conn.close()
+
+@app.route('/review_success')
+def review_success():
+    """후기 제출 성공 페이지."""
+    return "<h1>후기가 성공적으로 제출되었습니다! 감사합니다.</h1><p><a href='/'>홈으로 돌아가기</a></p>"
+
 def get_mission_id_by_category(category):
     """tourist_attraction 테이블의 카테고리와 같은 category를 가진 mission의 id를 반환합니다.
         (구현 필요:  tourist_attraction 테이블과 mission 테이블의 관계에 따라 수정해야 합니다.)"""
@@ -264,6 +358,22 @@ def update_tourist_attractions():
     save_tourist_sites_to_db(tourist_sites)
 
     print("관광지 데이터 갱신 작업 완료!")
+
+def get_site_details_by_id(site_id):
+    """tourist_attraction 테이블에서 site_id에 해당하는 관광지 상세 정보를 조회합니다."""
+    conn = None
+    try:
+        conn = pymysql.connect(**db_config)
+        with conn.cursor() as cursor:
+            sql = "SELECT id, name, image, address FROM tourist_attraction WHERE id = %s"
+            cursor.execute(sql, (site_id,))
+            return cursor.fetchone()
+    except Exception as e:
+        print(f"Error fetching site details for {site_id}: {e}")
+        return None
+    finally:
+        if conn:
+            conn.close()
 
 
 # 스케줄러 설정
