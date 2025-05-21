@@ -1,1 +1,276 @@
 <!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>선택된 관광지 결과</title>
+    <style>
+        /* 스타일은 result.html과 동일하게 유지 */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f8f9fa;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        #map {
+            width: 100%;
+            height: 500px;
+            background-color: #dcdcdc;
+            border: 1px solid #ccc;
+            margin-bottom: 20px;
+            border-radius: 8px;
+        }
+
+        .mission {
+            width: 50px;
+            height: 50px;
+            background-color: #cecece;
+            border-radius: 40%; 
+            border: none;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease; 
+            margin-left: 50px; /* 버튼을 오른쪽으로 조금 이동 */
+            min-width: 60px;
+
+        }
+
+        .mission:hover {
+            background-color: rgb(184, 173, 173);
+            box-shadow: 0 6px 12px rgba(62, 62, 62, 0.2);
+            transform: scale(1.05); /* 약간 확대 */
+        }
+        .mission-box {
+            display: flex;
+            align-items: center;
+            justify-content: space-between; /* 버튼과 텍스트 양 끝으로 정렬 */
+            margin-bottom: 20px;
+        }
+
+        .user-text {
+            font-size: 25px;
+            color: #333;
+            text-align: right;
+
+            /* 블록 형태 스타일 */
+            background-color: #f0f0f0;
+            padding: 10px 15px;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            display: inline-block;
+            min-width: 350px;
+            text-align: center
+        }
+
+        .travil-box {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 30px;
+            justify-content: space-between;
+        }
+
+        .travel-row {
+            display: flex;
+            justify-content: space-between; /* 좌우로 정렬 */
+            align-items: center;
+            padding: 8px 0;
+        }
+
+        .travel-left {
+            font-size: 25px;
+            background-color: #eaeaea;
+            padding: 12px 20px;
+            border-radius: 10px;
+            border: 1px solid #ccc;
+            min-width: 500px;
+            text-align: center; /* 좌측 정렬 */
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+
+        }
+
+        .arrow {
+            font-size: 50px;
+            background: none;
+            border: none;
+            box-shadow: none;
+            color: #888;
+            margin-top: -10px;
+        }
+
+        .travel-right {
+            display: flex;
+            justify-content: flex-end;
+            min-width: 80px;
+            margin-right: 15px;
+
+        }
+
+        .sub-box {
+            width: 180px;
+            height: 61px;
+            font-size: 25px;
+            font-weight: bold;
+            color: #333;
+            background-color: #ccc;
+            border-radius: 8px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        button.sub-box {
+            border: none;
+            outline: none;
+            cursor: pointer;
+            box-shadow: none;
+            padding: 0;
+            background-color: inherit; /* 기본 배경을 상태별로 제어하도록 둠 */
+        }
+
+        .sub-box.in-progress {
+            background-color: #72c4ff;
+            color: white;
+            animation: pulse 1.2s infinite;
+            box-shadow: none;
+            border: none;
+            outline: none;
+        }
+
+        .sub-box.done {
+            background-color: #28a745; /* 초록 */
+            color: white;
+        }
+
+        .sub-box.waiting {
+            background-color: #dc3545; /* 빨강 */
+            color: white;
+        }
+
+        .sub-box.in-progress {
+            background-color: #72c4ff; /* 파랑 */
+            color: white;
+            animation: pulse 1.2s infinite;
+        }
+        .sub-box.clicked {
+            background-color: #007acc !important;
+            transform: scale(0.95);
+            box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.3);
+            transition: all 0.2s ease;
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+                opacity: 1;
+            }
+            50% {
+                transform: scale(1.05);
+                opacity: 0.8;
+            }
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+    </style>
+    
+</head>
+
+<body>
+    <div class="container">
+        <div id="map"></div>
+        <div class="mission-box">
+            <button class="mission">M</button>
+            <div class="user-text">사용자 코드 1234123141</div>
+        </div>        
+        <div class="travil-box" id="travelBox">
+            {% for i in range(count * 2 - 1) %}
+                <div class="travel-row">
+                    <div class="travel-left">
+                        {% if i % 2 == 0 %}
+                            여행지 {{ (i // 2) + 1 }}
+                        {% else %}
+                            ↓
+                        {% endif %}
+                    </div>
+                    <div class="travel-right">
+                        {% if i == 0 %}
+                            <button class="sub-box in-progress">진행중</button>
+                        {% else %}
+                            <div class="sub-box waiting">대기</div>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const btn = document.querySelector('.sub-box.in-progress');
+
+            if (btn) {
+                btn.addEventListener('click', () => {
+                    btn.classList.add('clicked');
+
+                    // 300ms 후에 다시 원상복구 (눌림 효과처럼 보이게)
+                    setTimeout(() => {
+                        btn.classList.remove('clicked');
+                    }, 100);
+
+                    // 필요한 로직을 여기에 추가할 수 있습니다
+                    // 예: alert("진행중 클릭됨!"); 또는 상태 전환
+                });
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const box = document.getElementById('travelBox');
+
+            box.addEventListener('click', (e) => {
+                if (e.target.classList.contains('sub-box') && e.target.classList.contains('in-progress')) {
+                    // 현재 진행중 → 완료
+                    const current = e.target;
+                    const wrapper = current.parentElement;
+                    const done = document.createElement('div');
+                    done.className = 'sub-box done';
+                    done.textContent = '완료';
+                    wrapper.replaceChild(done, current);
+
+                    // 다음 waiting → 진행중
+                    let next = wrapper.parentElement.nextElementSibling;
+                    while (next && !next.querySelector('.sub-box.waiting')) {
+                        next = next.nextElementSibling;
+                    }
+                    if (next) {
+                        const nextBox = next.querySelector('.sub-box.waiting');
+                        const newBtn = document.createElement('button');
+                        newBtn.className = 'sub-box in-progress';
+                        newBtn.textContent = '진행중';
+                        nextBox.parentElement.replaceChild(newBtn, nextBox);
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+
+</html>
