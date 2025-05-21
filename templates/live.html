@@ -122,7 +122,7 @@
 
         .sub-box {
             width: 180px;
-            height: 61px;
+            height: 57px;
             font-size: 25px;
             font-weight: bold;
             color: #333;
@@ -201,24 +201,33 @@
         </div>        
         <div class="travil-box" id="travelBox">
             {% for i in range(count * 2 - 1) %}
-                <div class="travel-row">
-                    <div class="travel-left">
-                        {% if i % 2 == 0 %}
+                {% if i % 2 == 0 %}
+                    <!-- 관광지 줄 -->
+                    <div class="travel-row">
+                        <div class="travel-left">
                             여행지 {{ (i // 2) + 1 }}
-                        {% else %}
-                            ↓
-                        {% endif %}
+                        </div>
+                        <div class="travel-right">
+                            {% if i == 0 %}
+                                <button class="sub-box in-progress">진행중</button>
+                            {% else %}
+                                <div class="sub-box waiting">대기</div>
+                            {% endif %}
+                        </div>
                     </div>
-                    <div class="travel-right">
-                        {% if i == 0 %}
-                            <button class="sub-box in-progress">진행중</button>
-                        {% else %}
+                {% else %}
+                    <!-- 화살표 줄 (↓) -->
+                    <div class="travel-row">
+                        <div class="travel-left" style="background: none; border: none; box-shadow: none;">
+                            <span class="arrow">↓</span>
+                        </div>
+                        <div class="travel-right">
                             <div class="sub-box waiting">대기</div>
-                        {% endif %}
+                        </div>
                     </div>
-                </div>
+                {% endif %}
             {% endfor %}
-            </div>
+        </div>
         </div>
     </div>
 </div>
