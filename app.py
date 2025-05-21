@@ -161,7 +161,7 @@ def live():
     except ValueError:
         return "잘못된 count 값입니다.", 400
 
-    # 8자리의 고유 usercode 생성 (중복 확인 로직 추가)
+    # usercode 생성 및 중복 확인
     while True:
         usercode = ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
         try:
@@ -176,7 +176,7 @@ def live():
             if 'connection' in locals():
                 connection.close()
 
-    # process.html 에서 전달받은 관광지 ID 추출 (request.form 사용)
+    # 사용자 관광지 데이터 저장
     tourist_sites = []
     missions = []
     for i in range(1, count + 1):
@@ -209,17 +209,19 @@ def live():
         with connection.cursor() as cursor:
             # SQL 쿼리와 매개변수를 동적으로 생성
             columns = ", ".join(
-                [f"tourist_site_{i}" for i in range(1, count + 1)] + [f"mission_{i}" for i in range(1, count + 1)])
+                [f"tourist_site_{i}" for i in range(1, count + 1)] +
+                [f"mission_{i}" for i in range(1, count + 1)]
+            )
             placeholders = ", ".join(["%s"] * (2 * count))  # 매개변수 자리 표시자 생성
 
             sql = f"""
-                   INSERT INTO user_travel_data (usercode, {columns}) 
-                   VALUES (%s, {placeholders})
-               """
+                    INSERT INTO user_travel_data (usercode, {columns}) 
+                    VALUES (%s, {placeholders})
+                """
 
             params = [usercode] + tourist_sites + missions  # 매개변수 리스트 생성
 
-            cursor.execute(sql, params)
+            cursor.execute(sql, params)  # 데이터 저장
             connection.commit()
     except Exception as e:
         print(f"데이터베이스 삽입 오류: {e}")
@@ -229,7 +231,48 @@ def live():
         if 'connection' in locals():
             connection.close()
 
-    return render_template('live.html', city=city, count=count, usercode=usercode)
+    # 새로 생성된 사용자 코드로 리다이렉트
+    return redirect(url_for('live_with_usercode', usercode=usercode))
+
+
+@app.route('/live/<usercode>', methods=['GET'])
+def live_with_usercode(usercode):
+    try:
+        connection = pymysql.connect(**db_config)
+        with connection.cursor() as cursor:
+            # 사용자 데이터를 가져옵니다.
+            sql = """
+                SELECT tourist_site_1, tourist_site_2, tourist_site_3, mission_1, mission_2, mission_3 
+                FROM user_travel_data WHERE usercode = %s
+            """
+            cursor.execute(sql, (usercode,))
+            user_data = cursor.fetchone()
+
+            if not user_data:
+                return "잘못된 사용자 코드입니다.", 404  # 사용자 코드가 없으면 404 NOT FOUND
+
+        # 사용자 데이터 및 코드와 함께 live.html 렌더링
+        return render_template(
+            'live.html',
+            usercode=usercode,
+            tourist_sites=[
+                user_data.get('tourist_site_1'),
+                user_data.get('tourist_site_2'),
+                user_data.get('tourist_site_3')
+            ],
+            missions=[
+                user_data.get('mission_1'),
+                user_data.get('mission_2'),
+                user_data.get('mission_3')
+            ]
+        )
+    except Exception as e:
+        print(f"오류 발생: {e}")
+        return "오류 발생!", 500
+    finally:
+        if 'connection' in locals():
+            connection.close()
+
 
 def get_mission_id_by_category(category):
     """tourist_attraction 테이블의 카테고리와 같은 category를 가진 mission의 id를 반환합니다.
