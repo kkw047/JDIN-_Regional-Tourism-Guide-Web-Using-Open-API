@@ -531,7 +531,7 @@ def submit_review():
                         cursor.execute(sql, (site_id, review_content, rating_value))
             connection.commit()  # 모든 후기 저장 후 한 번만 커밋
 
-        return redirect(url_for('review_success'))
+        return redirect(url_for('finished'))
 
     except Exception as e:
         print(f"Error submitting review for usercode {usercode}: {e}", file=sys.stderr)
@@ -542,14 +542,12 @@ def submit_review():
         if connection:
             connection.close()
 
-@app.route('/review_success')
-def review_success():
-    """후기 제출 성공 페이지."""
-    return render_template('review_success.html')
+@app.route('/finished')
+def finished():
+    return render_template('finished.html')
 
 def get_site_details_by_id(site_id):
     """tourist_attraction 테이블에서 site_id에 해당하는 관광지 상세 정보를 조회합니다."""
-
     try:
         connection = pymysql.connect(**db_config)
         with connection.cursor() as cursor:
