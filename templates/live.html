@@ -388,7 +388,6 @@
 
         <div class="overlay" id="popupOverlay"></div>
 
-        <!-- 추가된 HTML: iframe 컨테이너 -->
         <div id="missionPopupContainer">
             <button id="closeButton" onclick="closeMissionPopup()">닫기</button>
             <iframe id="missionPopup" src="___" ></iframe>
@@ -409,7 +408,7 @@
         let routes = {{ routes | tojson }};
         let tmapLoaded = false;
         let infoWindow;
-        const apiKey = "Mb9cttQ9De2UcPzNfNwCl7ZRY31kNiUqPjCAeZne"; // 여기에 API 키를 입력하세요
+        const apiKey = "Mb9cttQ9De2UcPzNfNwCl7ZRY31kNiUqPjCAeZne";
         const startIcon = "/static/start.png";
         const middleIcon = "/static/middle.png";
         const endIcon = "/static/end.png";
