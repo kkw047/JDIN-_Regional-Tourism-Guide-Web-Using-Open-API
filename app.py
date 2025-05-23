@@ -136,6 +136,52 @@ def process():
 
     return render_template('process.html', city=city, count=count, site_data=site_data)
 
+@app.route('/live', methods=['GET'])
+def live_redirect():
+    usercode = request.args.get('code')
+    if not usercode:
+        return "사용자 코드가 필요합니다.", 400
+
+    try:
+        connection = pymysql.connect(**db_config)
+        with connection.cursor() as cursor:
+            # user_travel_data 테이블에서 해당 usercode의 관광지 1~3 정보를 조회
+            sql = """
+                SELECT tourist_site_1, tourist_site_2, tourist_site_3
+                FROM user_travel_data
+                WHERE usercode = %s
+            """
+            cursor.execute(sql, (usercode,))
+            row = cursor.fetchone()
+            print("row:", row)  # 디버깅용
+
+            if not row:
+                return "잘못된 사용자 코드입니다.", 404
+
+            # 관광지 개수(count) 계산: tourist_site_1부터 차례로 NULL이 아닌 값만 카운트
+            count = 0
+            for i in range(1, 4):  # 1~3까지만!
+                if row.get(f'tourist_site_{i}') is not None:
+                    count += 1
+                else:
+                    break
+
+            # count가 0이면 관광지 선택이 없는 것
+            if count == 0:
+                return "선택된 관광지가 없습니다.", 400
+
+            # count가 3을 초과하지 않도록 검사 (DB 컬럼이 3개뿐이므로)
+            if count > 3:
+                count = 3
+
+            # live_with_usercode 라우트로 usercode와 count를 전달하며 리다이렉트
+            return redirect(url_for('live_with_usercode', usercode=usercode, count=count))
+    except Exception as e:
+        print(f"Error in live_redirect: {e}")
+        return "오류 발생!", 500
+    finally:
+        if 'connection' in locals():
+            connection.close()
 
 @app.route('/live', methods=['POST'])
 def live():
