@@ -386,6 +386,14 @@
             <button onclick="closePopup()">아니오</button>
         </div>
 
+        <div class="popup" id="confirmCompletePopup">
+            <h2>모든 여행이 완료되었습니다!</h2>
+            <p>후기를 작성하시겠습니까?</p>
+            <button class="status-button completed" onclick="confirmReview()">예</button>
+            <button class="status-button waiting" onclick="acknowledgeComplete()">아니오</button>
+            <button class="status-button" style="background-color: #6c757d; margin-left: 10px;" onclick="closePopup()">닫기</button>
+        </div>
+
         <div class="overlay" id="popupOverlay"></div>
 
         <div id="missionPopupContainer">
@@ -476,6 +484,7 @@
             document.getElementById('statusPopup').style.display = 'none';
             document.getElementById('cancelPopup').style.display = 'none';
             document.getElementById('completePopup').style.display = 'none';
+            document.getElementById('confirmCompletePopup').style.display = 'none';
             document.getElementById('popupOverlay').style.display = 'none';
         }
 
@@ -870,8 +879,8 @@
 
         // '여행 완료' 버튼 클릭 시 호출되는 함수
         async function completeAll() {
-            // 여기에 '여행 완료' 버튼 클릭 시 수행할 동작을 구현합니다.
-            alert("여행이 완료되었습니다!");
+            document.getElementById('confirmCompletePopup').style.display = 'block';
+            document.getElementById('popupOverlay').style.display = 'block';
         }
 
         // tmapApi 로드 성공시 init 함수 호출
@@ -973,6 +982,12 @@
             setTimeout(() => {
                 toast.classList.remove('show');
             }, 2000);
+        }
+        function confirmReview() {
+            window.location.href = '/review/' + usercode;
+        }
+        function acknowledgeComplete() {
+            window.location.href = '/finished';
         }
     </script>
 </body>
