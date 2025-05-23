@@ -192,6 +192,95 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
+        /* --- 커스텀 모달 팝업 CSS --- */
+        .modal-overlay {
+            display: none; /* 기본적으로 숨김 */
+            position: fixed; /* 뷰포트 기준으로 고정 */
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6); /* 반투명 검정 배경 */
+            z-index: 1000; /* 다른 콘텐츠 위에 표시 */
+            justify-content: center; /* 가로 중앙 정렬 */
+            align-items: center; /* 세로 중앙 정렬 */
+            opacity: 0; /* 초기 투명도 */
+            transition: opacity 0.3s ease-out; /* 부드러운 전환 효과 */
+        }
+
+        .modal-overlay.active {
+            display: flex; /* 활성화되면 보이도록 */
+            opacity: 1;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3); /* 그림자 */
+            max-width: 400px; /* 최대 너비 */
+            width: 90%; /* 반응형 너비 */
+            text-align: center;
+            transform: scale(0.9); /* 초기 스케일 (작게) */
+            opacity: 0; /* 초기 투명도 */
+            transition: transform 0.3s ease-out, opacity 0.3s ease-out; /* 부드러운 전환 효과 */
+        }
+
+        .modal-overlay.active .modal-content {
+            transform: scale(1); /* 활성화 시 원래 크기로 */
+            opacity: 1;
+        }
+
+        .modal-message {
+            font-size: 1.2em;
+            margin-bottom: 25px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: center;
+            gap: 15px; /* 버튼 사이 간격 */
+        }
+
+        .modal-btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 25px; /* 둥근 버튼 */
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.3s ease-in-out, transform 0.2s ease-in-out;
+            font-weight: 500;
+        }
+
+        .modal-btn:hover {
+            transform: translateY(-2px); /* 호버 시 약간 위로 */
+        }
+
+        .confirm-btn {
+            background-color: #4CAF50; /* 제출 버튼과 동일한 초록색 */
+            color: white;
+            box-shadow: 0 3px 10px rgba(76, 175, 80, 0.2);
+        }
+
+        .confirm-btn:hover {
+            background-color: #45a049;
+            box-shadow: 0 5px 12px rgba(76, 175, 80, 0.3);
+        }
+
+        .cancel-btn {
+            background-color: #e0e0e0; /* 밝은 회색 */
+            color: #555;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .cancel-btn:hover {
+            background-color: #d0d0d0;
+            box-shadow: 0 5px 12px rgba(0, 0, 0, 0.15);
+        }
+        /* --- 커스텀 모달 팝업 CSS 끝 --- */
+
         /* 작은 화면 반응형 */
         @media (max-width: 768px) {
             .container {
@@ -216,6 +305,14 @@
                 width: 100%; /* 작은 화면에서 버튼 너비 100% */
                 font-size: 18px;
                 padding: 15px;
+            }
+            .modal-actions {
+                flex-direction: column; /* 작은 화면에서 버튼 세로 정렬 */
+                gap: 10px;
+            }
+            .modal-btn {
+                width: 100%; /* 버튼 너비 100% */
+                padding: 10px 20px;
             }
         }
     </style>
@@ -272,5 +369,52 @@
             </div>
         </form>
     </div>
+
+    <!-- 커스텀 모달 팝업 HTML 시작 -->
+    <div id="confirmationModal" class="modal-overlay">
+        <div class="modal-content">
+            <p class="modal-message">후기를 제출하시겠습니까?</p>
+            <div class="modal-actions">
+                <button id="confirmButton" class="modal-btn confirm-btn">확인</button>
+                <button id="cancelButton" class="modal-btn cancel-btn">취소</button>
+            </div>
+        </div>
+    </div>
+    <!-- 커스텀 모달 팝업 HTML 끝 -->
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const reviewForm = document.getElementById('reviewForm');
+            const submitButton = reviewForm.querySelector('.submit-btn'); // 폼 내의 제출 버튼
+            const confirmationModal = document.getElementById('confirmationModal');
+            const confirmButton = document.getElementById('confirmButton');
+            const cancelButton = document.getElementById('cancelButton');
+
+            // 제출 버튼 클릭 시 모달 띄우기
+            submitButton.addEventListener('click', function(event) {
+                event.preventDefault(); // 폼의 기본 제출 동작 막기
+                confirmationModal.classList.add('active'); // 모달을 보이도록 활성화
+            });
+
+            // 모달 내의 '확인' 버튼 클릭 시
+            confirmButton.addEventListener('click', function() {
+                confirmationModal.classList.remove('active'); // 모달 숨기기
+                reviewForm.submit(); // 폼을 수동으로 제출
+            });
+
+            // 모달 내의 '취소' 버튼 클릭 시
+            cancelButton.addEventListener('click', function() {
+                confirmationModal.classList.remove('active'); // 모달 숨기기
+            });
+
+            // 모달 오버레이(배경) 클릭 시 (모달 외부 클릭 시 닫기)
+            confirmationModal.addEventListener('click', function(event) {
+                // event.target이 모달 오버레이 자신인지 확인하여 모달 내용을 클릭한 경우는 제외
+                if (event.target === confirmationModal) {
+                    confirmationModal.classList.remove('active');
+                }
+            });
+        });
+    </script>
 </body>
 </html>
