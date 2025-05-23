@@ -248,24 +248,32 @@ def live_with_usercode(usercode):
     try:
         connection = pymysql.connect(**db_config)
         with connection.cursor() as cursor:
-            # 관광지 수가 0인 경우 처리
             if count == 0:
-                return "선택된 관광지가 없습니다.", 400  # 적절한 오류 메시지 반환
+                return "선택된 관광지가 없습니다.", 400
 
-            # 사용자 데이터를 가져옵니다.
+            # 관광지 개수에 따라 동적으로 SQL 쿼리 구성
+            site_columns = [f'tourist_site_{i}' for i in range(1, count + 1)]
+            mission_columns = [f'mission_{i}' for i in range(1, count + 1)]
+            site_status_columns = [f'tourist_site_{i}_confirmed' for i in range(1, count + 1)]
+
+            # route 컬럼은 관광지가 2개 이상일 때만 포함
+            route_columns = []
+            if count > 1:
+                route_columns = [f'route_{i}_confirmed' for i in range(1, count)]
+
+            # 모든 컬럼 합치기
+            all_columns = site_columns + mission_columns + site_status_columns + route_columns
+
             sql = f"""
-                SELECT 
-                    {', '.join([f'tourist_site_{i}' for i in range(1, count + 1)])},
-                    {', '.join([f'mission_{i}' for i in range(1, count + 1)])},
-                    {', '.join([f'tourist_site_{i}_confirmed' for i in range(1, count + 1)])},
-                    {', '.join([f'route_{i}_confirmed' for i in range(1, count)] if count > 1 else '')}
-                FROM user_travel_data WHERE usercode = %s
+                SELECT {', '.join(all_columns)}
+                FROM user_travel_data 
+                WHERE usercode = %s
             """
             cursor.execute(sql, (usercode,))
             user_data = cursor.fetchone()
 
             if not user_data:
-                return "잘못된 사용자 코드입니다.", 404  # 사용자 코드가 없으면 404 NOT FOUND
+                return "잘못된 사용자 코드입니다.", 404
 
             # tourist_site_id를 사용하여 관광지 정보 가져오기
             tourist_sites = []
@@ -282,46 +290,37 @@ def live_with_usercode(usercode):
                 else:
                     tourist_sites.append(None)
 
-            # 마지막 관광지 정보를 콘솔에 출력
-            if tourist_sites:
-                last_site = tourist_sites[-1]
-                print(f"마지막 관광지 정보: {last_site}")
-
             # 마커 데이터 준비
             markers = []
             statuses = []
             for i, site in enumerate(tourist_sites):
                 if site:
                     status = user_data.get(f'tourist_site_{i + 1}_confirmed', 0)
-
                     markers.append({
                         'name': site['name'],
                         'mapx': float(site['mapx']),
                         'mapy': float(site['mapy']),
                         'status': status,
-                        'site_number': i + 1  # site_number 추가
+                        'site_number': i + 1
                     })
                     statuses.append(status)
                 else:
                     statuses.append(None)
 
-            # 경로 상태 데이터 준비
+            # 경로 상태 데이터 준비 - 관광지가 2개 이상일 때만
             routes = []
             if count > 1:
-                for i in range(1, count):  # 경로 개수는 관광지 개수 - 1
+                for i in range(1, count):
                     route_status = user_data.get(f'route_{i}_confirmed', 0)
                     routes.append({
                         'status': route_status,
-                        'route_number': i  # route_number 추가
+                        'route_number': i
                     })
 
             # 미션 데이터 준비
-            missions = [
-                user_data.get(f'mission_{i}') for i in range(1, count + 1)
-            ]
-            mission_statuses = [0] * count  # 최대 5개이므로
+            missions = [user_data.get(f'mission_{i}') for i in range(1, count + 1)]
+            mission_statuses = [0] * count
 
-        # 사용자 데이터 및 코드와 함께 live.html 렌더링
         return render_template(
             'live.html',
             usercode=usercode,
@@ -329,7 +328,7 @@ def live_with_usercode(usercode):
             missions=missions,
             markers=markers,
             statuses=statuses,
-            routes=routes,
+            routes=routes if count > 1 else [],  # 관광지가 2개 이상일 때만 routes 전달
             mission_statuses=mission_statuses,
             count=len([site for site in tourist_sites if site])
         )
@@ -339,7 +338,6 @@ def live_with_usercode(usercode):
     finally:
         if 'connection' in locals():
             connection.close()
-
 
 @app.route('/update_status', methods=['POST'])
 def update_status():
@@ -370,35 +368,61 @@ def update_status():
 
 @app.route('/update_cancel', methods=['POST'])
 def update_cancel():
-    data = request.get_json()
+    data = request.json
     usercode = data['usercode']
-    site_number = data['site_number']
+    item_type = data['item_type']
+    item_number = int(data['item_number'])
+
+    # 상태 순서 정의
+    status_sequence = [
+        'tourist_site_1_confirmed',
+        'route_1_confirmed',
+        'tourist_site_2_confirmed',
+        'route_2_confirmed',
+        'tourist_site_3_confirmed'
+    ]
 
     try:
         connection = pymysql.connect(**db_config)
-        with connection.cursor() as cursor:
-            # 선택한 관광지부터 이전 관광지까지 "대기" 상태(0)으로 변경
-            for i in range(1, site_number + 1):
-                sql = f"UPDATE user_travel_data SET tourist_site_{i}_confirmed = %s WHERE usercode = %s"
-                cursor.execute(sql, (0, usercode))
+        cursor = connection.cursor()
 
-                # 선택한 관광지 이전의 경로도 "대기" 상태(0)으로 변경
-                if i < site_number:
-                    sql = f"UPDATE user_travel_data SET route_{i}_confirmed = %s WHERE usercode = %s"
-                    cursor.execute(sql, (0, usercode))
+        # 현재 취소하려는 항목의 인덱스 찾기
+        current_index = -1
+        for i, status in enumerate(status_sequence):
+            if item_type == 'site' and status.startswith(f'tourist_site_{item_number}_'):
+                current_index = i
+                break
+            elif item_type == 'route' and status.startswith(f'route_{item_number}_'):
+                current_index = i
+                break
 
-            connection.commit()
-            return jsonify({'status': 'success'})
-    except pymysql.MySQLError as e:
-        print(f"DB error: {e}")
-        return jsonify({'status': 'error', 'message': str(e)}), 500
+        if current_index != -1:
+            # 현재 위치는 '진행중(2)'으로, 이후 위치는 모두 '대기(0)'로 설정
+            updates = []
+            for i, status in enumerate(status_sequence):
+                if i == current_index:
+                    updates.append(f"{status} = 2")
+                elif i > current_index:
+                    updates.append(f"{status} = 0")
+
+            if updates:
+                sql = f"""UPDATE user_travel_data 
+                         SET {', '.join(updates)}
+                         WHERE usercode = %s"""
+                cursor.execute(sql, (usercode,))
+                connection.commit()
+
+        return jsonify({'status': 'success'})
+
     except Exception as e:
-        print(f"Error: {e}")
-        return jsonify({'status': 'error', 'message': str(e)}), 500
+        print(f"Error in update_cancel: {e}")
+        return jsonify({'status': 'error', 'message': str(e)})
+
     finally:
+        if 'cursor' in locals():
+            cursor.close()
         if 'connection' in locals():
             connection.close()
-
 
 @app.route('/update_route_status', methods=['POST'])
 def update_route_status():

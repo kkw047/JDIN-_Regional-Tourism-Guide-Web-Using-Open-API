@@ -6,249 +6,370 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>실시간 여행 현황</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 20px;
-            background-color: #f8f9fa;
-        }
+    body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 20px;
+        background-color: #f8f9fa;
+    }
 
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            background-color: white;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        }
+    .container {
+        max-width: 800px;
+        margin: 0 auto;
+        background-color: white;
+        padding: 30px;
+        border-radius: 10px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
 
-        h1 {
-            color: #343a40;
-            text-align: center;
-            margin-bottom: 30px;
-            padding-bottom: 15px;
-            border-bottom: 2px solid #eee;
-        }
+    h1 {
+        color: #343a40;
+        text-align: center;
+        margin-bottom: 30px;
+        padding-bottom: 15px;
+        border-bottom: 2px solid #eee;
+    }
 
-        #map {
-            width: 100%;
-            height: 500px;
-            background-color: #dcdcdc;
-            border: 1px solid #ccc;
-            margin-bottom: 20px;
-            border-radius: 8px;
-        }
+    #map {
+        width: 100%;
+        height: 500px;
+        background-color: #dcdcdc;
+        border: 1px solid #ccc;
+        margin-bottom: 20px;
+        border-radius: 8px;
+        position: relative;
+    }
 
-        .site-list {
-            list-style: none;
-            padding: 0;
-        }
+    .map-footer {
+        position: absolute;
+        bottom: 10px;
+        left: 10px;
+        right: 10px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        z-index: 2;
+    }
 
-        .site-item {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            align-items: center;
-            margin-bottom: 20px;
-            border-bottom: 1px solid #eee;
-            padding-bottom: 15px;
-        }
+    .user-code {
+        padding: 8px 12px;
+        background-color: rgba(255, 255, 255, 0.8);
+        border-radius: 5px;
+        font-size: 14px;
+        z-index: 2;
+    }
 
-        .site-info {
-            text-align: left;
-            margin-bottom: 10px;
-        }
+    .destination-info {
+        text-align: center;
+        font-size: 16px;
+        font-weight: bold;
+    }
 
-        .status-button {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 5px;
-            color: white;
-            font-weight: bold;
-            cursor: pointer;
-            transition: background-color 0.3s;
-            width: 150px;
-            text-align: center;
-            margin: 5px 0;
-        }
+    .site-list {
+        list-style: none;
+        padding: 0;
+    }
 
-        .status-button.waiting {
-            background-color: #dc3545;
-        }
+    .site-item {
+        margin-bottom: 20px;
+        border-bottom: 1px solid #eee;
+        padding-bottom: 15px;
+    }
 
-        .status-button.in-progress {
-            background-color: #007bff;
-        }
+    .grid-container {
+        display: grid;
+        grid-template-columns: minmax(150px, auto) 1fr;
+        grid-gap: 10px;
+        align-items: center;
+        margin: 0 auto;
+        width: fit-content;
+    }
 
-        .status-button.completed {
-            background-color: #28a745;
-        }
+    .site-info {
+        text-align: center;
+        padding-right: 75px;
+    }
 
-        .status-button.waiting.blinking,
-        .status-button.in-progress.blinking {
-            animation: blinker 1s linear infinite;
-        }
+    .site-button {
+        text-align: left;
+        padding-left: 75px;
+    }
 
-        @keyframes blinker {
-            50% {
-                opacity: 0.5;
-            }
-        }
+    .arrow-row {
+        text-align: center;
+        padding-right: 75px;
+    }
 
-        .arrow {
-            font-size: 24px;
-            margin: 5px 0;
-            text-align: center;
-        }
+    .route-button {
+        text-align: left;
+        padding-left: 75px;
+    }
 
-        .arrow.blinking {
-            animation: blinker 1s linear infinite;
-        }
+    .arrow {
+        font-size: 24px;
+        display: block;
+        margin: 0 auto;
+    }
 
-        .popup {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background-color: white;
-            padding: 20px;
-            border: 1px solid #ccc;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-            z-index: 1000;
-            display: none;
-        }
+    .status-button {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 5px;
+        color: white;
+        font-weight: bold;
+        cursor: pointer;
+        transition: background-color 0.3s;
+    }
 
-        .overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
-            z-index: 999;
-            display: none;
-        }
+    .status-button.waiting {
+        background-color: #dc3545;
+    }
 
-        .site-row {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            width: 100%;
-            margin-bottom: 10px;
-        }
+    .status-button.in-progress {
+        background-color: #007bff;
+    }
 
-        .arrow-row {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            width: 100%;
-            margin: 5px 0;
-        }
+    .status-button.completed {
+        background-color: #28a745;
+    }
 
-        .button-row {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            width: 100%;
-            margin: 5px 0;
-        }
+    .status-button.waiting.blinking,
+    .status-button.in-progress.blinking {
+        animation: blinker 1s linear infinite;
+    }
 
-        /* Tmap 관련 스타일 추가 */
-        .tmap-marker img {
-            width: 65px;
-            height: 30px;
+    @keyframes blinker {
+        50% {
+            opacity: 0.5;
         }
+    }
 
-        .travel-time {
-            padding: 8px 16px;
-            background-color: #fff3cd;
-            border: 1px solid #ffeeba;
-            border-radius: 20px;
-            font-size: 16px;
-            color: #856404;
-            text-align: left;
-            width: fit-content;
-            margin-top: auto;
-        }
+    .popup {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background-color: white;
+        padding: 20px;
+        border: 1px solid #ccc;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        z-index: 1000;
+        display: none;
+    }
 
-        .site-image {
-            width: 150px;
-            height: 100px;
-            margin-right: 20px;
-            border-radius: 6px;
-            flex-shrink: 0;
-        }
+    .overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 999;
+        display: none;
+    }
 
-        .site-placeholder {
-            width: 150px;
-            height: auto;
-            aspect-ratio: 3 / 2;
-            background-color: #dee2e6;
-            margin-right: 20px;
-            border-radius: 6px;
-            flex-shrink: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #adb5bd;
-            font-size: 14px;
-        }
-    </style>
+    .tmap-marker img {
+        width: 65px;
+        height: 30px;
+    }
+
+    .travel-time {
+        padding: 8px 16px;
+        background-color: #fff3cd;
+        border: 1px solid #ffeeba;
+        border-radius: 20px;
+        font-size: 16px;
+        color: #856404;
+        text-align: left;
+        width: fit-content;
+        margin-top: auto;
+    }
+
+    .site-image {
+        width: 150px;
+        height: 100px;
+        margin-right: 20px;
+        border-radius: 6px;
+        flex-shrink: 0;
+    }
+
+    .site-placeholder {
+        width: 150px;
+        height: auto;
+        aspect-ratio: 3 / 2;
+        background-color: #dee2e6;
+        margin-right: 20px;
+        border-radius: 6px;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #adb5bd;
+        font-size: 14px;
+    }
+
+    .complete-button-container {
+        text-align: center;
+        margin-top: 20px;
+    }
+
+    .complete-button {
+        padding: 12px 24px;
+        border: none;
+        border-radius: 5px;
+        color: white;
+        font-weight: bold;
+        cursor: pointer;
+        background-color: #28a745;
+        transition: background-color 0.3s;
+    }
+
+    .complete-button:hover {
+        background-color: #218838;
+    }
+
+    #dragM {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        width: 50px;
+        height: 50px;
+        background-image: url('/static/m_icon.png');
+        background-size: cover;
+        cursor: move;
+        z-index: 1000;
+    }
+
+    #missionPopupContainer {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 80%;
+        height: 80%;
+        background: white;
+        border: 1px solid #ccc;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        z-index: 1001;
+        display: none;
+    }
+
+    #missionPopup {
+        width: 100%;
+        height: 100%;
+        border: none;
+    }
+
+    #closeButton {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        padding: 5px 10px;
+        background-color: #f00;
+        color: white;
+        border: none;
+        cursor: pointer;
+        z-index: 1002;
+    }
+
+    .toast-message {
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background-color: rgba(0, 0, 0, 0.7);
+        color: white;
+        padding: 12px 24px;
+        border-radius: 4px;
+        z-index: 10000;
+        opacity: 0;
+        transition: opacity 0.3s, bottom 0.3s;
+        pointer-events: none;
+    }
+
+    .toast-message.show {
+        opacity: 1;
+        bottom: 30px;
+    }
+</style>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://code.jquery.com/ui/1.13.0/jquery-ui.min.js"></script>
     <script src="https://apis.openapi.sk.com/tmap/jsv2?version=1&appKey=Mb9cttQ9De2UcPzNfNwCl7ZRY31kNiUqPjCAeZne&callback=tmapApiLoaded"></script>
 </head>
 
 <body>
     <div class="container">
         <h1>실시간 여행 현황</h1>
-        <div id="map"></div>
+        <div id="map">
+            <div id="dragM"></div>
+            <!-- 지도 하단 영역 -->
+            <div class="map-footer">
+                <div class="user-code" onclick="copyUserCode()">User Code: {{ usercode }}</div>
+            </div>
+        </div>
 
         <ul class="site-list">
-            {% for i in range(count) %}
-            <li class="site-item">
-                <div class="site-info">
-                    {{ tourist_sites[i].name }}
-                </div>
-
-                <div class="button-row">
-                    {% if statuses[i] == 0 %}
-                    <button class="status-button waiting"
-                        onclick="openPopup('site', '{{ usercode }}', {{ i + 1 }}, 2)">대기</button>
-                    {% elif statuses[i] == 2 %}
-                    <button class="status-button in-progress blinking"
-                        onclick="openCompletePopup('{{ usercode }}', {{ i + 1 }})">진행중</button>
-                    {% elif statuses[i] == 1 %}
-                    <button class="status-button completed"
-                        onclick="openPopup('site', '{{ usercode }}', {{ i + 1 }}, 0)">완료</button>
+    {% for i in range(count) %}
+    <li class="site-item">
+        <div class="grid-container">
+            <div class="site-info">
+                {{ tourist_sites[i].name }}
+            </div>
+            <div class="site-button">
+                {% if statuses[i] == 0 %}
+                    <!-- 대기 상태: 이전 항목이 완료되었을 때만 활성화 -->
+                    {% if i == 0 or (statuses[i-1] == 1 and (i == 1 or routes[i-2].status == 1)) %}
+                        <button class="status-button waiting" onclick="openPopup('site', '{{ usercode }}', {{ i + 1 }}, 2)">대기</button>
+                    {% else %}
+                        <button class="status-button waiting" disabled>대기</button>
                     {% endif %}
-                </div>
-
-                {% if i < count - 1 %}
-                <div class="arrow-row">
-                    <div class="arrow {% if routes[i].status == 2 %}blinking{% endif %}">↓</div>
-                </div>
-
-                <div class="button-row">
-                    {% if routes[i].status == 0 %}
-                    <button class="status-button waiting"
-                        onclick="openPopup('route', '{{ usercode }}', {{ i + 1 }}, 2)">대기</button>
-                    {% elif routes[i].status == 2 %}
-                    <button class="status-button in-progress blinking"
-                        onclick="openPopup('route', '{{ usercode }}', {{ i + 1 }}, 1)">진행중</button>
-                    {% elif routes[i].status == 1 %}
-                    <button class="status-button completed"
-                        onclick="openPopup('route', '{{ usercode }}', {{ i + 1 }}, 0)">완료</button>
-                    {% endif %}
-                </div>
+                {% elif statuses[i] == 2 %}
+                    <!-- 진행중 상태 -->
+                    <button class="status-button in-progress blinking" onclick="openCompletePopup('{{ usercode }}', {{ i + 1 }})">진행중</button>
+                {% elif statuses[i] == 1 %}
+                    <!-- 완료 상태: 취소 확인 팝업만 표시 -->
+                    <button class="status-button completed" onclick="openCancelPopup('site', '{{ usercode }}', {{ i + 1 }})">완료</button>
                 {% endif %}
-            </li>
-            {% endfor %}
-        </ul>
+            </div>
+
+            {% if i < count - 1 %}
+            <div class="arrow-row">
+                <div class="arrow {% if routes[i].status == 2 %}blinking{% endif %}">↓</div>
+            </div>
+            <div class="route-button">
+                {% if routes[i].status == 0 %}
+                    <!-- 경로 대기 상태: 이전 관광지가 완료되었을 때만 활성화 -->
+                    {% if statuses[i] == 1 %}
+                        <button class="status-button waiting" onclick="openPopup('route', '{{ usercode }}', {{ i + 1 }}, 2)">대기</button>
+                    {% else %}
+                        <button class="status-button waiting" disabled>대기</button>
+                    {% endif %}
+                {% elif routes[i].status == 2 %}
+                    <!-- 경로 진행중 상태 -->
+                    <button class="status-button in-progress blinking" onclick="openPopup('route', '{{ usercode }}', {{ i + 1 }}, 1)">진행중</button>
+                {% elif routes[i].status == 1 %}
+                    <!-- 경로 완료 상태: 취소 확인 팝업만 표시 -->
+                    <button class="status-button completed" onclick="openCancelPopup('route', '{{ usercode }}', {{ i + 1 }})">완료</button>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </li>
+    {% endfor %}
+</ul>
+
+        {% if statuses[-1] == 1 %}
+        <!-- 마지막 관광지가 완료되었을 때만 여행 완료 버튼 표시 -->
+        <div class="complete-button-container">
+            <button class="complete-button" onclick="completeAll()">여행 완료</button>
+        </div>
+        {% endif %}
 
         <div class="popup" id="statusPopup">
-            <h2>상태 변경</h2>
+            <h2>경로 완료 확인</h2>
             <p id="popupMessage"></p>
             <button onclick="updateStatus()">예</button>
-            <button onclick="openCancelPopup()">아니오</button>
+            <button onclick="closePopup()">아니오</button>
         </div>
 
         <div class="popup" id="cancelPopup">
@@ -266,6 +387,13 @@
         </div>
 
         <div class="overlay" id="popupOverlay"></div>
+
+        <!-- 추가된 HTML: iframe 컨테이너 -->
+        <div id="missionPopupContainer">
+            <button id="closeButton" onclick="closeMissionPopup()">닫기</button>
+            <iframe id="missionPopup" src="___" ></iframe>
+        </div>
+        <div id="toastMessage" class="toast-message"></div>
     </div>
 
     <script>
@@ -308,7 +436,7 @@
                 if (routes[number - 1].status === 0) {
                     popupMessage = "경로를 시작하시겠습니까?";
                 } else if (routes[number - 1].status === 2) {
-                    popupMessage = "경로를 완료하시겠습니까?";
+                    popupMessage = "경로를 완료하셨습니까?";
                 } else if (routes[number - 1].status === 1) {
                     popupMessage = "경로를 취소하시겠습니까?";
                 }
@@ -332,7 +460,13 @@
             document.getElementById('popupOverlay').style.display = 'block';
         }
 
-        function openCancelPopup() {
+        // 취소 팝업을 표시하는 함수 (항목 종류와 번호를 인자로 받음)
+        function openCancelPopup(type, usercode, number) {
+            console.log("openCancelPopup 호출", type, usercode, number);
+            currentType = type;
+            currentUsercode = usercode;
+            currentNumber = number;
+
             document.getElementById('statusPopup').style.display = 'none';
             document.getElementById('cancelPopup').style.display = 'block';
             document.getElementById('completePopup').style.display = 'none';
@@ -437,34 +571,36 @@
             closePopup();
         }
 
-        function cancelStatus() {
-            fetch('/update_cancel', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    usercode: usercode,
-                    site_number: currentNumber
-                })
-            })
-                .then(response => {
-                     if (!response.ok) {
-                        throw new Error('Network response was not ok');
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    if (data.status === 'success') {
-                        location.reload();
-                    } else {
-                        alert('상태 취소 실패: ' + data.message);
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('상태 취소 중 오류 발생');
+        async function cancelStatus() {
+            const data = {
+                usercode: usercode,
+                item_type: currentType,
+                item_number: currentNumber
+            };
+
+            try {
+                const response = await fetch('/update_cancel', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
                 });
+
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+
+                const result = await response.json();
+                if (result.status === 'success') {
+                    location.reload();
+                } else {
+                    alert('상태 취소 실패: ' + result.message);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('상태 취소 중 오류 발생');
+            }
 
             closePopup();
         }
@@ -576,6 +712,7 @@
             });
             infoWindow.setMap(map);
         }
+
         function clearMarkers() {
             markers.forEach(marker => marker.setMap(null));
             markers = [];
@@ -730,6 +867,21 @@
             }
             polylines = [];
         }
+
+
+        // '여행 완료' 버튼 클릭 시 호출되는 함수
+        async function completeAll() {
+            // 여기에 '여행 완료' 버튼 클릭 시 수행할 동작을 구현합니다.
+            alert("여행이 완료되었습니다!");
+        }
+
+        // tmapApi 로드 성공시 init 함수 호출
+        function tmapApiLoaded() {
+            console.log("Tmapv2 API 로드 완료");
+            init();
+        }
+        window.tmapApiLoaded = tmapApiLoaded;
+
         function init() {
             if (typeof Tmapv2 !== 'undefined') {
                 initializeMap();
@@ -742,15 +894,19 @@
             }
         }
 
-        function tmapApiLoaded() {
-            console.log("Tmapv2 API 로드 완료");
-            init();
-        }
-        window.tmapApiLoaded = tmapApiLoaded;
-
         function onError(error) {
             alert("경로 요청 중 오류가 발생했습니다: " + error);
             console.error("경로 요청 오류:", error);
+        }
+
+        // 팝업을 열기 위한 함수
+        function openMissionPopup() {
+            $("#missionPopupContainer").show();
+        }
+
+        // 팝업을 닫기 위한 함수
+        function closeMissionPopup() {
+            $("#missionPopupContainer").hide();
         }
 
         $(document).ready(function () {
@@ -762,7 +918,63 @@
                 updateSiteStatus(1, 2);
                 localStorage.setItem('firstSiteProcessed', 'true');
             }
+            // Drag 이벤트 핸들러 오류 수정
+            $("#dragM").draggable({
+                stop: function(event, ui) {
+                    console.log("M 버튼 위치: top=" + ui.position.top + ", left=" + ui.position.left);
+                }
+            });
+
+            // M 버튼 클릭 시 팝업 창 띄우기
+            $(document).on('click', '#dragM', function() {
+                openMissionPopup(); // M 버튼 클릭 시 팝업 열기
+            });
+
+            // 목적지 및 진행도 정보 업데이트
+            function updateDestinationInfo() {
+                let currentSiteIndex = statuses.findIndex(status => status === 2);
+                if (currentSiteIndex === -1) {
+                    currentSiteIndex = touristSites.length - 1; // 마지막 관광지
+                }
+                let nextSite = touristSites[currentSiteIndex];
+                let progress = Math.min(currentSiteIndex + 1, touristSites.length);
+
+                let infoText = `목적지: ${nextSite.name} (${progress}/${touristSites.length})`;
+                $("#destinationInfo").text(infoText);
+            }
+
+            // 초기 로드 시 및 상태 업데이트 시 정보 업데이트
+            updateDestinationInfo();
+
+            // 상태 업데이트 함수 호출 시 정보 업데이트
+            const originalUpdateStatus = updateStatus;
+            updateStatus = async function () {
+                await originalUpdateStatus.apply(this, arguments);
+                updateDestinationInfo(); // 상태 업데이트 후 정보 업데이트
+            };
         });
+
+        function copyUserCode() {
+            const userCode = '{{ usercode }}';
+            navigator.clipboard.writeText(userCode).then(() => {
+                showToastMessage('User Code가 복사되었습니다!');
+            }).catch(err => {
+                console.error('복사 실패:', err);
+                showToastMessage('복사에 실패했습니다.');
+            });
+        }
+
+        // 토스트 메시지 표시 함수
+        function showToastMessage(message) {
+            const toast = document.getElementById('toastMessage');
+            toast.textContent = message;
+            toast.classList.add('show');
+
+            // 2초 후에 메시지 사라짐
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 2000);
+        }
     </script>
 </body>
 
