@@ -540,8 +540,10 @@ def submit_review():
     별점 부여(1-5) -> rating
     - 후기 텍스트 공백 유지
     - 별점 미입력 시 기본값 3
+    - 후기 텍스트 300자 제한
     """
     usercode = request.form.get('usercode')
+    MAX_REVIEW_LENGTH = 300 # 최대 글자 수 상수 정의
 
     try:
         connection = pymysql.connect(**db_config)
@@ -551,6 +553,11 @@ def submit_review():
                 if key.startswith('review_text_'):  # 후기 텍스트 필드 식별
                     site_id = key.replace('review_text_', '')
                     review_content = value  # .strip() 제거하여 공백 유지
+
+                    # 백엔드에서 글자 수 제한 유효성 검사
+                    if review_content and len(review_content) > MAX_REVIEW_LENGTH:
+                        review_content = review_content[:MAX_REVIEW_LENGTH] # 300자로 잘라냄
+                        print(f"Warning: Review for site {site_id} truncated to {MAX_REVIEW_LENGTH} characters.", file=sys.stderr)
 
                     # 변경: 별점 입력 필드에서 값 가져오기
                     rating_str = request.form.get(f'rating_{site_id}')  # 'rating_' 접두사로 변경

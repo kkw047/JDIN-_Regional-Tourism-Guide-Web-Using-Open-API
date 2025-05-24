@@ -4,7 +4,18 @@
     <meta charset="UTF-8">
     <title>사용자 후기</title>
     <style>
-        /* 기본 스타일 및 폰트 */
+        .char-count {
+            text-align: right;
+            font-size: 0.9em;
+            color: #888;
+            margin-top: 5px; /* textarea와 간격 */
+            margin-bottom: 10px; /* 별점 부분과 간격 */
+        }
+        .char-count.warning {
+            color: #d9534f; /* 경고 색상 (빨간색) */
+            font-weight: bold;
+        }
+
         body {
             font-family: 'Noto Sans KR', Arial, sans-serif; /* 한국어 폰트 추가 */
             margin: 0;
@@ -339,7 +350,9 @@
                     <span class="site-name">{{ site.name }}</span>
 
                     <!-- 후기 입력 텍스트 영역 -->
-                    <textarea name="review_text_{{ site.id }}" placeholder="{{ site.name }}에 대한 후기를 자유롭게 작성해주세요." rows="4"></textarea>
+                    <textarea name="review_text_{{ site.id }}" placeholder="{{ site.name }}에 대한 후기를 자유롭게 작성해주세요." rows="4" maxlength="300" data-site-id="{{ site.id }}"></textarea>
+                    <!-- 글자 수 카운터 -->
+                    <p class="char-count"><span id="charCount_{{ site.id }}">0</span> / 300 글자</p>
 
                     <!-- 별점 입력 부분 -->
                     <div class="rating-options">
@@ -414,6 +427,32 @@
                     confirmationModal.classList.remove('active');
                 }
             });
+
+            // --- 글자 수 카운터 로직 ---
+            const textareas = document.querySelectorAll('textarea[name^="review_text_"]');
+            const MAX_CHARS = 300;
+
+            textareas.forEach(textarea => {
+                const siteId = textarea.dataset.siteId;
+                const charCountElement = document.getElementById(`charCount_${siteId}`);
+
+                const updateCharCount = () => {
+                    const currentLength = textarea.value.length;
+                    charCountElement.textContent = currentLength;
+
+                    // 텍스트가 80% 이상 채워지면 경고 스타일 적용
+                    if (currentLength >= MAX_CHARS * 0.8) {
+                        charCountElement.closest('.char-count').classList.add('warning');
+                    } else {
+                        charCountElement.closest('.char-count').classList.remove('warning');
+                    }
+                };
+
+                textarea.addEventListener('input', updateCharCount);
+                // 페이지 로드 시 초기 글자 수 표시
+                updateCharCount();
+            });
+            // --- 글자 수 카운터 로직 끝 ---
         });
     </script>
 </body>
