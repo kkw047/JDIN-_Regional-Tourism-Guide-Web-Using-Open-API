@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ko">
 
@@ -916,13 +917,19 @@
         }
 
         // 팝업을 열기 위한 함수
-        function openMissionPopup() {
-            $("#missionPopupContainer").show();
-        }
-
-        // 팝업을 닫기 위한 함수
+       function openMissionPopup() {
+        const usercode = '{{ usercode }}'; // Jinja2 템플릿 변수 사용
+        if (!usercode) {
+        console.error("usercode가 없습니다.");
+        return;
+    }
+    $("#missionPopup").attr("src", `/mission?usercode=${usercode}`);
+    $("#missionPopupContainer").css("display", "block");
+}
+        // 미션 팝업 닫기 함수 (기존 CSS/HTML ID에 맞춤)
         function closeMissionPopup() {
-            $("#missionPopupContainer").hide();
+            $("#missionPopupContainer").css("display", "none");
+            $("#missionPopup").attr("src", "about:blank"); // iframe src 초기화
         }
 
         $(document).ready(function () {
