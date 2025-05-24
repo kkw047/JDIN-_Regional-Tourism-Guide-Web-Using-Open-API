@@ -46,11 +46,10 @@
         }
 
         .site-image {
-            width: 160px;
-            height: 110px;
+            width: 150px;
+            height: 100px;
             margin-right: 20px;
             border-radius: 6px;
-            margin-bottom: 15px;
             flex-shrink: 0;
         }
 
@@ -210,8 +209,6 @@
             text-align: left;
             width: fit-content;
             margin-top: auto;
-            margin-left: 82px; /* 기존 20px → 40px */
-
 
         }
 
@@ -219,8 +216,7 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            margin-right: 0px;
-            margin-bottom: auto;
+            margin-right: 20px;
             margin-right: auto;
         }
 
@@ -238,7 +234,7 @@
             color: #f0ad4e;
             margin-bottom: 8px;
             animation: bounce 1.2s infinite alternate;
-            margin-left: 68px;
+            margin-left: auto;
             margin-right: auto;
         }
 
@@ -578,13 +574,20 @@
                 }
             });
 
-            if (markers.length > 0) {
-                const bounds = new Tmapv2.LatLngBounds();
-                for (var i = 0; i < markers.length; i++) {
-                    bounds.extend(markers[i].getPosition());
+               if (markers.length > 0) {
+                   const bounds = new Tmapv2.LatLngBounds();
+                    for (var i = 0; i < markers.length; i++) {
+                        bounds.extend(markers[i].getPosition());
+                    }
+                    if (markers.length === 1) {
+                        // 관광지가 하나인 경우 특정 줌 레벨 설정
+                        map.setCenter(markers[0].getPosition());
+                        map.setZoom(15); // 원하는 줌 레벨로 설정
+                    } else {
+                        // 관광지가 여러 개인 경우 기존 방식 유지
+                        map.fitBounds(bounds);
+                    }
                 }
-                map.fitBounds(bounds);
-            }
         }
 
         // 경로를 그리는 함수

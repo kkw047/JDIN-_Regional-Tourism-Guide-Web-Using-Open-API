@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>사용자 후기</title>
+    <style>
+        /* 기본 스타일 및 폰트 */
+        body {
+            font-family: 'Noto Sans KR', Arial, sans-serif; /* 한국어 폰트 추가 */
+            margin: 0;
+            padding: 0;
+            background-color: #f0f2f5; /* 전체 배경색 더 부드럽게 */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        /* 구글 폰트 임포트 (Noto Sans KR) */
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap');
+
+        .container {
+            width: 95%;
+            max-width: 800px;
+            background-color: white;
+            padding: 30px 40px; /* 좌우 패딩 늘림 */
+            border-radius: 12px; /* 둥근 모서리 강화 */
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15); /* 그림자 효과 강화 */
+            text-align: center;
+            box-sizing: border-box;
+            animation: fadeIn 0.8s ease-out; /* 페이지 로드 시 페이드인 효과 */
+        }
+
+        h1 {
+            font-size: 32px; /* 제목 크기 키움 */
+            color: #2c3e50; /* 어두운 회색 계열 */
+            margin-bottom: 35px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #e0e0e0; /* 하단 구분선 */
+            font-weight: 700; /* 볼드체 */
+        }
+
+        .review-form {
+            display: flex;
+            flex-direction: column;
+            gap: 30px; /* 각 후기 항목 사이 간격 늘림 */
+        }
+
+        .review-item {
+            background-color: #ffffff; /* 개별 후기 배경색 */
+            border: 1px solid #e0e0e0; /* 테두리 색상 */
+            border-radius: 10px; /* 둥근 모서리 */
+            padding: 25px; /* 패딩 늘림 */
+            text-align: left;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08); /* 그림자 효과 */
+            transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out; /* 호버 효과 */
+        }
+
+        .review-item:hover {
+            transform: translateY(-5px); /* 호버 시 약간 위로 */
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.12); /* 호버 시 그림자 강화 */
+        }
+
+        /* 관광지 사진 영역 */
+        .site-image-wrapper {
+            width: 100%;
+            height: 200px; /* 이미지 높이 고정 (더 크게) */
+            margin-bottom: 20px; /* 이미지와 이름 사이 간격 */
+            overflow: hidden; /* 이미지가 튀어나오지 않게 */
+            border-radius: 8px; /* 이미지 모서리 둥글게 */
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); /* 이미지 그림자 */
+            background-color: #e0e0e0; /* 이미지 없을 때 배경 */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .site-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover; /* 이미지가 wrapper에 꽉 차게 */
+            display: block;
+        }
+
+        .no-image-placeholder {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #888;
+            font-size: 16px;
+            text-align: center;
+            background-color: #f0f0f0;
+        }
+
+        .site-name {
+            font-size: 24px; /* 이름 크기 키움 */
+            font-weight: 700; /* 볼드체 */
+            color: #34495e; /* 진한 파란색 계열 */
+            margin-bottom: 15px; /* 이름과 텍스트 영역 사이 간격 */
+        }
+
+        textarea {
+            width: calc(100% - 20px); /* 패딩 고려, 좌우 패딩 */
+            padding: 10px;
+            border-radius: 8px; /* 둥근 모서리 */
+            border: 1px solid #dcdcdc; /* 테두리 색상 */
+            font-size: 16px;
+            line-height: 1.5;
+            min-height: 100px; /* 최소 높이 */
+            resize: vertical;
+            margin-top: 10px; /* 이름과 텍스트 영역 사이 여백 */
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.06); /* 내부 그림자 */
+            transition: border-color 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+        }
+
+        textarea:focus {
+            border-color: #6a96e0; /* 포커스 시 테두리 색상 */
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.06), 0 0 0 3px rgba(106, 150, 224, 0.2); /* 포커스 시 그림자 */
+            outline: none; /* 기본 아웃라인 제거 */
+        }
+
+        /* --- 별점 시스템 관련 CSS --- */
+        .rating-options {
+            margin-top: 20px;
+            font-size: 18px; /* 텍스트 크기 */
+            color: #555;
+            display: flex;
+            align-items: center;
+            justify-content: center; /* 중앙 정렬 */
+            gap: 15px; /* "별점:" 텍스트와 별점 사이 간격 */
+            flex-wrap: wrap; /* 작은 화면에서 줄바꿈 */
+        }
+
+        .star-rating {
+            display: flex;
+            flex-direction: row-reverse; /* 별을 뒤에서부터 배치 */
+            justify-content: flex-end; /* 별들을 오른쪽으로 정렬 */
+        }
+
+        .star-rating input[type="radio"] {
+            display: none; /* 실제 라디오 버튼 숨김 */
+        }
+
+        .star-rating label {
+            font-size: 40px; /* 별 아이콘 크기 키움 */
+            color: #dcdcdc; /* 빈 별 색상 */
+            cursor: pointer;
+            padding: 0 5px; /* 별 사이 간격 조정 */
+            transition: color 0.2s ease-in-out, transform 0.1s ease-in-out; /* 애니메이션 효과 */
+        }
+
+        .star-rating label:hover,
+        .star-rating label:hover ~ label {
+            color: #f7d744; /* 호버 시 채워진 별 색상 (더 밝은 노란색) */
+            transform: scale(1.1); /* 호버 시 약간 확대 */
+        }
+
+        .star-rating input[type="radio"]:checked ~ label {
+            color: #f7d744; /* 선택된 별 색상 */
+        }
+        /* --- 별점 시스템 관련 CSS 끝 --- */
+
+        .submit-btn-container {
+            margin-top: 50px; /* 제출 버튼 위 여백 늘림 */
+        }
+
+        .submit-btn {
+            width: 280px; /* 버튼 너비 늘림 */
+            padding: 18px; /* 패딩 늘림 */
+            background-color: #4CAF50; /* 더 진한 초록색 */
+            color: white;
+            border: none;
+            border-radius: 35px; /* 모서리 더 둥글게 */
+            font-size: 20px; /* 폰트 크기 키움 */
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.3s ease-in-out, transform 0.2s ease-in-out, box-shadow 0.3s ease-in-out;
+            box-shadow: 0 5px 15px rgba(76, 175, 80, 0.3); /* 버튼 그림자 */
+        }
+
+        .submit-btn:hover {
+            background-color: #45a049; /* 호버 시 더 진한 초록 */
+            transform: translateY(-3px); /* 호버 시 위로 이동 */
+            box-shadow: 0 8px 20px rgba(76, 175, 80, 0.4); /* 호버 시 그림자 강화 */
+        }
+
+        /* 페이지 로드 시 페이드인 애니메이션 */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* --- 커스텀 모달 팝업 CSS --- */
+        .modal-overlay {
+            display: none; /* 기본적으로 숨김 */
+            position: fixed; /* 뷰포트 기준으로 고정 */
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6); /* 반투명 검정 배경 */
+            z-index: 1000; /* 다른 콘텐츠 위에 표시 */
+            justify-content: center; /* 가로 중앙 정렬 */
+            align-items: center; /* 세로 중앙 정렬 */
+            opacity: 0; /* 초기 투명도 */
+            transition: opacity 0.3s ease-out; /* 부드러운 전환 효과 */
+        }
+
+        .modal-overlay.active {
+            display: flex; /* 활성화되면 보이도록 */
+            opacity: 1;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3); /* 그림자 */
+            max-width: 400px; /* 최대 너비 */
+            width: 90%; /* 반응형 너비 */
+            text-align: center;
+            transform: scale(0.9); /* 초기 스케일 (작게) */
+            opacity: 0; /* 초기 투명도 */
+            transition: transform 0.3s ease-out, opacity 0.3s ease-out; /* 부드러운 전환 효과 */
+        }
+
+        .modal-overlay.active .modal-content {
+            transform: scale(1); /* 활성화 시 원래 크기로 */
+            opacity: 1;
+        }
+
+        .modal-message {
+            font-size: 1.2em;
+            margin-bottom: 25px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: center;
+            gap: 15px; /* 버튼 사이 간격 */
+        }
+
+        .modal-btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 25px; /* 둥근 버튼 */
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.3s ease-in-out, transform 0.2s ease-in-out;
+            font-weight: 500;
+        }
+
+        .modal-btn:hover {
+            transform: translateY(-2px); /* 호버 시 약간 위로 */
+        }
+
+        .confirm-btn {
+            background-color: #4CAF50; /* 제출 버튼과 동일한 초록색 */
+            color: white;
+            box-shadow: 0 3px 10px rgba(76, 175, 80, 0.2);
+        }
+
+        .confirm-btn:hover {
+            background-color: #45a049;
+            box-shadow: 0 5px 12px rgba(76, 175, 80, 0.3);
+        }
+
+        .cancel-btn {
+            background-color: #e0e0e0; /* 밝은 회색 */
+            color: #555;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .cancel-btn:hover {
+            background-color: #d0d0d0;
+            box-shadow: 0 5px 12px rgba(0, 0, 0, 0.15);
+        }
+        /* --- 커스텀 모달 팝업 CSS 끝 --- */
+
+        /* 작은 화면 반응형 */
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+            h1 {
+                font-size: 26px;
+            }
+            .site-image-wrapper {
+                height: 150px; /* 작은 화면에서 이미지 높이 줄임 */
+            }
+            .site-name {
+                font-size: 20px;
+            }
+            textarea {
+                min-height: 80px;
+            }
+            .star-rating label {
+                font-size: 35px;
+            }
+            .submit-btn {
+                width: 100%; /* 작은 화면에서 버튼 너비 100% */
+                font-size: 18px;
+                padding: 15px;
+            }
+            .modal-actions {
+                flex-direction: column; /* 작은 화면에서 버튼 세로 정렬 */
+                gap: 10px;
+            }
+            .modal-btn {
+                width: 100%; /* 버튼 너비 100% */
+                padding: 10px 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>여행 후기를 남겨주세요!</h1>
+
+        <form id="reviewForm" method="POST" action="/submit_review" class="review-form">
+            <!-- usercode를 숨겨진 필드로 전달 -->
+            <input type="hidden" name="usercode" value="{{ usercode }}">
+
+            {% if sites_to_review %}
+                {% for site in sites_to_review %}
+                <div class="review-item">
+                    <!-- 관광지 사진 영역 (변경됨) -->
+                    <div class="site-image-wrapper">
+                        {% if site.image %}
+                            <img src="{{ site.image }}" alt="{{ site.name }}" class="site-image">
+                        {% else %}
+                            <div class="no-image-placeholder">이미지 없음</div>
+                        {% endif %}
+                    </div>
+                    <span class="site-name">{{ site.name }}</span>
+
+                    <!-- 후기 입력 텍스트 영역 -->
+                    <textarea name="review_text_{{ site.id }}" placeholder="{{ site.name }}에 대한 후기를 자유롭게 작성해주세요." rows="4"></textarea>
+
+                    <!-- 별점 입력 부분 -->
+                    <div class="rating-options">
+                        별점:
+                        <div class="star-rating">
+                            <!-- 5점부터 1점까지 역순으로 배치 -->
+                            <input type="radio" id="star5_{{ site.id }}" name="rating_{{ site.id }}" value="5">
+                            <label for="star5_{{ site.id }}">★</label>
+                            <input type="radio" id="star4_{{ site.id }}" name="rating_{{ site.id }}" value="4">
+                            <label for="star4_{{ site.id }}">★</label>
+                            <input type="radio" id="star3_{{ site.id }}" name="rating_{{ site.id }}" value="3">
+                            <label for="star3_{{ site.id }}">★</label>
+                            <input type="radio" id="star2_{{ site.id }}" name="rating_{{ site.id }}" value="2">
+                            <label for="star2_{{ site.id }}">★</label>
+                            <input type="radio" id="star1_{{ site.id }}" name="rating_{{ site.id }}" value="1">
+                            <label for="star1_{{ site.id }}">★</label>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <p>후기를 작성할 관광지가 없습니다.</p>
+            {% endif %}
+
+            <div class="submit-btn-container">
+                <button type="submit" class="submit-btn">후기 제출하기</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- 커스텀 모달 팝업 HTML 시작 -->
+    <div id="confirmationModal" class="modal-overlay">
+        <div class="modal-content">
+            <p class="modal-message">후기를 제출하시겠습니까?</p>
+            <div class="modal-actions">
+                <button id="confirmButton" class="modal-btn confirm-btn">확인</button>
+                <button id="cancelButton" class="modal-btn cancel-btn">취소</button>
+            </div>
+        </div>
+    </div>
+    <!-- 커스텀 모달 팝업 HTML 끝 -->
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const reviewForm = document.getElementById('reviewForm');
+            const submitButton = reviewForm.querySelector('.submit-btn'); // 폼 내의 제출 버튼
+            const confirmationModal = document.getElementById('confirmationModal');
+            const confirmButton = document.getElementById('confirmButton');
+            const cancelButton = document.getElementById('cancelButton');
+
+            // 제출 버튼 클릭 시 모달 띄우기
+            submitButton.addEventListener('click', function(event) {
+                event.preventDefault(); // 폼의 기본 제출 동작 막기
+                confirmationModal.classList.add('active'); // 모달을 보이도록 활성화
+            });
+
+            // 모달 내의 '확인' 버튼 클릭 시
+            confirmButton.addEventListener('click', function() {
+                confirmationModal.classList.remove('active'); // 모달 숨기기
+                reviewForm.submit(); // 폼을 수동으로 제출
+            });
+
+            // 모달 내의 '취소' 버튼 클릭 시
+            cancelButton.addEventListener('click', function() {
+                confirmationModal.classList.remove('active'); // 모달 숨기기
+            });
+
+            // 모달 오버레이(배경) 클릭 시 (모달 외부 클릭 시 닫기)
+            confirmationModal.addEventListener('click', function(event) {
+                // event.target이 모달 오버레이 자신인지 확인하여 모달 내용을 클릭한 경우는 제외
+                if (event.target === confirmationModal) {
+                    confirmationModal.classList.remove('active');
+                }
+            });
+        });
+    </script>
+</body>
+</html>
