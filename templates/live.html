@@ -38,6 +38,7 @@
         margin-bottom: 20px;
         border-radius: 8px;
         position: relative;
+        margin-bottom: 40px;
     }
 
     .map-footer {
@@ -55,13 +56,13 @@
         padding: 8px 12px;
         background-color: rgba(255, 255, 255, 0.8);
         border-radius: 5px;
-        font-size: 14px;
+        font-size: 20px;
         z-index: 2;
     }
 
     .destination-info {
         text-align: center;
-        font-size: 16px;
+        font-size: 18px;
         font-weight: bold;
     }
 
@@ -78,47 +79,100 @@
 
     .grid-container {
         display: grid;
-        grid-template-columns: minmax(150px, auto) 1fr;
+        grid-template-columns: 30% auto ;
         grid-gap: 10px;
         align-items: center;
-        margin: 0 auto;
-        width: fit-content;
     }
 
     .site-info {
         text-align: center;
-        padding-right: 75px;
+        font-size: 28px;
+    }
+    .site-name-box {
+        position: absolute;
+        left: 43%;
+        transform: translateX(-50%) translateY(-23px);
+        white-space: nowrap;
+        text-align: center;
+        font-size: 24px;
+        font-weight: 600;
+        color: #3b3b3b;
+        background-color: #ffffff;
+        border-radius: 8px;
+        border: 2px solid #ffffff;
+        padding: 5px 13px;
     }
 
     .site-button {
         text-align: left;
-        padding-left: 75px;
+        
     }
 
     .arrow-row {
         text-align: center;
-        padding-right: 75px;
     }
 
     .route-button {
         text-align: left;
-        padding-left: 75px;
     }
 
     .arrow {
-        font-size: 24px;
-        display: block;
-        margin: 0 auto;
+        position: absolute;
+        left: 43%;
+        transform: translateX(-50%) translateY(-25px);
+        font-size: 38px;
+        transition: transform 0.3s ease-in-out;
+        animation: none; 
+    }
+
+    @keyframes upDown {
+        0%, 100% {
+            transform: translateX(-50%) translateY(-25px);
+        }
+        50% {
+            transform: translateX(-50%) translateY(-20px);
+        }
+    }
+
+    .arrow.blinking {
+        animation: upDown 1s infinite;
     }
 
     .status-button {
-        padding: 10px 20px;
         border: none;
         border-radius: 5px;
         color: white;
         font-weight: bold;
         cursor: pointer;
         transition: background-color 0.3s;
+        width: 83px;
+        font-size: 18px;
+        line-height: 42px; 
+        margin-bottom: 5px;
+        margin-top: 5px;
+        margin-left: 60%;
+        text-align: center;
+        padding: 0; /* 패딩 제거하여 높이 통일 */
+    }
+
+    .popup-button-group {
+        display: flex;
+        justify-content: center;
+        gap: 24px; /* 버튼 간 간격 */
+        margin-bottom: 20px;
+    }
+
+    .popup-button-group button {
+        font-size: 16px;
+        min-width: 70px;
+        height: 36px;
+        padding: 6px 12px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        color: white;
+        font-weight: bold;
+        line-height: 1;
     }
 
     .status-button.waiting {
@@ -150,11 +204,16 @@
         left: 50%;
         transform: translate(-50%, -50%);
         background-color: white;
-        padding: 20px;
+        padding: 5px 10px;
         border: 1px solid #ccc;
         box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
         z-index: 1000;
         display: none;
+        width: 320px;
+        align-items: center;     /* 세로 중앙 정렬 */
+        justify-content: center; /* 가로 중앙 정렬 */
+        font-size: 20px;
+        text-align: center;
     }
 
     .overlay {
@@ -178,7 +237,7 @@
         background-color: #fff3cd;
         border: 1px solid #ffeeba;
         border-radius: 20px;
-        font-size: 16px;
+        font-size: 18px;
         color: #856404;
         text-align: left;
         width: fit-content;
@@ -205,16 +264,17 @@
         align-items: center;
         justify-content: center;
         color: #adb5bd;
-        font-size: 14px;
+        font-size: 16px;
     }
 
     .complete-button-container {
         text-align: center;
         margin-top: 20px;
+
     }
 
     .complete-button {
-        padding: 12px 24px;
+        padding: 12px 20px;
         border: none;
         border-radius: 5px;
         color: white;
@@ -222,6 +282,7 @@
         cursor: pointer;
         background-color: #28a745;
         transition: background-color 0.3s;
+        font-size: 22px;
     }
 
     .complete-button:hover {
@@ -287,10 +348,29 @@
         pointer-events: none;
     }
 
+    @keyframes markerBlink {
+        0%, 100% { opacity: 1.3; }
+        50% { opacity: 0.5; }
+    }
+
+    .marker-blinking {
+        animation: markerBlink 1s infinite;
+    }
+
     .toast-message.show {
         opacity: 1;
         bottom: 30px;
     }
+    #confirmCompletePopup .popup-button-group {
+        margin-top: 20px; /* 텍스트와의 간격 확보 */
+        flex-wrap: nowrap; /* 버튼이 줄바꿈 없이 한 줄에 정렬되도록 */
+        justify-content: center;
+    }
+
+    #confirmCompletePopup .popup-button-group button {
+        flex: 0 0 auto; /* 너비 자동, 줄바꿈 방지 */
+    }
+   
 </style>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://code.jquery.com/ui/1.13.0/jquery-ui.min.js"></script>
@@ -313,7 +393,7 @@
     <li class="site-item">
         <div class="grid-container">
             <div class="site-info">
-                {{ tourist_sites[i].name }}
+                <div class="site-name-box">{{ tourist_sites[i].name }}</div>
             </div>
             <div class="site-button">
                 {% if statuses[i] == 0 %}
@@ -368,30 +448,40 @@
         <div class="popup" id="statusPopup">
             <h2>경로 완료 확인</h2>
             <p id="popupMessage"></p>
-            <button onclick="updateStatus()">예</button>
-            <button onclick="closePopup()">아니오</button>
+            <div class="popup-button-group">
+                <button onclick="updateStatus()" style="background-color: #28a745;">예</button>
+                <button onclick="closePopup()" style ="background-color: #dc3545;">아니오</button>
+            </div>
         </div>
 
-        <div class="popup" id="cancelPopup">
+        <div class="popup" id="cancelPopup" >
             <h2>취소 확인</h2>
             <p>취소하시겠습니까?</p>
-            <button onclick="cancelStatus()">예</button>
-            <button onclick="closePopup()">아니오</button>
+            <div class="popup-button-group">
+                <button onclick="cancelStatus()" style="background-color: #28a745;">예</button>
+                <button onclick="closePopup()" style ="background-color: #dc3545;">아니오</button>
+
+            </div>            
+            
         </div>
 
-        <div class="popup" id="completePopup">
+        <div class="popup" id="completePopup" >
             <h2>여행 완료 확인</h2>
             <p>여행을 완료하셨습니까?</p>
-            <button onclick="completeStatus()">예</button>
-            <button onclick="closePopup()">아니오</button>
+            <div class="popup-button-group">
+            <button onclick="completeStatus()" style="background-color: #28a745;">예</button>
+            <button onclick="closePopup()" style ="background-color: #dc3545; ">아니오</button>
+            </div>
         </div>
 
-        <div class="popup" id="confirmCompletePopup">
+        <div class="popup" id="confirmCompletePopup" style="min-width: 400px;">
             <h2>모든 여행이 완료되었습니다!</h2>
             <p>후기를 작성하시겠습니까?</p>
-            <button class="status-button completed" onclick="confirmReview()">예</button>
-            <button class="status-button waiting" onclick="acknowledgeComplete()">아니오</button>
-            <button class="status-button" style="background-color: #6c757d; margin-left: 10px;" onclick="closePopup()">닫기</button>
+            <div class="popup-button-group">
+                <button onclick="confirmReview()" style="background-color: #28a745;">예</button>
+                <button onclick="acknowledgeComplete()" style="background-color: #dc3545;">아니오</button>
+                <button onclick="closePopup()" style="background-color: #6c757d;">닫기</button>
+            </div>
         </div>
 
         <div class="overlay" id="popupOverlay"></div>
@@ -416,7 +506,7 @@
         let routes = {{ routes | tojson }};
         let tmapLoaded = false;
         let infoWindow;
-        const apiKey = "Mb9cttQ9De2UcPzNfNwCl7ZRY31kNiUqPjCAeZne";
+        const apiKey = "7lUDZYkLXB2Yw0QuX5aCr7UmyXh9TJ6l2spLvANH";
         const startIcon = "/static/start.png";
         const middleIcon = "/static/middle.png";
         const endIcon = "/static/end.png";
@@ -747,6 +837,9 @@
 
                     const lonLat = new Tmapv2.LatLng(site.mapy, site.mapx);
 
+                    const blinkingIcon = "/static/blinking_marker.gif"; // GIF 아이콘
+
+
                     const marker = new Tmapv2.Marker({
                         position: lonLat,
                         icon: markerIcon,
@@ -754,6 +847,14 @@
                         title: site.name,
                         map: map
                     });
+
+                    // 진행중 상태면 깜빡이게 하기
+                    if (statuses[index] === 2) {
+                        const el = marker.getElement(); // 마커 DOM 요소
+                        if (el) {
+                            el.classList.add('marker-blinking');
+                        }
+                    }
 
                     markers.push(marker);
                 } else {
@@ -832,22 +933,12 @@
                 .then(results => {
                     results.forEach((response, index) => {
                         const resultData = response.features;
-                        drawTmapPath(resultData);
 
-                        // 총 소요 시간과 총 거리 추출
-                        let totalTime = 0;
-                        let totalDistance = 0;
+                        let color = "#DD0000"; // 기본 빨간색
+                        if (routes[index].status === 2) color = "#007bff"; // 진행중은 파랑
+                        else if (routes[index].status === 1) color = "#28a745"; // 완료는 초록
 
-                        resultData.forEach(feature => {
-                            totalTime += (feature.properties.totalTime || 0);
-                            totalDistance += (feature.properties.totalDistance || 0);
-                        });
-
-                        const timeInMinutes = Math.round(totalTime / 60);
-                        travelInfos[index] = {
-                            time: timeInMinutes,
-                            distance: totalDistance
-                        };
+                        drawTmapPath(resultData, color);
                     });
                 })
                 .catch(error => {
@@ -856,7 +947,7 @@
                 });
         }
 
-        function drawTmapPath(pathData) {
+        function drawTmapPath(pathData, color = "#DD0000") {
             if (!pathData) {
                 console.warn("경로 데이터가 없습니다.");
                 return;
@@ -868,7 +959,7 @@
                     const coords = geometry.coordinates;
                     const line = new Tmapv2.Polyline({
                         path: coords.map(coord => new Tmapv2.LatLng(coord[1], coord[0])),
-                        strokeColor: "#DD0000",
+                        strokeColor: color,
                         strokeWeight: 6,
                         map: map
                     });
