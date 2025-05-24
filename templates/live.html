@@ -38,6 +38,7 @@
         margin-bottom: 20px;
         border-radius: 8px;
         position: relative;
+        margin-bottom: 40px;
     }
 
     .map-footer {
@@ -55,7 +56,7 @@
         padding: 8px 12px;
         background-color: rgba(255, 255, 255, 0.8);
         border-radius: 5px;
-        font-size: 14px;
+        font-size: 20px;
         z-index: 2;
     }
 
@@ -88,11 +89,25 @@
     .site-info {
         text-align: center;
         padding-right: 75px;
+        font-size: 25px;
+    }
+    .site-name-box {
+        display: inline-block;
+        background-color: #dff1f6;
+        padding: 8px 16px;
+        border-radius: 8px;
+        border: 1px solid #afd7fe;
+        font-size: 28px;
+        font-weight: 600;
+        color: #343232;
+        min-width: 300px;
+
     }
 
     .site-button {
         text-align: left;
         padding-left: 75px;
+        
     }
 
     .arrow-row {
@@ -106,9 +121,24 @@
     }
 
     .arrow {
-        font-size: 24px;
+        font-size: 40px;
         display: block;
         margin: 0 auto;
+        transition: transform 0.3s ease-in-out;
+
+    }
+
+    @keyframes upDown {
+        0%, 100% {
+            transform: translateY(0);
+        }
+        50% {
+            transform: translateY(-10px);
+        }
+    }
+
+    .arrow.blinking {
+        animation: upDown 1s infinite;
     }
 
     .status-button {
@@ -119,6 +149,30 @@
         font-weight: bold;
         cursor: pointer;
         transition: background-color 0.3s;
+        min-width: 100px;
+        font-size: 20px;
+        height: 45px;
+        margin-bottom: 10px;
+        margin-top: 10px;
+    }
+    .popup-button-group {
+        display: flex;
+        justify-content: center;
+        gap: 20px; /* 버튼 간 간격 */
+
+    }
+
+    .popup-button-group button {
+        padding: 10px 24px;         /* 내부 여백 */
+        font-size: 20px;            /* 글자 크기 */
+        min-width: 100px;           /* 최소 너비 */
+        height: 45px;               /* 버튼 높이 */
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        color: white;
+        font-weight: bold;
+
     }
 
     .status-button.waiting {
@@ -155,6 +209,12 @@
         box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
         z-index: 1000;
         display: none;
+        min-width: 400px;
+        align-items: center;     /* 세로 중앙 정렬 */
+        justify-content: center; /* 가로 중앙 정렬 */
+        font-size: 25px;
+        text-align: center;
+
     }
 
     .overlay {
@@ -211,6 +271,7 @@
     .complete-button-container {
         text-align: center;
         margin-top: 20px;
+
     }
 
     .complete-button {
@@ -222,6 +283,7 @@
         cursor: pointer;
         background-color: #28a745;
         transition: background-color 0.3s;
+        font-size: 20px;
     }
 
     .complete-button:hover {
@@ -313,7 +375,7 @@
     <li class="site-item">
         <div class="grid-container">
             <div class="site-info">
-                {{ tourist_sites[i].name }}
+                <div class="site-name-box">{{ tourist_sites[i].name }}</div>
             </div>
             <div class="site-button">
                 {% if statuses[i] == 0 %}
@@ -368,30 +430,41 @@
         <div class="popup" id="statusPopup">
             <h2>경로 완료 확인</h2>
             <p id="popupMessage"></p>
-            <button onclick="updateStatus()">예</button>
-            <button onclick="closePopup()">아니오</button>
+            <div class="popup-button-group">
+                <button onclick="updateStatus()" style="background-color: #28a745;">예</button>
+                <button onclick="closePopup()" style ="background-color: #dc3545;">아니오</button>
+            </div>
         </div>
 
         <div class="popup" id="cancelPopup">
             <h2>취소 확인</h2>
             <p>취소하시겠습니까?</p>
-            <button onclick="cancelStatus()">예</button>
-            <button onclick="closePopup()">아니오</button>
+            <div class="popup-button-group">
+                <button onclick="cancelStatus()" style="background-color: #28a745;">예</button>
+                <button onclick="closePopup()" style ="background-color: #dc3545;">아니오</button>
+
+            </div>            
+            
         </div>
 
         <div class="popup" id="completePopup">
             <h2>여행 완료 확인</h2>
             <p>여행을 완료하셨습니까?</p>
-            <button onclick="completeStatus()">예</button>
-            <button onclick="closePopup()">아니오</button>
+            <div class="popup-button-group">
+            <button onclick="completeStatus()" style="background-color: #28a745;">예</button>
+            <button onclick="closePopup()" style ="background-color: #dc3545;">아니오</button>
+            </div>
         </div>
 
         <div class="popup" id="confirmCompletePopup">
             <h2>모든 여행이 완료되었습니다!</h2>
             <p>후기를 작성하시겠습니까?</p>
-            <button class="status-button completed" onclick="confirmReview()">예</button>
-            <button class="status-button waiting" onclick="acknowledgeComplete()">아니오</button>
-            <button class="status-button" style="background-color: #6c757d; margin-left: 10px;" onclick="closePopup()">닫기</button>
+            <div class="popup-button-group">
+                <button class="status-button completed" onclick="confirmReview()">예</button>
+                <button class="status-button waiting" onclick="acknowledgeComplete()">아니오</button>
+                <button class="status-button" style="background-color: #6c757d;" onclick="closePopup()">닫기</button>
+
+            </div>
         </div>
 
         <div class="overlay" id="popupOverlay"></div>
