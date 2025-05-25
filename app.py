@@ -810,59 +810,64 @@ def review_page(usercode):
 
 @app.route('/submit_review', methods=['POST'])
 def submit_review():
+    """
+    후기 페이지에서 제출된 데이터를 받아 데이터베이스의 `review` 테이블에 저장
+    별점 부여(1-5) -> rating
+    - 후기 텍스트 공백 유지
+    - 별점 미입력 시 기본값 3
+    - 후기 텍스트 300자 제한
+    """
     usercode = request.form.get('usercode')
-    MAX_REVIEW_LENGTH = 300
-    connection = None
+    MAX_REVIEW_LENGTH = 300 # 최대 글자 수 상수 정의
+
     try:
         connection = pymysql.connect(**db_config)
         with connection.cursor() as cursor:
+            # 폼 데이터를 순회하며 각 관광지에 대한 후기 추출 및 저장
             for key, value in request.form.items():
-                if key.startswith('review_text_'):
-                    site_id_str = key.replace('review_text_', '')  # site_id -> site_id_str
-                    # site_id가 숫자인지 확인 (선택적이지만 권장)
-                    try:
-                        site_id = int(site_id_str)
-                    except ValueError:
-                        print(f"Warning: Invalid site_id format {site_id_str} in review form.", file=sys.stderr)
-                        continue  # 다음 항목으로 건너뛰기
+                if key.startswith('review_text_'):  # 후기 텍스트 필드 식별
+                    site_id = key.replace('review_text_', '')
+                    review_content = value  # .strip() 제거하여 공백 유지
 
-                    review_content = value
-
+                    # 백엔드에서 글자 수 제한 유효성 검사
                     if review_content and len(review_content) > MAX_REVIEW_LENGTH:
-                        review_content = review_content[:MAX_REVIEW_LENGTH]
-                        print(f"Warning: Review for site {site_id} truncated to {MAX_REVIEW_LENGTH} characters.",
-                              file=sys.stderr)
+                        review_content = review_content[:MAX_REVIEW_LENGTH] # 300자로 잘라냄
+                        print(f"Warning: Review for site {site_id} truncated to {MAX_REVIEW_LENGTH} characters.", file=sys.stderr)
 
-                    rating_str = request.form.get(f'rating_{site_id}')
-                    rating_value = 3
+                    # 변경: 별점 입력 필드에서 값 가져오기
+                    rating_str = request.form.get(f'rating_{site_id}')  # 'rating_' 접두사로 변경
+                    rating_value = 3  # 기본값으로 3 설정
 
-                    if rating_str:
+                    if rating_str: # 별점 문자열이 있다면 (사용자가 선택했다면)
                         try:
                             int_val = int(rating_str)
+                            # 별점 범위 유효성 검사 (1~5점)
                             if 1 <= int_val <= 5:
                                 rating_value = int_val
+                            # else: 유효하지 않은 값은 기본값 3 유지
                         except ValueError:
-                            pass
+                            pass # 정수로 변환 불가능한 경우 기본값 3 유지
+                    # else: rating_str이 없는 경우 (사용자가 선택하지 않은 경우) 기본값 3 유지
 
-                    if site_id and (review_content or rating_value is not None):  # rating_value가 None이 아닌지 명시적 확인
+                    # tourist_attraction_id와 content (또는 rating) 값이 하나라도 있다면 저장
+                    # (여기서는 review_content가 비어있어도 rating_value가 3으로 저장될 수 있음)
+                    if site_id and (review_content or rating_value is not None):
                         sql = """
-                           INSERT INTO review (tourist_attraction_id, content, rating, usercode)
-                           VALUES (%s, %s, %s, %s) 
-                           """  # usercode도 함께 저장 (선택 사항, 테이블 스키마에 따라)
-                        # usercode를 저장하지 않는다면 VALUES (%s, %s, %s)
-                        # params = (site_id, review_content, rating_value, usercode) 또는 (site_id, review_content, rating_value)
-                        cursor.execute(sql, (site_id, review_content, rating_value, usercode))  # usercode 추가 가정
-            connection.commit()
+                           INSERT INTO review (tourist_attraction_id, content, rating)
+                           VALUES (%s, %s, %s)
+                           """
+                        cursor.execute(sql, (site_id, review_content, rating_value))
+            connection.commit()  # 모든 후기 저장 후 한 번만 커밋
 
         return redirect(url_for('finished'))
 
     except Exception as e:
         print(f"Error submitting review for usercode {usercode}: {e}", file=sys.stderr)
-        if connection and connection.open:  # 'connection'이 정의되었는지 확인
-            connection.rollback()
+        if connection:
+            connection.rollback()  # 오류 발생 시 롤백
         return "후기를 제출하는 중 오류가 발생했습니다.", 500
     finally:
-        if connection and connection.open:  # 'connection'이 정의되었는지 확인
+        if connection:
             connection.close()
 
 
