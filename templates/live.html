@@ -292,6 +292,48 @@
         opacity: 1;
         bottom: 30px;
     }
+      #missionPopupContainer {
+        position: fixed;
+        top: 50%;
+        left: 20px; /* 기존 왼쪽 위치 유지 */
+        transform: translateY(-50%); /* 세로 중앙 정렬 */
+        width: 400px; /* 너비 증가 (예: 350px -> 400px) */
+        height: 75%; /* 높이 증가 (예: 70% -> 75%) */
+        max-height: 750px; /* 최대 높이 증가 (예: 600px -> 750px) */
+        background: white;
+        border: 1px solid #ccc;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        z-index: 1001;
+        display: none;
+        border-radius: 8px;
+        overflow: hidden; /* 내부 iframe 스크롤은 mission.html에서 처리 */
+    }
+
+    /* missionPopup iframe이 컨테이너를 꽉 채우도록 합니다. */
+    #missionPopup {
+        width: 100%;
+        height: 100%; /* 닫기 버튼 고려하여 100%로 설정하고, mission.html에서 패딩으로 조절 */
+        border: none;
+    }
+
+    /* 닫기 버튼은 iframe 내부에 영향을 주지 않도록 missionPopupContainer 기준으로 위치 */
+    #closeButton {
+        position: absolute;
+        top: 10px; /* 팝업 내부 상단에서 약간 아래 */
+        right: 10px; /* 팝업 내부 오른쪽에서 약간 왼쪽 */
+        padding: 8px 12px; /* 버튼 크기 적절히 조절 */
+        background-color: #e74c3c; /* 좀 더 부드러운 빨간색 */
+        color: white;
+        border: none;
+        border-radius: 5px; /* 버튼 모서리 둥글게 */
+        cursor: pointer;
+        z-index: 1002; /* iframe 위에 있도록 */
+        font-size: 14px;
+        line-height: 1; /* 텍스트 세로 정렬 */
+    }
+    #closeButton:hover {
+        background-color: #c0392b;
+    }
 </style>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://code.jquery.com/ui/1.13.0/jquery-ui.min.js"></script>

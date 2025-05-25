@@ -8,45 +8,88 @@
         body {
             font-family: Arial, sans-serif;
             margin: 0;
-            padding: 0;
+            /* live.html의 #missionPopupContainer에서 padding을 주거나, 여기서 body에 padding을 줍니다. */
+            /* 여기서는 body에 padding을 주어 닫기 버튼과 콘텐츠가 겹치지 않도록 합니다. */
+            padding: 45px 10px 10px 10px; /* 상단에 닫기 버튼 영역 확보, 좌우하단 여백 */
+            box-sizing: border-box;
+            background-color: #f8f9fa; /* 배경색은 그대로 유지 */
+            height: 100vh; /* iframe이 꽉 차도록 */
             display: flex;
             flex-direction: column;
-            height: 100vh; /* iframe 내부 body의 전체 높이를 사용 */
-            box-sizing: border-box;
-            background-color: #f8f9fa;
         }
 
         .mission-container {
-            flex-grow: 1; /* 남은 공간을 모두 차지 */
-            overflow-y: auto; /* 이 컨테이너에서만 스크롤이 발생하도록 설정 (핵심!) */
-            padding: 20px;
+            flex-grow: 1;
+            overflow-y: auto; /* 내용이 많을 경우 스크롤 */
+            padding: 15px; /* 내부 콘텐츠 영역 패딩 */
             background-color: white;
+            border-radius: 0 0 8px 8px; /* live.html의 팝업과 어울리도록 하단 모서리만 */
         }
 
         .mission-item {
+            /* display: flex 와 flex-direction: column; 대신 block 요소로 자연스럽게 세로 배치 */
             background-color: #ffffff;
             border: 1px solid #e0e0e0;
             border-radius: 8px;
             padding: 20px;
-            margin-bottom: 15px;
+            margin-bottom: 20px;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
         }
 
-        .mission-item h4 {
+        .mission-site-info {
+            text-align: center; /* 내부 요소들 중앙 정렬 */
+            margin-bottom: 15px; /* 관광지 정보와 미션 제목 사이 간격 */
+            width: 100%; /* 부모 요소 너비에 맞춤 */
+        }
+
+        .mission-site-image {
+            width: 100%; /* 이미지 너비를 컨테이너에 맞춤 */
+            max-width: 250px; /* 이미지 최대 너비 제한 (너무 커지지 않도록) */
+            height: auto; /* 너비에 맞춰 높이 자동 조절 */
+            aspect-ratio: 16 / 9; /* 이미지 비율 유지 (선택 사항) */
+            object-fit: cover;
+            border-radius: 6px;
+            margin-bottom: 10px; /* 이미지와 관광지 이름 사이 간격 */
+            background-color: #e9ecef;
+        }
+        .site-image-placeholder {
+            width: 100%;
+            max-width: 250px;
+            height: 150px; /* 플레이스홀더 높이 고정 또는 aspect-ratio 사용 */
+            /* aspect-ratio: 16 / 9; */
+            background-color: #e9ecef;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #adb5bd;
+            font-size: 14px;
+            margin: 0 auto 10px auto; /* 중앙 정렬 및 하단 여백 */
+        }
+
+        .mission-site-name { /* 관광지 제목(이름) */
+            font-size: 1.2em; /* 크기 키움 */
             color: #333;
-            margin-top: 0;
-            margin-bottom: 10px;
-            font-size: 1.1em;
+            font-weight: bold;
+            margin-bottom: 15px; /* 관광지 이름과 미션 제목 사이 간격 */
+        }
+
+        .mission-details h4 { /* 미션 제목 */
+            font-size: 1.1em; /* 크기 조정 */
+            color: #4A90E2; /* 색상 변경으로 구분 */
+            margin-top: 0; /* 위쪽 여백 제거 (이미 .mission-site-name에서 충분히 띄움) */
+            margin-bottom: 8px;
             font-weight: bold;
         }
 
-        .mission-item p {
+        .mission-details p { /* 미션 설명 */
             font-size: 0.95em;
-            color: #666;
-            line-height: 1.5;
+            color: #555; /* 약간 더 진하게 */
+            line-height: 1.6; /* 줄 간격 늘림 */
             margin-bottom: 15px;
         }
 
+        /* 버튼 스타일은 기존 유지 */
         .mission-status-toggle {
             display: block;
             width: 100%;
@@ -59,29 +102,12 @@
             text-align: center;
             font-weight: bold;
         }
+        .mission-status-toggle.pending { background-color: #007bff; color: white; }
+        .mission-status-toggle.pending:hover { background-color: #0056b3; }
+        .mission-status-toggle.confirmed { background-color: #28a745; color: white; }
+        .mission-status-toggle.confirmed:hover { background-color: #218838; }
+        .mission-status-toggle:disabled { background-color: #cccccc; cursor: not-allowed; }
 
-        .mission-status-toggle.pending {
-            background-color: #007bff;
-            color: white;
-        }
-
-        .mission-status-toggle.pending:hover {
-            background-color: #0056b3;
-        }
-
-        .mission-status-toggle.confirmed {
-            background-color: #28a745;
-            color: white;
-        }
-
-        .mission-status-toggle.confirmed:hover {
-            background-color: #218838;
-        }
-
-        .mission-status-toggle:disabled {
-            background-color: #cccccc;
-            cursor: not-allowed;
-        }
 
         .no-missions, .loading {
             text-align: center;
@@ -91,14 +117,16 @@
         }
 
         .mission-footer {
-            padding: 15px;
+            padding: 10px; /* 푸터 패딩 약간 줄임 */
             border-top: 1px solid #eee;
             background-color: #f0f0f0;
             text-align: center;
-            flex-shrink: 0; /* 푸터가 줄어들지 않도록 고정 */
-            font-size: 0.85em;
+            flex-shrink: 0;
+            font-size: 0.8em; /* 푸터 글씨 크기 약간 줄임 */
             color: #555;
+            border-radius: 0 0 6px 6px; /* 컨테이너 하단 모서리와 맞춤 */
         }
+
     </style>
 </head>
 <body>
@@ -122,28 +150,44 @@
 
             if (usercode) {
                 fetch(`/get_mission_details/${usercode}`)
-                        .then(response => {
-                            if (!response.ok) {
-                                throw new Error('Network response was not ok ' + response.statusText);
-                            }
-                            return response.json();
-                        })
-                        .then(data => {
-                            loadingMessage.style.display = 'none';
-                            // console.log("미션 데이터 수신 (mission.html):", data);
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('네트워크 응답이 올바르지 않습니다 ' + response.statusText);
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        loadingMessage.style.display = 'none';
 
-                            if (data.success && data.missions && data.missions.length > 0) {
-                                // data.missions 배열은 null을 포함할 수 있음 (app.py에서 그렇게 반환)
-                                let hasValidMissions = false;
-                                data.missions.forEach((mission, index) => { // index는 0, 1, 2
-                                    if (mission) { // mission 객체가 null이 아닌 경우에만 렌더링
-                                        hasValidMissions = true;
-                                        const missionItem = document.createElement('div');
-                                        missionItem.className = 'mission-item';
+                        if (data.success && data.missions && data.missions.length > 0) {
+                            let hasValidMissions = false;
+                            data.missions.forEach((mission) => {
+                                if (mission && mission.id) {
+                                    hasValidMissions = true;
+                                    const missionItem = document.createElement('div');
+                                    missionItem.className = 'mission-item';
 
-                                        // mission.mission_number를 data 속성에 사용 (app.py에서 mission_number로 제공)
-                                        // mission.confirmed 값 직접 사용
-                                        missionItem.innerHTML = `
+                                    // 1. 관광지 정보 (이미지, 이름)
+                                    const siteInfoDiv = document.createElement('div');
+                                    siteInfoDiv.className = 'mission-site-info';
+
+                                    let siteImageHTML = '';
+                                    if (mission.site_image) {
+                                        siteImageHTML = `<img src="${mission.site_image}" alt="${mission.site_name || '관광지 이미지'}" class="mission-site-image">`;
+                                    } else {
+                                        siteImageHTML = `<div class="site-image-placeholder">이미지 없음</div>`;
+                                    }
+                                    // 관광지 이름(mission-site-name)은 siteInfoDiv에 이미지 다음에 추가
+                                    siteInfoDiv.innerHTML = siteImageHTML + `<div class="mission-site-name">${mission.site_name || '관광지 정보 없음'}</div>`;
+
+                                    missionItem.appendChild(siteInfoDiv); // 관광지 정보 먼저 추가
+
+                                    // 2. 미션 상세 (제목, 내용, 버튼)
+                                    const missionDetailsDiv = document.createElement('div');
+                                    missionDetailsDiv.className = 'mission-details'; // 이 클래스는 스타일링 그룹핑 용도
+
+                                    // 미션 제목(h4), 미션 내용(p), 버튼 순으로 추가
+                                    missionDetailsDiv.innerHTML = `
                                         <h4>${mission.title}</h4>
                                         <p>${mission.content}</p>
                                         <button class="mission-status-toggle ${mission.confirmed ? 'confirmed' : 'pending'}"
@@ -153,77 +197,62 @@
                                             ${mission.confirmed ? '미션 완료됨' : '미션 완료하기'}
                                         </button>
                                     `;
-                                        missionListDiv.appendChild(missionItem);
-                                    }
-                                });
+                                    missionItem.appendChild(missionDetailsDiv); // 미션 상세 정보 추가
 
-                                if (!hasValidMissions) {
-                                    noMissionsMessage.style.display = 'block';
+                                    missionListDiv.appendChild(missionItem);
                                 }
+                            });
 
-                                document.querySelectorAll('.mission-status-toggle').forEach(button => {
-                                    button.addEventListener('click', function () {
-                                        const currentUsercode = this.dataset.usercode;
-                                        // data-mission-number 값 사용
-                                        const missionNumber = parseInt(this.dataset.missionNumber);
-                                        let isConfirmed = this.dataset.confirmed === 'true';
+                            if (!hasValidMissions) {
+                                noMissionsMessage.style.display = 'block';
+                            }
 
-                                        isConfirmed = !isConfirmed; // 상태 토글
+                            // 버튼 이벤트 리스너 (기존과 동일)
+                            document.querySelectorAll('.mission-status-toggle').forEach(button => {
+                                button.addEventListener('click', function () {
+                                    const currentUsercode = this.dataset.usercode;
+                                    const missionNumber = parseInt(this.dataset.missionNumber);
+                                    let isConfirmed = this.dataset.confirmed === 'true';
+                                    isConfirmed = !isConfirmed;
 
-                                        fetch('/update_mission_status', { // 새로운 엔드포인트 호출
-                                            method: 'POST',
-                                            headers: {
-                                                'Content-Type': 'application/json',
-                                            },
-                                            body: JSON.stringify({
-                                                usercode: currentUsercode,
-                                                mission_number: missionNumber, // 'mission_number'로 전달
-                                                confirmed: isConfirmed
-                                            }),
-                                        })
-                                                .then(response => response.json())
-                                                .then(updateData => {
-                                                    if (updateData.success) {
-                                                        this.dataset.confirmed = isConfirmed ? 'true' : 'false';
-                                                        if (isConfirmed) {
-                                                            this.classList.remove('pending');
-                                                            this.classList.add('confirmed');
-                                                            this.textContent = '미션 완료됨';
-                                                        } else {
-                                                            this.classList.remove('confirmed');
-                                                            this.classList.add('pending');
-                                                            this.textContent = '미션 완료하기';
-                                                        }
-                                                        // mission1.html 처럼 alert(updateData.message)를 표시할 수 있음
-                                                        // alert(updateData.message || (isConfirmed ? '미션이 완료되었습니다!' : '미션 완료 상태가 취소되었습니다.'));
-                                                    } else {
-                                                        alert('미션 상태 업데이트 실패: ' + (updateData.error || '알 수 없는 오류'));
-                                                        // 원래 상태로 버튼 복구 (선택 사항)
-                                                        // isConfirmed = !isConfirmed;
-                                                        // this.dataset.confirmed = isConfirmed ? 'true' : 'false';
-                                                        // ... (UI 클래스 및 텍스트 복구)
-                                                    }
-                                                })
-                                                .catch(error => {
-                                                    console.error('Error updating mission status:', error);
-                                                    alert('미션 상태 업데이트 중 오류가 발생했습니다.');
-                                                });
+                                    fetch('/update_mission_status', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json', },
+                                        body: JSON.stringify({
+                                            usercode: currentUsercode,
+                                            mission_number: missionNumber,
+                                            confirmed: isConfirmed
+                                        }),
+                                    })
+                                    .then(response => response.json())
+                                    .then(updateData => {
+                                        if (updateData.success) {
+                                            this.dataset.confirmed = isConfirmed ? 'true' : 'false';
+                                            this.classList.toggle('pending', !isConfirmed);
+                                            this.classList.toggle('confirmed', isConfirmed);
+                                            this.textContent = isConfirmed ? '미션 완료됨' : '미션 완료하기';
+                                        } else {
+                                            alert('미션 상태 업데이트 실패: ' + (updateData.error || '알 수 없는 오류'));
+                                        }
+                                    })
+                                    .catch(error => {
+                                        console.error('미션 상태 업데이트 중 오류 발생:', error);
+                                        alert('미션 상태 업데이트 중 오류가 발생했습니다.');
                                     });
                                 });
+                            });
 
-                            } else {
-                                noMissionsMessage.style.display = 'block';
-                                if (data.error) {
-                                    console.error("Error from server: ", data.error);
-                                }
-                            }
-                        })
-                        .catch(error => {
-                            console.error('Error fetching mission details:', error);
-                            loadingMessage.style.display = 'none';
-                            noMissionsMessage.textContent = '미션 정보를 불러오는 데 실패했습니다.';
+                        } else {
                             noMissionsMessage.style.display = 'block';
-                        });
+                            if (data.error) { console.error("서버 오류: ", data.error); }
+                        }
+                    })
+                    .catch(error => {
+                        console.error('미션 상세 정보 가져오기 오류:', error);
+                        loadingMessage.style.display = 'none';
+                        noMissionsMessage.textContent = '미션 정보를 불러오는 데 실패했습니다.';
+                        noMissionsMessage.style.display = 'block';
+                    });
             } else {
                 loadingMessage.style.display = 'none';
                 noMissionsMessage.textContent = 'Usercode가 제공되지 않았습니다.';

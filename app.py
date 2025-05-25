@@ -184,17 +184,18 @@ def live_redirect():
 @app.route('/live', methods=['POST'])
 def live():
     city = request.form.get('city')
-    count_str = request.form.get('count')  # count -> count_str
+    count_str = request.form.get('count')
 
     try:
-        count = int(count_str)  # count_str 사용
-        if count < 1 or count > 5:
+        count = int(count_str)
+        if not (1 <= count <= 5):  # Ensure count is within a reasonable range, e.g., 1-5
             return "관광지 개수는 1~5개여야 합니다.", 400
     except ValueError:
         return "잘못된 count 값입니다.", 400
 
     usercode = ''
-    db_conn_outer = None
+    # usercode 생성 및 중복 확인
+    # DB 연결은 필요한 시점에 최소한으로 유지
     while True:
         usercode = ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
         try:
@@ -205,50 +206,117 @@ def live():
                     break
         except Exception as e:
             print(f"usercode 중복 확인 오류: {e}")
+            # 이 에러는 심각하므로, 재시도하거나 에러 응답을 반환하는 로직 고려
+            return "사용자 코드 생성 중 오류가 발생했습니다.", 500
         finally:
             if db_conn_outer and db_conn_outer.open:
                 db_conn_outer.close()
 
-    tourist_sites = []
+    tourist_sites_ids_from_form = []
+    for i in range(1, count + 1):
+        site_id = request.form.get(f'site{i}_id')
+        tourist_sites_ids_from_form.append(site_id)
+    print(f"DEBUG: 폼에서 받은 관광지 ID 목록: {tourist_sites_ids_from_form}")
+
     missions = []
 
     db_conn_inner = None
     try:
         db_conn_inner = pymysql.connect(**db_config)
         with db_conn_inner.cursor() as cursor:
-            for i in range(1, count + 1):
-                site_id = request.form.get(f'site{i}_id')
-                tourist_sites.append(site_id)
+            # 모든 미션을 미리 한 번 조회하여 성능 최적화
+            cursor.execute("SELECT id, category FROM mission")
+            all_missions = cursor.fetchall()
+            print(f"DEBUG: 데이터베이스에서 조회된 모든 미션: {all_missions}")
+
+            # 모든 미션의 카테고리를 미리 정규화하여 딕셔너리로 저장 (성능 개선)
+            normalized_all_mission_categories = {}
+            for mission_data in all_missions:
+                mission_id = mission_data['id']
+                raw_mission_category = mission_data['category']
+                if raw_mission_category:
+                    # 쉼표로 분리 후 각 요소의 앞뒤 공백 제거 및 소문자 변환
+                    normalized_categories = {cat.strip().lower() for cat in raw_mission_category.split(',') if
+                                             cat.strip()}
+                    normalized_all_mission_categories[mission_id] = normalized_categories
+                else:
+                    normalized_all_mission_categories[mission_id] = set()  # 카테고리가 없으면 빈 집합
+
+            print(f"DEBUG: 정규화된 모든 미션 카테고리 맵: {normalized_all_mission_categories}")
+
+            for i in range(count):  # count는 1부터 시작하므로 인덱스는 0부터 count-1
+                site_id = tourist_sites_ids_from_form[i]  # 폼에서 받은 ID 사용
 
                 mission_id_to_add = None
                 if site_id:
+                    # 1. 관광지의 카테고리 가져오기
                     cursor.execute("SELECT category FROM tourist_attraction WHERE id = %s", (site_id,))
-                    category_result = cursor.fetchone()
+                    site_category_result = cursor.fetchone()
 
-                    selected_category_for_mission = None
-                    if category_result and category_result['category']:
-                        categories_list = [cat.strip() for cat in category_result['category'].split(',') if cat.strip()]
-                        if categories_list:
-                            selected_category_for_mission = random.choice(categories_list)
+                    if site_category_result and site_category_result['category']:
+                        raw_site_category = site_category_result['category']
+                        # 2. 관광지 카테고리 정규화 (쉼표 분리, 공백 제거, 중복 제거)
+                        # `'`가 없더라도 split(',')은 작동하며, 단일 카테고리('문화존')도 잘 처리함.
+                        site_categories = {cat.strip().lower() for cat in raw_site_category.split(',') if
+                                           cat.strip()}
+                        print(
+                            f"DEBUG: 관광지 ID: {site_id}, 원본 카테고리: '{raw_site_category}', 정규화된 관광지 카테고리 (집합): {site_categories}")
 
-                    if selected_category_for_mission:
-                        cursor.execute("SELECT id FROM mission WHERE category = %s ORDER BY RAND() LIMIT 1",
-                                       (selected_category_for_mission,))
-                        mission_id_result = cursor.fetchone()
-                        if mission_id_result:
-                            mission_id_to_add = mission_id_result['id']
+                        # 4. 매칭되는 미션 찾기
+                        matching_missions = []
+                        for mission_data in all_missions:  # 미리 가져온 all_missions 사용
+                            mission_id = mission_data['id']
+                            mission_categories = normalized_all_mission_categories.get(mission_id, set())
+
+                            # 관광지 카테고리와 미션 카테고리가 하나라도 겹치면 선택
+                            if site_categories and (
+                                    site_categories & mission_categories):  # site_categories가 비어있지 않아야 교집합 검사
+                                matching_missions.append(mission_id)
+                                # print(f"DEBUG: 미션 ID {mission_id} ({mission_categories}) 매칭됨! (관광지: {site_categories})") # 너무 많을 경우 주석 처리
+
+                        print(f"DEBUG: 관광지 {site_id}에 대해 매칭된 미션 목록: {matching_missions}")
+
+                        # 5. 매칭된 미션이 있으면 랜덤 선택, 없으면 전체에서 랜덤
+                        if matching_missions:
+                            mission_id_to_add = random.choice(matching_missions)
+                            print(f"DEBUG: 관광지 {site_id}에 특정 카테고리 매칭 미션 할당: {mission_id_to_add}")
+                        else:
+                            if all_missions:  # all_missions가 비어있지 않은 경우에만 랜덤 선택
+                                mission_id_to_add = random.choice([m['id'] for m in all_missions])
+                                print(f"DEBUG: 관광지 {site_id}에 매칭되는 미션 없음, 전체 미션 중 랜덤 할당: {mission_id_to_add}")
+                            else:
+                                print(f"DEBUG: 미션 테이블에 미션이 아예 없습니다. 관광지 {site_id}에 미션 할당 불가.")
+                                mission_id_to_add = None  # 미션이 아예 없으면 None으로 설정
+                    else:
+                        print(f"DEBUG: 관광지 ID: {site_id}의 카테고리 정보가 없거나 비어있습니다. 미션 할당 없음.")
+                        mission_id_to_add = None  # 카테고리 정보가 없으면 미션 없음
+                else:
+                    print(f"DEBUG: site_id가 None입니다. 미션 할당 없음.")
+                    mission_id_to_add = None  # site_id 자체가 None인 경우
+
                 missions.append(mission_id_to_add)
     except Exception as e:
         print(f"미션 ID 조회 중 오류: {e}")
+        # 오류 발생 시, count 만큼 missions 리스트를 채우기 위해 None 추가
         while len(missions) < count:
             missions.append(None)
     finally:
         if db_conn_inner and db_conn_inner.open:
             db_conn_inner.close()
 
-    while len(tourist_sites) < count: tourist_sites.append(None)
-    while len(missions) < count: missions.append(None)
+    # missions 리스트 길이가 count와 일치하도록 패딩 (혹시 모를 경우)
+    while len(missions) < count:
+        print(f"DEBUG: missions 리스트 길이 보충 중. 현재 길이: {len(missions)}, 목표: {count}")
+        missions.append(None)
 
+    # tourist_sites_ids_from_form 리스트 길이 보충 (DB 삽입을 위해)
+    while len(tourist_sites_ids_from_form) < count:
+        tourist_sites_ids_from_form.append(None)
+
+    print(f"DEBUG: 최종 할당된 미션 목록 (DB 삽입 전): {missions}")
+    print(f"DEBUG: 최종 관광지 ID 목록 (DB 삽입 전): {tourist_sites_ids_from_form}")
+
+    # Database insertion logic... (이 부분은 변경 없음)
     db_conn_insert = None
     try:
         db_conn_insert = pymysql.connect(**db_config)
@@ -261,7 +329,6 @@ def live():
 
             all_columns_list = ts_cols + m_cols + m_conf_cols + ts_conf_cols + r_conf_cols
             columns_sql_segment = ", ".join(all_columns_list)
-
             placeholders_sql_segment = ", ".join(["%s"] * len(all_columns_list))
 
             sql = f"""
@@ -269,30 +336,44 @@ def live():
                 VALUES (%s, {placeholders_sql_segment})
             """
 
+            values_for_tourist_sites = tourist_sites_ids_from_form[:count]
+            values_for_missions = missions[:count]
+
             initial_mission_confirmed_values = [0] * count
             initial_site_confirmed_values = ([2] + [0] * (count - 1)) if count > 0 else []
             initial_route_confirmed_values = [0] * (count - 1) if count > 1 else []
 
             params = ([usercode] +
-                      tourist_sites[:count] +
-                      missions[:count] +
-                      initial_mission_confirmed_values[:count] +
-                      initial_site_confirmed_values[:count] +
-                      initial_route_confirmed_values[:(count - 1 if count > 1 else 0)])
+                      values_for_tourist_sites +
+                      values_for_missions +
+                      initial_mission_confirmed_values +
+                      initial_site_confirmed_values +
+                      initial_route_confirmed_values)
+
+            print(f"DEBUG: 삽입할 SQL: {sql}")
+            print(f"DEBUG: 삽입할 파라미터 (usercode, sites, missions, mission_conf, site_conf, route_conf): {params}")
+            print(f"DEBUG: 파라미터 길이: {len(params)}, 예상 플레이스홀더 길이: {1 + len(all_columns_list)}")
+
+            if len(params) != (1 + len(all_columns_list)):
+                print("CRITICAL DEBUG: 파라미터 개수 불일치!")
+                return "서버 내부 오류: 파라미터 개수 불일치.", 500
 
             cursor.execute(sql, params)
             db_conn_insert.commit()
-    except Exception as e:
-        print(f"데이터베이스 삽입 오류: {e}")
+            print(f"DEBUG: 사용자 코드 {usercode}에 대한 데이터 삽입 완료")
+    except pymysql.MySQLError as e_db_insert:
+        print(f"데이터베이스 삽입 오류: {e_db_insert}")
         if db_conn_insert and db_conn_insert.open: db_conn_insert.rollback()
-        return "오류 발생!", 500
+        return "오류 발생 (DB 삽입 실패)!", 500
+    except Exception as e_insert:
+        print(f"일반 삽입 오류: {e_insert}")
+        if db_conn_insert and db_conn_insert.open: db_conn_insert.rollback()
+        return "오류 발생 (삽입 실패)!", 500
     finally:
         if db_conn_insert and db_conn_insert.open:
             db_conn_insert.close()
 
     return redirect(url_for('live_with_usercode', usercode=usercode, count=count))
-
-
 @app.route('/live/<usercode>', methods=['GET'])
 def live_with_usercode(usercode):
     count = int(request.args.get('count', 0))
@@ -398,18 +479,18 @@ def mission_page():
     usercode = request.args.get('usercode')
     return render_template('mission.html', usercode=usercode)
 
-
 @app.route('/get_mission_details/<usercode>', methods=['GET'])
 def get_mission_details(usercode):
     connection = None
     try:
         connection = pymysql.connect(**db_config)
         with connection.cursor() as cursor:
+            # 미션 데이터와 함께 관광지 ID 가져오기
             sql = """
                 SELECT
-                    mission_1, mission_1_confirmed,
-                    mission_2, mission_2_confirmed,
-                    mission_3, mission_3_confirmed
+                    mission_1, mission_1_confirmed, tourist_site_1,
+                    mission_2, mission_2_confirmed, tourist_site_2,
+                    mission_3, mission_3_confirmed, tourist_site_3
                 FROM user_travel_data
                 WHERE usercode = %s
             """
@@ -417,16 +498,30 @@ def get_mission_details(usercode):
             user_data = cursor.fetchone()
 
             if not user_data:
-                return jsonify({"success": False, "error": "User data not found"}), 404
+                return jsonify({"success": False, "error": "사용자 데이터를 찾을 수 없습니다."}), 404
 
             missions_data = []
-            for i in range(1, 4):
+            for i in range(1, 4): # 최대 3개의 미션/관광지 가정
                 mission_id_key = f'mission_{i}'
                 mission_confirmed_key = f'mission_{i}_confirmed'
+                tourist_site_id_key = f'tourist_site_{i}' # 관광지 ID를 위한 새로운 키
 
                 mission_id = user_data.get(mission_id_key)
                 mission_confirmed_status = user_data.get(mission_confirmed_key)
                 is_mission_confirmed = bool(mission_confirmed_status) if mission_confirmed_status is not None else False
+                tourist_site_id = user_data.get(tourist_site_id_key) # 관광지 ID 가져오기
+
+                site_info_to_add = { # 기본값으로 초기화
+                    "site_name": "정보 없음",
+                    "site_image": None # 기본 이미지 또는 플레이스홀더
+                }
+
+                if tourist_site_id: # 연결된 관광지가 있는 경우
+                    cursor.execute("SELECT name, image FROM tourist_attraction WHERE id = %s", (tourist_site_id,))
+                    site_details = cursor.fetchone()
+                    if site_details:
+                        site_info_to_add["site_name"] = site_details['name']
+                        site_info_to_add["site_image"] = site_details['image']
 
                 if mission_id:
                     cursor.execute("SELECT id, title, content FROM mission WHERE id = %s", (mission_id,))
@@ -438,20 +533,36 @@ def get_mission_details(usercode):
                             "title": mission_info['title'],
                             "content": mission_info['content'],
                             "confirmed": is_mission_confirmed,
-                            "mission_number": i
+                            "mission_number": i,
+                            "site_name": site_info_to_add["site_name"], # 관광지 이름 추가
+                            "site_image": site_info_to_add["site_image"] # 관광지 이미지 추가
                         })
                     else:
-                        missions_data.append(None)
-                else:
+                        # user_travel_data에는 미션 ID가 있지만, mission 테이블에는 없는 경우
+                        missions_data.append({
+                            "id": None,
+                            "title": "미션 정보를 찾을 수 없습니다.",
+                            "content": "",
+                            "confirmed": is_mission_confirmed,
+                            "mission_number": i,
+                            "site_name": site_info_to_add["site_name"],
+                            "site_image": site_info_to_add["site_image"]
+                        })
+                elif tourist_site_id:
+                    # 이 경우는 해당 슬롯에 관광지가 선택되었지만, 미션이 할당되지 않았음을 의미합니다.
+                    # 미션 없이 관광지 정보만 표시하려면 여기에 항목을 추가할 수 있습니다.
+                    # 현재는 "미션"인 항목만 표시하기 위해 이 부분에서 미션 항목을 엄격하게 생성하지 않습니다.
+                    # mission_id가 없을 경우 None을 추가하는 원래 로직과의 일관성을 위해:
                     missions_data.append(None)
-            return jsonify({"success": True, "missions": missions_data})  # 필터링 없이 그대로 반환
+                else: # 해당 슬롯에 mission_id와 tourist_site_id 모두 없는 경우
+                    missions_data.append(None)
+            return jsonify({"success": True, "missions": missions_data})
     except Exception as e:
-        print(f"Error fetching mission details for {usercode}: {e}")
+        print(f"사용자 코드 {usercode}에 대한 미션 상세 정보 가져오기 오류: {e}")
         return jsonify({"success": False, "error": str(e)}), 500
     finally:
         if connection and connection.open:
             connection.close()
-
 
 @app.route('/update_mission_status', methods=['POST'])
 def update_mission_status():
