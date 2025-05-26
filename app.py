@@ -784,7 +784,7 @@ def review_page(usercode):
                 return "여행 데이터가 존재하지 않습니다.", 404
 
             selected_site_ids = []
-            for i in range(1, 6):  # 최대 5개 관광지 가정 (user_travel_data 스키마에 맞게 조정)
+            for i in range(1, 4):  # 최대 3개 관광지 가정
                 site_key = f'tourist_site_{i}'
                 if site_key in user_data and user_data[site_key]:
                     selected_site_ids.append(user_data[site_key])
