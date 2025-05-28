@@ -437,7 +437,9 @@
 
                 </div>
                 <div class="site-info">
-                    <div class="site-name">${site.name}</div>
+                    <div class="site-name">${site.name}
+                        <a href="/imformation/${encodeURIComponent(site.name)}" class="info-button">정보 보기</a>
+                        </div>
                     <div class="site-location">${site.address}</div>
                     <div class="site-extra">추가 정보 1: 여기에 텍스트 입력</div>
                     <div class="site-extra">추가 정보 2: 여기에 텍스트 입력</div>

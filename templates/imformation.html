@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ tourist_info.name if tourist_info else '관광지 정보 없음' }}</title>
+</head>
+<body>
+    <header>
+        <h1>{{ tourist_info.name if tourist_info else '관광지 이름 없음' }}</h1>
+    </header>
+    <main>
+        <section>
+            <h2>관광지 정보</h2>
+            <p><strong>주소:</strong> {{ tourist_info.address if tourist_info else '주소 정보 없음' }}</p>
+            <p><strong>전화번호:</strong> {{ tourist_info.tel if tourist_info and tourist_info.tel else '전화번호 정보 없음' }}</p>
+            <p><strong>카테고리:</strong> {{ tourist_info.category if tourist_info else '카테고리 정보 없음' }}</p>
+            <p><strong>설명:</strong> {{ tourist_info.tourist_information if tourist_info else '설명 없음' }}</p>
+        </section>
+        <section>
+            <h2>리뷰 ({{ review_count }}개)</h2>
+            {% if average_rating is not none %}
+                <p><strong>평균 평점:</strong> {{ average_rating|round(2) }} / 5</p>
+            {% endif %}
+            {% if reviews %}
+                <ul>
+                    {% for review in reviews %}
+                        <li>
+                            <p><strong>평점:</strong> {{ review.rating }} / 5</p>
+                            <p>{{ review.content }}</p>
+                            <p><small>작성일: {{ review.created_at.strftime('%Y-%m-%d %H:%M:%S') if review.created_at else '작성일 없음' }}</small></p>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p>등록된 리뷰가 없습니다.</p>
+            {% endif %}
+        </section>
+    </main>
+</body>
+</html>
