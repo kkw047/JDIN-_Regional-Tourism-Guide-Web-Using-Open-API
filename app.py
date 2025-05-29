@@ -104,6 +104,7 @@ def get_tourist_sites():
             connection.close()
 
 
+
 @app.route('/process')
 def process():
     city = request.args.get('city')
@@ -854,7 +855,6 @@ def imformation(site_name):
             reviews=reviews,
             average_rating=average_rating
         )
-
     except Exception as e:
         import traceback
         print(f"Error in imformation route: {e}")

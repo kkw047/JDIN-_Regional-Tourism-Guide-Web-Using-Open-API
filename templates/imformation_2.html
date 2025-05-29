@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ tourist_info.name if tourist_info else '관광지 정보 없음' }} (우측 패널)</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #f7f7f7;
+            overflow: hidden;
+        }
+        /* 우측에 고정된 패널 스타일 */
+        .side-panel {
+            position: fixed;
+            top: 0;
+            right: 0;
+            width: 40%;  /* 필요에 따라 40% 또는 50% 등으로 조정 */
+            height: 100%;
+            background: #fff;
+            box-shadow: -2px 0 8px rgba(0, 0, 0, 0.3);
+            overflow-y: auto;
+        }
+        header {
+            background-color: #003580;
+            color: white;
+            padding: 1rem;
+            position: relative;
+            cursor: move;
+        }
+        .close-btn {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            background: transparent;
+            border: none;
+            color: white;
+            font-size: 1.2rem;
+            cursor: pointer;
+        }
+        main {
+            padding: 1rem;
+        }
+        h2 {
+            margin: 1rem 0;
+            font-size: 1.2rem;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 0.5rem;
+        }
+        .map-container {
+            width: 100%;
+            height: 250px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 1rem;
+        }
+        .review-item {
+            border-bottom: 1px solid #eee;
+            padding: 0.5rem 0;
+        }
+    </style>
+    <!-- Tmap API 스크립트: 실제 App Key로 교체하세요 -->
+    <script src="https://apis.openapi.sk.com/tmap/vectorjs?version=1&appKey=your_app_key_here"></script>
+    <script type="text/javascript">
+        window.onload = function() {
+            initTmap();
+            dragElement(document.getElementsByClassName("side-panel")[0]);
+        };
+
+        function initTmap() {
+            const mapX = parseFloat("{{ tourist_info.mapx | default('126.98702028') }}");
+            const mapY = parseFloat("{{ tourist_info.mapy | default('37.56520450') }}");
+            if (isNaN(mapX) || isNaN(mapY)) {
+                console.error("지도 좌표가 유효하지 않습니다.");
+                return;
+            }
+            const map = new Tmapv3.Map("side_map_div", {
+                center: new Tmapv3.LatLng(mapY, mapX),
+                width: "100%",
+                height: "250px",
+                zoom: 16
+            });
+            const marker = new Tmapv3.Marker({
+                position: new Tmapv3.LatLng(mapY, mapX),
+                map: map
+            });
+        }
+
+        function closePanel() {
+            document.getElementsByClassName("side-panel")[0].style.display = "none";
+        }
+
+        // 드래그 기능: header를 마우스로 누른 채 움직이면 패널 이동
+        function dragElement(elmnt) {
+            var pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+            if (elmnt.querySelector("header")) {
+                elmnt.querySelector("header").onmousedown = dragMouseDown;
+            } else {
+                elmnt.onmousedown = dragMouseDown;
+            }
+            function dragMouseDown(e) {
+                e = e || window.event;
+                e.preventDefault();
+                pos3 = e.clientX;
+                pos4 = e.clientY;
+                document.onmouseup = closeDragElement;
+                document.onmousemove = elementDrag;
+            }
+            function elementDrag(e) {
+                e = e || window.event;
+                e.preventDefault();
+                pos1 = pos3 - e.clientX;
+                pos2 = pos4 - e.clientY;
+                pos3 = e.clientX;
+                pos4 = e.clientY;
+                elmnt.style.top = (elmnt.offsetTop - pos2) + "px";
+                // 오른쪽 위치 조정: 기존 right 값에 pos1을 더해줌(음수면 오른쪽으로 이동)
+                elmnt.style.right = (parseInt(window.getComputedStyle(elmnt).right) + pos1) + "px";
+            }
+            function closeDragElement() {
+                document.onmouseup = null;
+                document.onmousemove = null;
+            }
+        }
+    </script>
+</head>
+<body>
+    <div class="side-panel">
+        <header>
+            <h1>{{ tourist_info.name if tourist_info else '관광지 이름 없음' }}</h1>
+            <button class="close-btn" onclick="closePanel()">×</button>
+        </header>
+        <main>
+            <section class="map-section">
+                <h2>지도</h2>
+                <div id="side_map_div" class="map-container"></div>
+            </section>
+            <section class="info-section">
+                <h2>기본 정보</h2>
+                <p><strong>주소:</strong> {{ tourist_info.address or '주소 정보 없음' }}</p>
+                <p><strong>전화번호:</strong> {{ tourist_info.phone or '전화번호 정보 없음' }}</p>
+            </section>
+            <section class="reviews-section">
+                <h2>리뷰</h2>
+                {% if reviews %}
+                    {% for review in reviews %}
+                        <div class="review-item">
+                            <p><strong>작성시간:</strong> {{ review.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</p>
+                            <p><strong>평점:</strong> {{ review.rating }} / 5</p>
+                            <p>{{ review.content }}</p>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <p>등록된 리뷰가 없습니다.</p>
+                {% endif %}
+            </section>
+        </main>
+    </div>
+</body>
+</html>
