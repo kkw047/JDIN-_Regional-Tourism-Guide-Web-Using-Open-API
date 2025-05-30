@@ -217,7 +217,7 @@ def live():
     for i in range(1, count + 1):
         site_id = request.form.get(f'site{i}_id')
         tourist_sites_ids_from_form.append(site_id)
-    print(f"DEBUG: 폼에서 받은 관광지 ID 목록: {tourist_sites_ids_from_form}")
+
 
     missions = []
 
@@ -228,7 +228,6 @@ def live():
             # 모든 미션을 미리 한 번 조회하여 성능 최적화
             cursor.execute("SELECT id, category FROM mission")
             all_missions = cursor.fetchall()
-            print(f"DEBUG: 데이터베이스에서 조회된 모든 미션: {all_missions}")
 
             # 모든 미션의 카테고리를 미리 정규화하여 딕셔너리로 저장 (성능 개선)
             normalized_all_mission_categories = {}
@@ -243,7 +242,7 @@ def live():
                 else:
                     normalized_all_mission_categories[mission_id] = set()  # 카테고리가 없으면 빈 집합
 
-            print(f"DEBUG: 정규화된 모든 미션 카테고리 맵: {normalized_all_mission_categories}")
+
 
             for i in range(count):  # count는 1부터 시작하므로 인덱스는 0부터 count-1
                 site_id = tourist_sites_ids_from_form[i]  # 폼에서 받은 ID 사용
@@ -260,8 +259,7 @@ def live():
                         # `'`가 없더라도 split(',')은 작동하며, 단일 카테고리('문화존')도 잘 처리함.
                         site_categories = {cat.strip().lower() for cat in raw_site_category.split(',') if
                                            cat.strip()}
-                        print(
-                            f"DEBUG: 관광지 ID: {site_id}, 원본 카테고리: '{raw_site_category}', 정규화된 관광지 카테고리 (집합): {site_categories}")
+
 
                         # 4. 매칭되는 미션 찾기
                         matching_missions = []
@@ -273,31 +271,31 @@ def live():
                             if site_categories and (
                                     site_categories & mission_categories):  # site_categories가 비어있지 않아야 교집합 검사
                                 matching_missions.append(mission_id)
-                                # print(f"DEBUG: 미션 ID {mission_id} ({mission_categories}) 매칭됨! (관광지: {site_categories})") # 너무 많을 경우 주석 처리
 
-                        print(f"DEBUG: 관광지 {site_id}에 대해 매칭된 미션 목록: {matching_missions}")
+
+
 
                         # 5. 매칭된 미션이 있으면 랜덤 선택, 없으면 전체에서 랜덤
                         if matching_missions:
                             mission_id_to_add = random.choice(matching_missions)
-                            print(f"DEBUG: 관광지 {site_id}에 특정 카테고리 매칭 미션 할당: {mission_id_to_add}")
+
                         else:
                             if all_missions:  # all_missions가 비어있지 않은 경우에만 랜덤 선택
                                 mission_id_to_add = random.choice([m['id'] for m in all_missions])
-                                print(f"DEBUG: 관광지 {site_id}에 매칭되는 미션 없음, 전체 미션 중 랜덤 할당: {mission_id_to_add}")
+
                             else:
-                                print(f"DEBUG: 미션 테이블에 미션이 아예 없습니다. 관광지 {site_id}에 미션 할당 불가.")
+
                                 mission_id_to_add = None  # 미션이 아예 없으면 None으로 설정
                     else:
-                        print(f"DEBUG: 관광지 ID: {site_id}의 카테고리 정보가 없거나 비어있습니다. 미션 할당 없음.")
+
                         mission_id_to_add = None  # 카테고리 정보가 없으면 미션 없음
                 else:
-                    print(f"DEBUG: site_id가 None입니다. 미션 할당 없음.")
+
                     mission_id_to_add = None  # site_id 자체가 None인 경우
 
                 missions.append(mission_id_to_add)
     except Exception as e:
-        print(f"미션 ID 조회 중 오류: {e}")
+
         # 오류 발생 시, count 만큼 missions 리스트를 채우기 위해 None 추가
         while len(missions) < count:
             missions.append(None)
@@ -307,17 +305,16 @@ def live():
 
     # missions 리스트 길이가 count와 일치하도록 패딩 (혹시 모를 경우)
     while len(missions) < count:
-        print(f"DEBUG: missions 리스트 길이 보충 중. 현재 길이: {len(missions)}, 목표: {count}")
+
         missions.append(None)
 
     # tourist_sites_ids_from_form 리스트 길이 보충 (DB 삽입을 위해)
     while len(tourist_sites_ids_from_form) < count:
         tourist_sites_ids_from_form.append(None)
 
-    print(f"DEBUG: 최종 할당된 미션 목록 (DB 삽입 전): {missions}")
-    print(f"DEBUG: 최종 관광지 ID 목록 (DB 삽입 전): {tourist_sites_ids_from_form}")
 
-    # Database insertion logic... (이 부분은 변경 없음)
+
+
     db_conn_insert = None
     try:
         db_conn_insert = pymysql.connect(**db_config)
@@ -351,9 +348,7 @@ def live():
                       initial_site_confirmed_values +
                       initial_route_confirmed_values)
 
-            print(f"DEBUG: 삽입할 SQL: {sql}")
-            print(f"DEBUG: 삽입할 파라미터 (usercode, sites, missions, mission_conf, site_conf, route_conf): {params}")
-            print(f"DEBUG: 파라미터 길이: {len(params)}, 예상 플레이스홀더 길이: {1 + len(all_columns_list)}")
+
 
             if len(params) != (1 + len(all_columns_list)):
                 print("CRITICAL DEBUG: 파라미터 개수 불일치!")
@@ -361,7 +356,7 @@ def live():
 
             cursor.execute(sql, params)
             db_conn_insert.commit()
-            print(f"DEBUG: 사용자 코드 {usercode}에 대한 데이터 삽입 완료")
+
     except pymysql.MySQLError as e_db_insert:
         print(f"데이터베이스 삽입 오류: {e_db_insert}")
         if db_conn_insert and db_conn_insert.open: db_conn_insert.rollback()
@@ -649,8 +644,96 @@ def update_status():
         if connection and connection.open:
             connection.close()
 
+@app.route('/update_cancel', methods=['POST'])
+def update_cancel():
+    data = request.json
+    usercode = data.get('usercode')  # data['usercode'] -> data.get('usercode')
+    item_type = data.get('item_type')  # data['item_type'] -> data.get('item_type')
+    item_number_str = data.get('item_number')  # data['item_number'] -> data.get('item_number')
 
+    if not all([usercode, item_type, item_number_str]):
+        return jsonify({'status': 'error', 'message': '필수 파라미터 누락'}), 400
 
+    try:
+        item_number = int(item_number_str)
+    except ValueError:
+        return jsonify({'status': 'error', 'message': 'item_number는 정수여야 합니다.'}), 400
+
+    status_sequence = [
+        'tourist_site_1_confirmed',
+        'route_1_confirmed',
+        'tourist_site_2_confirmed',
+        'route_2_confirmed',
+        'tourist_site_3_confirmed'
+        # 필요에 따라 4, 5번 사이트/경로 추가
+    ]
+    connection = None
+    cursor = None  # try 블록 밖에서 선언
+    try:
+        connection = pymysql.connect(**db_config)
+        cursor = connection.cursor()
+
+        current_index = -1
+        # status_sequence에 없는 item_number가 들어올 경우를 대비한 유효성 검사
+        max_site_num = 0
+        max_route_num = 0
+        for s in status_sequence:
+            if "tourist_site_" in s:
+                num = int(s.split("_")[2])
+                if num > max_site_num: max_site_num = num
+            elif "route_" in s:
+                num = int(s.split("_")[1])
+                if num > max_route_num: max_route_num = num
+
+        if item_type == 'site' and not (1 <= item_number <= max_site_num):
+            return jsonify({'status': 'error', 'message': f'잘못된 site_number: {item_number}'}), 400
+        if item_type == 'route' and not (1 <= item_number <= max_route_num):
+            return jsonify({'status': 'error', 'message': f'잘못된 route_number: {item_number}'}), 400
+
+        for i, status_col_name in enumerate(status_sequence):  # status -> status_col_name
+            if item_type == 'site' and status_col_name.startswith(f'tourist_site_{item_number}_confirmed'):
+                current_index = i
+                break
+            elif item_type == 'route' and status_col_name.startswith(f'route_{item_number}_confirmed'):
+                current_index = i
+                break
+
+        if current_index == -1:  # 매칭되는 항목이 없는 경우
+            return jsonify({'status': 'error', 'message': '취소할 항목을 찾을 수 없습니다.'}), 404
+
+        if current_index != -1:
+            updates = []
+            for i, status_col_name_update in enumerate(status_sequence):  # status -> status_col_name_update
+                if i == current_index:
+                    updates.append(f"{status_col_name_update} = 2")  # 진행중
+                elif i > current_index:
+                    updates.append(f"{status_col_name_update} = 0")  # 대기
+
+            if updates:
+                sql = f"""UPDATE user_travel_data 
+                         SET {', '.join(updates)}
+                         WHERE usercode = %s"""
+                cursor.execute(sql, (usercode,))
+                connection.commit()
+                if cursor.rowcount > 0:
+                    return jsonify({'status': 'success'})
+                else:
+                    return jsonify({'status': 'error', 'message': '업데이트할 데이터가 없거나 usercode를 찾을 수 없습니다.'}), 404
+            else:  # updates 리스트가 비어있는 경우 (예: 마지막 항목 취소 시)
+                return jsonify({'status': 'success', 'message': '변경할 후속 상태가 없습니다.'})
+
+        return jsonify({'status': 'success'})  # 이 부분은 current_index != -1 블록 안으로 이동했어야 함.
+
+    except Exception as e:
+        print(f"Error in update_cancel: {e}")
+        if connection and connection.open: connection.rollback()
+        return jsonify({'status': 'error', 'message': str(e)})
+
+    finally:
+        if cursor:  # cursor가 None이 아닐 때만 close
+            cursor.close()
+        if connection and connection.open:
+            connection.close()
 
 
 @app.route('/update_route_status', methods=['POST'])
