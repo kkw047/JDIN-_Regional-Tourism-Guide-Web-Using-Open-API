@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ko">
 
@@ -12,6 +11,7 @@
         margin: 0;
         padding: 20px;
         background-color: #f8f9fa;
+        /* position: relative; */ /* M 버튼과 팝업의 기준을 body로 삼기 위해 필요할 수 있음 */
     }
 
     .container {
@@ -106,7 +106,7 @@
 
     .site-button {
         text-align: left;
-        
+
     }
 
     .arrow-row {
@@ -123,7 +123,7 @@
         transform: translateX(-50%) translateY(-25px);
         font-size: 38px;
         transition: transform 0.3s ease-in-out;
-        animation: none; 
+        animation: none;
     }
 
     @keyframes upDown {
@@ -148,7 +148,7 @@
         transition: background-color 0.3s;
         width: 83px;
         font-size: 18px;
-        line-height: 42px; 
+        line-height: 42px;
         margin-bottom: 5px;
         margin-top: 5px;
         margin-left: 60%;
@@ -292,29 +292,32 @@
 
     #dragM {
         position: absolute;
-        top: 10px;
-        left: 10px;
+        top: 10px; /* 초기 위치 예시 */
+        left: 10px; /* 초기 위치 예시 */
         width: 50px;
         height: 50px;
         background-image: url('/static/m_icon.png');
         background-size: cover;
         cursor: move;
-        z-index: 1000;
+        z-index: 1000; /* 팝업보다 아래, 지도보다는 위 */
     }
 
     #missionPopupContainer {
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        width: 80%;
-        height: 80%;
+        position: absolute; /* fixed에서 absolute로 변경 */
+        /* top, left 는 JS에서 동적으로 설정됩니다. */
+        /* transform: translateY(-50%); 제거 */
+        width: 400px;
+        height: 75%;
+        max-height: 750px;
         background: white;
         border: 1px solid #ccc;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-        z-index: 1001;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        z-index: 1001; /* dragM 보다 위 */
         display: none;
+        border-radius: 8px;
+        overflow: hidden;
     }
+
 
     #missionPopup {
         width: 100%;
@@ -326,12 +329,18 @@
         position: absolute;
         top: 10px;
         right: 10px;
-        padding: 5px 10px;
-        background-color: #f00;
+        padding: 8px 12px;
+        background-color: #e74c3c;
         color: white;
         border: none;
+        border-radius: 5px;
         cursor: pointer;
         z-index: 1002;
+        font-size: 14px;
+        line-height: 1;
+    }
+    #closeButton:hover {
+        background-color: #c0392b;
     }
 
     .toast-message {
@@ -362,49 +371,6 @@
         opacity: 1;
         bottom: 30px;
     }
-      
-      #missionPopupContainer {
-        position: fixed;
-        top: 50%;
-        left: 20px; /* 기존 왼쪽 위치 유지 */
-        transform: translateY(-50%); /* 세로 중앙 정렬 */
-        width: 400px; /* 너비 증가 (예: 350px -> 400px) */
-        height: 75%; /* 높이 증가 (예: 70% -> 75%) */
-        max-height: 750px; /* 최대 높이 증가 (예: 600px -> 750px) */
-        background: white;
-        border: 1px solid #ccc;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-        z-index: 1001;
-        display: none;
-        border-radius: 8px;
-        overflow: hidden; /* 내부 iframe 스크롤은 mission.html에서 처리 */
-    }
-
-    /* missionPopup iframe이 컨테이너를 꽉 채우도록 합니다. */
-    #missionPopup {
-        width: 100%;
-        height: 100%; /* 닫기 버튼 고려하여 100%로 설정하고, mission.html에서 패딩으로 조절 */
-        border: none;
-    }
-
-    /* 닫기 버튼은 iframe 내부에 영향을 주지 않도록 missionPopupContainer 기준으로 위치 */
-    #closeButton {
-        position: absolute;
-        top: 10px; /* 팝업 내부 상단에서 약간 아래 */
-        right: 10px; /* 팝업 내부 오른쪽에서 약간 왼쪽 */
-        padding: 8px 12px; /* 버튼 크기 적절히 조절 */
-        background-color: #e74c3c; /* 좀 더 부드러운 빨간색 */
-        color: white;
-        border: none;
-        border-radius: 5px; /* 버튼 모서리 둥글게 */
-        cursor: pointer;
-        z-index: 1002; /* iframe 위에 있도록 */
-        font-size: 14px;
-        line-height: 1; /* 텍스트 세로 정렬 */
-    }
-    #closeButton:hover {
-        background-color: #c0392b;
-    }
 
 </style>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -417,7 +383,6 @@
         <h1>실시간 여행 현황</h1>
         <div id="map">
             <div id="dragM"></div>
-            <!-- 지도 하단 영역 -->
             <div class="map-footer">
                 <div class="user-code" onclick="copyUserCode()">User Code: {{ usercode }}</div>
             </div>
@@ -432,17 +397,14 @@
             </div>
             <div class="site-button">
                 {% if statuses[i] == 0 %}
-                    <!-- 대기 상태: 이전 항목이 완료되었을 때만 활성화 -->
                     {% if i == 0 or (statuses[i-1] == 1 and (i == 1 or routes[i-2].status == 1)) %}
                         <button class="status-button waiting" onclick="openPopup('site', '{{ usercode }}', {{ i + 1 }}, 2)">대기</button>
                     {% else %}
                         <button class="status-button waiting" disabled>대기</button>
                     {% endif %}
                 {% elif statuses[i] == 2 %}
-                    <!-- 진행중 상태 -->
                     <button class="status-button in-progress blinking" onclick="openCompletePopup('{{ usercode }}', {{ i + 1 }})">진행중</button>
                 {% elif statuses[i] == 1 %}
-                    <!-- 완료 상태: 취소 확인 팝업만 표시 -->
                     <button class="status-button completed" onclick="openCancelPopup('site', '{{ usercode }}', {{ i + 1 }})">완료</button>
                 {% endif %}
             </div>
@@ -453,17 +415,14 @@
             </div>
             <div class="route-button">
                 {% if routes[i].status == 0 %}
-                    <!-- 경로 대기 상태: 이전 관광지가 완료되었을 때만 활성화 -->
                     {% if statuses[i] == 1 %}
                         <button class="status-button waiting" onclick="openPopup('route', '{{ usercode }}', {{ i + 1 }}, 2)">대기</button>
                     {% else %}
                         <button class="status-button waiting" disabled>대기</button>
                     {% endif %}
                 {% elif routes[i].status == 2 %}
-                    <!-- 경로 진행중 상태 -->
                     <button class="status-button in-progress blinking" onclick="openPopup('route', '{{ usercode }}', {{ i + 1 }}, 1)">진행중</button>
                 {% elif routes[i].status == 1 %}
-                    <!-- 경로 완료 상태: 취소 확인 팝업만 표시 -->
                     <button class="status-button completed" onclick="openCancelPopup('route', '{{ usercode }}', {{ i + 1 }})">완료</button>
                 {% endif %}
             </div>
@@ -474,7 +433,6 @@
 </ul>
 
         {% if statuses[-1] == 1 %}
-        <!-- 마지막 관광지가 완료되었을 때만 여행 완료 버튼 표시 -->
         <div class="complete-button-container">
             <button class="complete-button" onclick="completeAll()">여행 완료</button>
         </div>
@@ -495,9 +453,7 @@
             <div class="popup-button-group">
                 <button onclick="cancelStatus()" style="background-color: #28a745;">예</button>
                 <button onclick="closePopup()" style ="background-color: #dc3545;">아니오</button>
-
-            </div>            
-            
+            </div>
         </div>
 
         <div class="popup" id="completePopup" >
@@ -521,12 +477,12 @@
 
         <div class="overlay" id="popupOverlay"></div>
 
-        <div id="missionPopupContainer">
-            <button id="closeButton" onclick="closeMissionPopup()">닫기</button>
-            <iframe id="missionPopup" src="___" ></iframe>
         </div>
-        <div id="toastMessage" class="toast-message"></div>
+    <div id="missionPopupContainer">
+        <button id="closeButton" onclick="closeMissionPopup()">닫기</button>
+        <iframe id="missionPopup" src="about:blank" ></iframe>
     </div>
+    <div id="toastMessage" class="toast-message"></div>
 
     <script>
         let map;
@@ -545,10 +501,16 @@
         const startIcon = "/static/start.png";
         const middleIcon = "/static/middle.png";
         const endIcon = "/static/end.png";
-        // 지도 초기화 시 city 변수를 정의합니다.
-        let city = "서울"; // 기본 도시를 서울로 설정 (또는 다른 기본값)
+        let city = "서울";
+
+        // 미션 팝업 관련 변수
+        let missionPopupContainerEl;
+        let dragMEl;
+        const missionPopupWidth = 400; // CSS에 정의된 #missionPopupContainer의 너비
+        const popupMargin = 15;      // M 버튼과 팝업 사이의 여백
 
         function openPopup(type, usercode, number, status) {
+
             console.log("openPopup 호출", type, usercode, number, status);
             currentType = type;
             currentUsercode = usercode;
@@ -582,6 +544,7 @@
         }
 
         function openCompletePopup(usercode, number) {
+
             console.log("openCompletePopup 호출", usercode, number);
             currentUsercode = usercode;
             currentNumber = number;
@@ -592,9 +555,9 @@
             document.getElementById('popupOverlay').style.display = 'block';
         }
 
-        // 취소 팝업을 표시하는 함수 (항목 종류와 번호를 인자로 받음)
         function openCancelPopup(type, usercode, number) {
-            console.log("openCancelPopup 호출", type, usercode, number);
+
+             console.log("openCancelPopup 호출", type, usercode, number);
             currentType = type;
             currentUsercode = usercode;
             currentNumber = number;
@@ -614,6 +577,7 @@
         }
 
         async function updateStatus() {
+
             let url = '/update_status';
             let data = {
                 usercode: usercode,
@@ -642,16 +606,13 @@
                 const result = await response.json();
 
                 if (result.status === 'success') {
-                    // 상태 업데이트 성공 시 다음 상태 변경 로직 추가
                     if (currentType === 'site') {
-                        // 현재 관광지 완료 -> 다음 경로 진행중으로 변경
                         if (currentNumber < touristSites.length) {
-                            await updateRouteStatus(currentNumber, 2); // 다음 경로를 진행 중으로 변경
+                            await updateRouteStatus(currentNumber, 2);
                         }
                     } else if (currentType === 'route') {
-                        // 현재 경로 완료 -> 다음 관광지 진행중으로 변경
                         if (currentNumber + 1 <= touristSites.length) {
-                            await updateSiteStatus(currentNumber + 1, 2); // 다음 관광지를 진행 중으로 변경
+                            await updateSiteStatus(currentNumber + 1, 2);
                         }
                     }
                     location.reload();
@@ -662,11 +623,11 @@
                 console.error('Error:', error);
                 alert('상태 업데이트 중 오류 발생');
             }
-
             closePopup();
         }
 
         async function completeStatus() {
+
             try {
                 const response = await fetch('/update_status', {
                     method: 'POST',
@@ -683,14 +644,10 @@
                 if (!response.ok) {
                     throw new Error('Network response was not ok');
                 }
-
                 const data = await response.json();
-
                 if (data.status === 'success') {
-                    // 상태 업데이트 성공 시 다음 상태 변경 로직 추가
-                    // 마지막 관광지가 아닌 경우에만 updateRouteStatus 호출
                     if (currentNumber < touristSites.length) {
-                        await updateRouteStatus(currentNumber, 2); // 다음 경로를 진행 중으로 변경
+                        await updateRouteStatus(currentNumber, 2);
                     }
                     location.reload();
                 } else {
@@ -700,11 +657,11 @@
                 console.error('Error:', error);
                 alert('상태 업데이트 중 오류 발생');
             }
-
             closePopup();
         }
 
         async function cancelStatus() {
+
             const data = {
                 usercode: usercode,
                 item_type: currentType,
@@ -723,7 +680,6 @@
                 if (!response.ok) {
                     throw new Error('Network response was not ok');
                 }
-
                 const result = await response.json();
                 if (result.status === 'success') {
                     location.reload();
@@ -734,11 +690,9 @@
                 console.error('Error:', error);
                 alert('상태 취소 중 오류 발생');
             }
-
             closePopup();
         }
 
-        // 특정 관광지의 상태를 업데이트하는 함수
         async function updateSiteStatus(siteNumber, status) {
             try {
                 const response = await fetch('/update_status', {
@@ -752,16 +706,11 @@
                         new_status: status
                     })
                 });
-
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-
+                if (!response.ok) { throw new Error('Network response was not ok'); }
                 const data = await response.json();
-
                 if (data.status === 'success') {
                     console.log(`관광지 ${siteNumber} 상태가 ${status}로 업데이트되었습니다.`);
-                    location.reload(); // 페이지 리로드
+                    location.reload();
                 } else {
                     alert(`관광지 ${siteNumber} 상태 업데이트 실패: ` + data.message);
                 }
@@ -771,9 +720,9 @@
             }
         }
 
-        // 특정 경로의 상태를 업데이트하는 함수
         async function updateRouteStatus(routeNumber, status) {
-            try {
+
+             try {
                 const response = await fetch('/update_route_status', {
                     method: 'POST',
                     headers: {
@@ -785,16 +734,11 @@
                         new_status: status
                     })
                 });
-
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-
+                if (!response.ok) { throw new Error('Network response was not ok');}
                 const data = await response.json();
-
                 if (data.status === 'success') {
                     console.log(`경로 ${routeNumber} 상태가 ${status}로 업데이트되었습니다.`);
-                    location.reload(); // 페이지 리로드
+                    location.reload();
                 } else {
                     alert(`경로 ${routeNumber} 상태 업데이트 실패: ` + data.message);
                 }
@@ -805,34 +749,20 @@
         }
 
         function initializeMap() {
+
             const cityCoordinates = {
-                "서울": {
-                    lat: 37.5665,
-                    lng: 126.9780
-                },
-                "청주": {
-                    lat: 36.6424341,
-                    lng: 127.4890319
-                },
-                "부산": {
-                    lat: 35.1796,
-                    lng: 129.0756
-                },
-                "제주": {
-                    lat: 33.4996,
-                    lng: 126.5312
-                }
+                "서울": { lat: 37.5665, lng: 126.9780 },
+                "청주": { lat: 36.6424341, lng: 127.4890319 },
+                "부산": { lat: 35.1796, lng: 129.0756 },
+                "제주": { lat: 33.4996, lng: 126.5312 }
             };
-
             const center = cityCoordinates[city] || cityCoordinates["서울"];
-
             map = new Tmapv2.Map("map", {
                 center: new Tmapv2.LatLng(center.lat, center.lng),
                 width: "100%",
                 height: "500px",
                 zoom: 12
             });
-
             infoWindow = new Tmapv2.InfoWindow({
                 position: new Tmapv2.LatLng(0, 0),
                 border: '0px solid #FFFFFF',
@@ -852,29 +782,20 @@
         }
 
         function updateMapMarkers() {
-            if (!tmapLoaded) {
+
+             if (!tmapLoaded) {
                 console.warn("Tmap API가 아직 로드되지 않았습니다. 마커 업데이트를 연기합니다.");
                 return;
             }
-
             clearMarkers();
-
             touristSites.forEach((site, index) => {
                 if (site && site.mapy && site.mapx) {
                    let markerIcon;
-                    if (index === 0) {
-                        markerIcon = startIcon;
-                    } else if (index === touristSites.length - 1) {
-                        markerIcon = endIcon;
-                    } else {
-                        markerIcon = middleIcon;
-                    }
+                    if (index === 0) markerIcon = startIcon;
+                    else if (index === touristSites.length - 1) markerIcon = endIcon;
+                    else markerIcon = middleIcon;
 
                     const lonLat = new Tmapv2.LatLng(site.mapy, site.mapx);
-
-                    const blinkingIcon = "/static/blinking_marker.gif"; // GIF 아이콘
-
-
                     const marker = new Tmapv2.Marker({
                         position: lonLat,
                         icon: markerIcon,
@@ -882,15 +803,10 @@
                         title: site.name,
                         map: map
                     });
-
-                    // 진행중 상태면 깜빡이게 하기
                     if (statuses[index] === 2) {
-                        const el = marker.getElement(); // 마커 DOM 요소
-                        if (el) {
-                            el.classList.add('marker-blinking');
-                        }
+                        const el = marker.getElement();
+                        if (el) el.classList.add('marker-blinking');
                     }
-
                     markers.push(marker);
                 } else {
                     console.error(`유효하지 않은 위치 정보: ${site.name}`);
@@ -902,101 +818,63 @@
                     bounds.extend(markers[i].getPosition());
                 }
                 if (touristSites.length === 1) {
-                    // 관광지가 하나인 경우 특정 줌 레벨 설정
                     map.setCenter(markers[0].getPosition());
-                    map.setZoom(15); // 원하는 줌 레벨로 설정
+                    map.setZoom(15);
                 } else {
-                    // 관광지가 여러 개인 경우 기존 방식 유지
                     map.fitBounds(bounds);
                 }
             }
         }
 
-        // 경로를 그리는 함수
         function getTmapPath() {
-            if (!tmapLoaded) {
-                console.warn("Tmap API가 아직 로드되지 않았습니다. 경로 요청을 연기합니다.");
-                return;
-            }
 
-            // 기존 경로 삭제
+            if (!tmapLoaded) { console.warn("Tmap API 로드 전, 경로 요청 연기."); return; }
             clearPolylines();
-            travelInfos = []; // 소요 시간과 거리 정보 초기화
-
-            if (touristSites.length < 2) {
-                console.warn("경로를 그리려면 2개 이상의 위치가 필요합니다.");
-                return;
-            }
-
-            // 각 지점들을 순차적으로 연결하는 경로 요청
+            if (touristSites.length < 2) { console.warn("경로를 그리려면 2개 이상 위치 필요."); return; }
             let promises = [];
             for (let i = 0; i < touristSites.length - 1; i++) {
                 const startPoint = touristSites[i];
                 const endPoint = touristSites[i + 1];
-
                 if (!startPoint || !endPoint || !startPoint.mapx || !startPoint.mapy || !endPoint.mapx || !endPoint.mapy) {
-                    console.error("시작점 또는 종료점 좌표가 유효하지 않습니다.");
-                    continue;
+                    console.error("시작/종료점 좌표 유효하지 않음."); continue;
                 }
-
-                // Tmap API에 요청할 데이터 설정
                 const requestData = {
-                    startX: startPoint.mapx,
-                    startY: startPoint.mapy,
-                    endX: endPoint.mapx,
-                    endY: endPoint.mapy,
-                    reqCoordType: "WGS84GEO",
-                    resCoordType: "WGS84GEO",
-                    startName: touristSites[i].name,
-                    endName: touristSites[i + 1].name
+                    startX: startPoint.mapx, startY: startPoint.mapy,
+                    endX: endPoint.mapx, endY: endPoint.mapy,
+                    reqCoordType: "WGS84GEO", resCoordType: "WGS84GEO",
+                    startName: touristSites[i].name, endName: touristSites[i + 1].name
                 };
-                // Tmap API 호출
                 const promise = $.ajax({
                     method: "POST",
                     url: "https://apis.openapi.sk.com/tmap/routes/pedestrian?version=1&format=json",
-                    headers: {
-                        "Accept": "application/json",
-                        "Content-Type": "application/json; charset=utf-8",
-                        "appKey": apiKey
-                    },
+                    headers: { "Accept": "application/json", "Content-Type": "application/json; charset=utf-8", "appKey": apiKey },
                     data: JSON.stringify(requestData)
                 });
                 promises.push(promise);
             }
-
             Promise.all(promises)
                 .then(results => {
                     results.forEach((response, index) => {
                         const resultData = response.features;
-
-                        let color = "#DD0000"; // 기본 빨간색
-                        if (routes[index].status === 2) color = "#007bff"; // 진행중은 파랑
-                        else if (routes[index].status === 1) color = "#28a745"; // 완료는 초록
-
+                        let color = "#DD0000";
+                        if (routes[index].status === 2) color = "#007bff";
+                        else if (routes[index].status === 1) color = "#28a745";
                         drawTmapPath(resultData, color);
                     });
                 })
-                .catch(error => {
-                    console.error("경로 요청 실패:", error);
-                    console.error("오류 메시지:", error.responseText);
-                });
+                .catch(error => { console.error("경로 요청 실패:", error, error.responseText); });
         }
 
         function drawTmapPath(pathData, color = "#DD0000") {
-            if (!pathData) {
-                console.warn("경로 데이터가 없습니다.");
-                return;
-            }
 
+            if (!pathData) { console.warn("경로 데이터 없음."); return; }
             for (let i in pathData) {
                 const geometry = pathData[i].geometry;
                 if (geometry.type === "LineString") {
                     const coords = geometry.coordinates;
                     const line = new Tmapv2.Polyline({
                         path: coords.map(coord => new Tmapv2.LatLng(coord[1], coord[0])),
-                        strokeColor: color,
-                        strokeWeight: 6,
-                        map: map
+                        strokeColor: color, strokeWeight: 6, map: map
                     });
                     polylines.push(line);
                 }
@@ -1004,20 +882,15 @@
         }
 
         function clearPolylines() {
-            for (let i in polylines) {
-                polylines[i].setMap(null);
-            }
+            for (let i in polylines) { polylines[i].setMap(null); }
             polylines = [];
         }
 
-
-        // '여행 완료' 버튼 클릭 시 호출되는 함수
         async function completeAll() {
             document.getElementById('confirmCompletePopup').style.display = 'block';
             document.getElementById('popupOverlay').style.display = 'block';
         }
 
-        // tmapApi 로드 성공시 init 함수 호출
         function tmapApiLoaded() {
             console.log("Tmapv2 API 로드 완료");
             init();
@@ -1041,70 +914,139 @@
             console.error("경로 요청 오류:", error);
         }
 
-        // 팝업을 열기 위한 함수
-       function openMissionPopup() {
-        const usercode = '{{ usercode }}'; // Jinja2 템플릿 변수 사용
-        if (!usercode) {
-        console.error("usercode가 없습니다.");
-        return;
-    }
-    $("#missionPopup").attr("src", `/mission?usercode=${usercode}`);
-    $("#missionPopupContainer").css("display", "block");
-}
-        // 미션 팝업 닫기 함수 (기존 CSS/HTML ID에 맞춤)
+
+        function openMissionPopup() {
+            const usercode = '{{ usercode }}';
+            if (!usercode) {
+                console.error("usercode가 없습니다.");
+                return;
+            }
+
+            if (!dragMEl || !dragMEl.length || !missionPopupContainerEl || !missionPopupContainerEl.length) {
+                console.error("#dragM 또는 #missionPopupContainer 요소를 찾을 수 없습니다.");
+                // 요소가 없으면 기본 동작 또는 오류 메시지
+                $("#missionPopup").attr("src", `/mission?usercode=${usercode}`);
+                $("#missionPopupContainer").css({ display: 'block', top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }); // 예: 중앙 정렬
+                return;
+            }
+
+            // dragMEl의 현재 위치 (offsetParent 기준)
+            const dragMPos = dragMEl.position(); // {top, left}
+            const dragMOffset = dragMEl.offset(); // 문서 기준 {top, left}
+
+            // missionPopupContainerEl의 offsetParent의 offset을 가져옵니다.
+            // dragM과 missionPopupContainer가 같은 부모를 가지거나,
+            // missionPopupContainer가 body의 직계 자식일 경우 계산이 간단해집니다.
+            // 현재 HTML 구조상 missionPopupContainerEl는 .container의 형제 요소로, body의 자식입니다.
+            // dragMEl은 #map의 자식입니다. #map은 .container의 자식입니다.
+            // 따라서, dragMEl의 절대 위치(offset)를 사용하고, missionPopupContainerEl의 위치를 그에 맞게 설정합니다.
+
+            let popupTop = dragMOffset.top; // M 버튼의 상단에 팝업의 상단을 맞춤
+            let popupLeft = dragMOffset.left - missionPopupWidth - popupMargin; // M 버튼의 왼쪽에 위치
+
+            // 화면 왼쪽 가장자리를 벗어나지 않도록 함
+            popupLeft = Math.max(0, popupLeft);
+            // 화면 상단 가장자리를 벗어나지 않도록 함
+            popupTop = Math.max(0, popupTop);
+
+            missionPopupContainerEl.css({
+                top: popupTop + 'px',
+                left: popupLeft + 'px',
+                display: 'block'
+            });
+
+            $("#missionPopup").attr("src", `/mission?usercode=${usercode}`);
+        }
+
         function closeMissionPopup() {
-            $("#missionPopupContainer").css("display", "none");
-            $("#missionPopup").attr("src", "about:blank"); // iframe src 초기화
+            if (missionPopupContainerEl) {
+                missionPopupContainerEl.css("display", "none");
+            }
+            $("#missionPopup").attr("src", "about:blank");
         }
 
         $(document).ready(function () {
+            // DOM 요소 캐싱
+            missionPopupContainerEl = $("#missionPopupContainer");
+            dragMEl = $("#dragM");
+
             init();
 
-            // 페이지 로드 시 첫 번째 관광지 상태를 2(진행 중)로 변경 (한 번만 실행)
             let firstSiteProcessed = localStorage.getItem('firstSiteProcessed');
             if (!firstSiteProcessed) {
                 updateSiteStatus(1, 2);
                 localStorage.setItem('firstSiteProcessed', 'true');
             }
-            // Drag 이벤트 핸들러 오류 수정
-            $("#dragM").draggable({
-                stop: function(event, ui) {
-                    console.log("M 버튼 위치: top=" + ui.position.top + ", left=" + ui.position.left);
-                }
-            });
 
-            // M 버튼 클릭 시 팝업 창 띄우기
-            $(document).on('click', '#dragM', function() {
-                openMissionPopup(); // M 버튼 클릭 시 팝업 열기
-            });
+            if (dragMEl.length) {
+                dragMEl.draggable({
+                    containment: "document", // body 또는 특정 컨테이너로 제한 가능
+                    drag: function(event, ui) {
+                        // M 버튼이 드래그되는 동안 미션 팝업 위치 동기화
+                        if (missionPopupContainerEl.is(":visible")) {
+                            // ui.position은 draggable helper의 현재 position (offsetParent 기준)
+                            // ui.offset은 draggable helper의 현재 offset (document 기준)
+                            let newTop = ui.offset.top;
+                            let newLeft = ui.offset.left - missionPopupWidth - popupMargin;
 
-            // 목적지 및 진행도 정보 업데이트
-            function updateDestinationInfo() {
-                let currentSiteIndex = statuses.findIndex(status => status === 2);
-                if (currentSiteIndex === -1) {
-                    currentSiteIndex = touristSites.length - 1; // 마지막 관광지
-                }
-                let nextSite = touristSites[currentSiteIndex];
-                let progress = Math.min(currentSiteIndex + 1, touristSites.length);
+                            // 화면 왼쪽 가장자리를 벗어나지 않도록 newLeft 조정
+                            newLeft = Math.max(0, newLeft);
+                            // 화면 상단 가장자리를 벗어나지 않도록 newTop 조정
+                            newTop = Math.max(0, newTop);
 
-                let infoText = `목적지: ${nextSite.name} (${progress}/${touristSites.length})`;
-                $("#destinationInfo").text(infoText);
+                            missionPopupContainerEl.css({
+                                top: newTop + 'px',
+                                left: newLeft + 'px'
+                            });
+                        }
+                    },
+                    stop: function(event, ui) {
+                        console.log("M 버튼 최종 위치 (offset): top=" + ui.offset.top + ", left=" + ui.offset.left);
+                        // 드래그 멈췄을 때 최종 위치 한번 더 동기화 (선택사항, drag에서 이미 잘 처리됨)
+                         if (missionPopupContainerEl.is(":visible")) {
+                            let finalTop = ui.offset.top;
+                            let finalLeft = ui.offset.left - missionPopupWidth - popupMargin;
+                            finalLeft = Math.max(0, finalLeft);
+                            finalTop = Math.max(0, finalTop);
+                            missionPopupContainerEl.css({
+                                top: finalTop + 'px',
+                                left: finalLeft + 'px'
+                            });
+                        }
+                    }
+                });
+            } else {
+                console.error("#dragM 요소를 찾을 수 없습니다.");
             }
 
-            // 초기 로드 시 및 상태 업데이트 시 정보 업데이트
+            $(document).on('click', '#dragM', function() {
+                if (missionPopupContainerEl.is(":visible")) {
+                    closeMissionPopup();
+                } else {
+                    openMissionPopup();
+                }
+            });
+
+            function updateDestinationInfo() {
+                let currentSiteIndex = statuses.findIndex(status => status === 2);
+                if (currentSiteIndex === -1) currentSiteIndex = touristSites.length - 1;
+                let nextSite = touristSites[currentSiteIndex];
+                let progress = Math.min(currentSiteIndex + 1, touristSites.length);
+                // let infoText = `목적지: ${nextSite.name} (${progress}/${touristSites.length})`;
+                // $("#destinationInfo").text(infoText); // 해당 ID가 HTML에 없음
+            }
             updateDestinationInfo();
 
-            // 상태 업데이트 함수 호출 시 정보 업데이트
-            const originalUpdateStatus = updateStatus;
-            updateStatus = async function () {
-                await originalUpdateStatus.apply(this, arguments);
-                updateDestinationInfo(); // 상태 업데이트 후 정보 업데이트
+            const originalUpdateStatusInternal = updateStatus; // 이름 충돌 방지
+            updateStatus = async function () { // 전역 updateStatus를 덮어쓰므로 주의
+                await originalUpdateStatusInternal.apply(this, arguments);
+                updateDestinationInfo();
             };
         });
 
         function copyUserCode() {
-            const userCode = '{{ usercode }}';
-            navigator.clipboard.writeText(userCode).then(() => {
+            const userCodeToCopy = '{{ usercode }}'; // usercode 변수명 일치
+            navigator.clipboard.writeText(userCodeToCopy).then(() => {
                 showToastMessage('User Code가 복사되었습니다!');
             }).catch(err => {
                 console.error('복사 실패:', err);
@@ -1112,13 +1054,10 @@
             });
         }
 
-        // 토스트 메시지 표시 함수
         function showToastMessage(message) {
             const toast = document.getElementById('toastMessage');
             toast.textContent = message;
             toast.classList.add('show');
-
-            // 2초 후에 메시지 사라짐
             setTimeout(() => {
                 toast.classList.remove('show');
             }, 2000);
@@ -1131,5 +1070,4 @@
         }
     </script>
 </body>
-
 </html>
