@@ -488,13 +488,13 @@ def get_mission_details(usercode):
         with connection.cursor() as cursor:
             # 미션 데이터와 함께 관광지 ID 가져오기
             sql = """
-                SELECT
-                    mission_1, mission_1_confirmed, tourist_site_1,
-                    mission_2, mission_2_confirmed, tourist_site_2,
-                    mission_3, mission_3_confirmed, tourist_site_3
-                FROM user_travel_data
-                WHERE usercode = %s
-            """
+                            SELECT
+                                mission_1, mission_1_confirmed, tourist_site_1, tourist_site_1_confirmed,
+                                mission_2, mission_2_confirmed, tourist_site_2, tourist_site_2_confirmed,
+                                mission_3, mission_3_confirmed, tourist_site_3, tourist_site_3_confirmed
+                            FROM user_travel_data
+                            WHERE usercode = %s
+                        """
             cursor.execute(sql, (usercode,))
             user_data = cursor.fetchone()
 
@@ -502,22 +502,25 @@ def get_mission_details(usercode):
                 return jsonify({"success": False, "error": "사용자 데이터를 찾을 수 없습니다."}), 404
 
             missions_data = []
-            for i in range(1, 4): # 최대 3개의 미션/관광지 가정
+            for i in range(1, 4):  # 최대 3개의 미션/관광지 가정
                 mission_id_key = f'mission_{i}'
                 mission_confirmed_key = f'mission_{i}_confirmed'
-                tourist_site_id_key = f'tourist_site_{i}' # 관광지 ID를 위한 새로운 키
+                tourist_site_id_key = f'tourist_site_{i}'
+                tourist_site_status_key = f'tourist_site_{i}_confirmed'  # 관광지 상태 키
 
                 mission_id = user_data.get(mission_id_key)
-                mission_confirmed_status = user_data.get(mission_confirmed_key)
-                is_mission_confirmed = bool(mission_confirmed_status) if mission_confirmed_status is not None else False
-                tourist_site_id = user_data.get(tourist_site_id_key) # 관광지 ID 가져오기
+                mission_confirmed_status_val = user_data.get(mission_confirmed_key)
+                is_mission_confirmed_bool = bool(
+                    mission_confirmed_status_val) if mission_confirmed_status_val is not None else False
+                tourist_site_id = user_data.get(tourist_site_id_key)
+                current_tourist_site_status = user_data.get(tourist_site_status_key)  # 관광지 상태 값 가져오기
 
-                site_info_to_add = { # 기본값으로 초기화
+                site_info_to_add = {
                     "site_name": "정보 없음",
-                    "site_image": None # 기본 이미지 또는 플레이스홀더
+                    "site_image": None
                 }
 
-                if tourist_site_id: # 연결된 관광지가 있는 경우
+                if tourist_site_id:
                     cursor.execute("SELECT name, image FROM tourist_attraction WHERE id = %s", (tourist_site_id,))
                     site_details = cursor.fetchone()
                     if site_details:
@@ -533,21 +536,24 @@ def get_mission_details(usercode):
                             "id": mission_info['id'],
                             "title": mission_info['title'],
                             "content": mission_info['content'],
-                            "confirmed": is_mission_confirmed,
-                            "mission_number": i,
-                            "site_name": site_info_to_add["site_name"], # 관광지 이름 추가
-                            "site_image": site_info_to_add["site_image"] # 관광지 이미지 추가
-                        })
-                    else:
-                        # user_travel_data에는 미션 ID가 있지만, mission 테이블에는 없는 경우
-                        missions_data.append({
-                            "id": None,
-                            "title": "미션 정보를 찾을 수 없습니다.",
-                            "content": "",
-                            "confirmed": is_mission_confirmed,
+                            "confirmed": is_mission_confirmed_bool,
                             "mission_number": i,
                             "site_name": site_info_to_add["site_name"],
-                            "site_image": site_info_to_add["site_image"]
+                            "site_image": site_info_to_add["site_image"],
+                            "tourist_site_status": current_tourist_site_status if current_tourist_site_status is not None else 0
+                            # 관광지 상태 전달
+                        })
+                    else:  # mission_info가 None인 경우 (DB에 해당 mission_id가 없는 경우)
+                        missions_data.append({
+                            "id": None,  # mission_info['id'] 대신 None 또는 mission_id
+                            "title": "미션 정보를 찾을 수 없습니다.",
+                            "content": "",
+                            "confirmed": is_mission_confirmed_bool,
+                            "mission_number": i,
+                            "site_name": site_info_to_add["site_name"],
+                            "site_image": site_info_to_add["site_image"],
+                            "tourist_site_status": current_tourist_site_status if current_tourist_site_status is not None else 0
+                            # << 여기도 추가 >>
                         })
                 elif tourist_site_id:
                     # 이 경우는 해당 슬롯에 관광지가 선택되었지만, 미션이 할당되지 않았음을 의미합니다.
