@@ -5,7 +5,7 @@ import string
 from urllib.parse import unquote
 import json
 import sys  # submit_review에서 사용
-
+from urllib.parse import unquote
 app = Flask(__name__)
 
 # MySQL DB 설정
@@ -102,6 +102,7 @@ def get_tourist_sites():
     finally:
         if connection and connection.open:
             connection.close()
+
 
 
 @app.route('/process')
@@ -643,96 +644,7 @@ def update_status():
             connection.close()
 
 
-@app.route('/update_cancel', methods=['POST'])
-def update_cancel():
-    data = request.json
-    usercode = data.get('usercode')  # data['usercode'] -> data.get('usercode')
-    item_type = data.get('item_type')  # data['item_type'] -> data.get('item_type')
-    item_number_str = data.get('item_number')  # data['item_number'] -> data.get('item_number')
 
-    if not all([usercode, item_type, item_number_str]):
-        return jsonify({'status': 'error', 'message': '필수 파라미터 누락'}), 400
-
-    try:
-        item_number = int(item_number_str)
-    except ValueError:
-        return jsonify({'status': 'error', 'message': 'item_number는 정수여야 합니다.'}), 400
-
-    status_sequence = [
-        'tourist_site_1_confirmed',
-        'route_1_confirmed',
-        'tourist_site_2_confirmed',
-        'route_2_confirmed',
-        'tourist_site_3_confirmed'
-        # 필요에 따라 4, 5번 사이트/경로 추가
-    ]
-    connection = None
-    cursor = None  # try 블록 밖에서 선언
-    try:
-        connection = pymysql.connect(**db_config)
-        cursor = connection.cursor()
-
-        current_index = -1
-        # status_sequence에 없는 item_number가 들어올 경우를 대비한 유효성 검사
-        max_site_num = 0
-        max_route_num = 0
-        for s in status_sequence:
-            if "tourist_site_" in s:
-                num = int(s.split("_")[2])
-                if num > max_site_num: max_site_num = num
-            elif "route_" in s:
-                num = int(s.split("_")[1])
-                if num > max_route_num: max_route_num = num
-
-        if item_type == 'site' and not (1 <= item_number <= max_site_num):
-            return jsonify({'status': 'error', 'message': f'잘못된 site_number: {item_number}'}), 400
-        if item_type == 'route' and not (1 <= item_number <= max_route_num):
-            return jsonify({'status': 'error', 'message': f'잘못된 route_number: {item_number}'}), 400
-
-        for i, status_col_name in enumerate(status_sequence):  # status -> status_col_name
-            if item_type == 'site' and status_col_name.startswith(f'tourist_site_{item_number}_confirmed'):
-                current_index = i
-                break
-            elif item_type == 'route' and status_col_name.startswith(f'route_{item_number}_confirmed'):
-                current_index = i
-                break
-
-        if current_index == -1:  # 매칭되는 항목이 없는 경우
-            return jsonify({'status': 'error', 'message': '취소할 항목을 찾을 수 없습니다.'}), 404
-
-        if current_index != -1:
-            updates = []
-            for i, status_col_name_update in enumerate(status_sequence):  # status -> status_col_name_update
-                if i == current_index:
-                    updates.append(f"{status_col_name_update} = 2")  # 진행중
-                elif i > current_index:
-                    updates.append(f"{status_col_name_update} = 0")  # 대기
-
-            if updates:
-                sql = f"""UPDATE user_travel_data 
-                         SET {', '.join(updates)}
-                         WHERE usercode = %s"""
-                cursor.execute(sql, (usercode,))
-                connection.commit()
-                if cursor.rowcount > 0:
-                    return jsonify({'status': 'success'})
-                else:
-                    return jsonify({'status': 'error', 'message': '업데이트할 데이터가 없거나 usercode를 찾을 수 없습니다.'}), 404
-            else:  # updates 리스트가 비어있는 경우 (예: 마지막 항목 취소 시)
-                return jsonify({'status': 'success', 'message': '변경할 후속 상태가 없습니다.'})
-
-        return jsonify({'status': 'success'})  # 이 부분은 current_index != -1 블록 안으로 이동했어야 함.
-
-    except Exception as e:
-        print(f"Error in update_cancel: {e}")
-        if connection and connection.open: connection.rollback()
-        return jsonify({'status': 'error', 'message': str(e)})
-
-    finally:
-        if cursor:  # cursor가 None이 아닐 때만 close
-            cursor.close()
-        if connection and connection.open:
-            connection.close()
 
 
 @app.route('/update_route_status', methods=['POST'])
@@ -875,6 +787,146 @@ def submit_review():
 def finished():
     return render_template('finished.html')
 
+@app.route('/imformation_panel/<string:site_name>', methods=['GET'])#imformation_2 팝업 페이지
+def imformation_panel(site_name):
+    # URL 디코딩
+    from urllib.parse import unquote
+    site_name = unquote(site_name)
+    print(f"DEBUG: Received site_name for panel: {site_name}")
+    
+    connection = None
+    try:
+        connection = pymysql.connect(**db_config)
+        with connection.cursor() as cursor:
+            # 관광지 정보 조회
+            sql_tourist = """
+                SELECT *
+                FROM tourist_attraction
+                WHERE name = %s
+            """
+            cursor.execute(sql_tourist, (site_name,))
+            tourist_info = cursor.fetchone()
+            if not tourist_info:
+                return "관광지 정보를 찾을 수 없습니다.", 404
+
+            # 리뷰 개수 조회
+            sql_review_count = """
+                SELECT COUNT(*) AS review_count
+                FROM review
+                WHERE tourist_attraction_id = %s
+            """
+            cursor.execute(sql_review_count, (tourist_info['id'],))
+            review_count_result = cursor.fetchone()
+            review_count = review_count_result['review_count'] if review_count_result else 0
+
+            # 리뷰 조회
+            sql_reviews = """
+                SELECT *
+                FROM review
+                WHERE tourist_attraction_id = %s
+            """
+            cursor.execute(sql_reviews, (tourist_info['id'],))
+            reviews = cursor.fetchall() if cursor.rowcount > 0 else []
+            
+            # 평점 평균 계산
+            if reviews:
+                average_rating = sum(review['rating'] for review in reviews) / len(reviews)
+            else:
+                average_rating = None
+
+        # imformation_2.html 템플릿은 우측 팝업(모달) 형태의 디자인을 포함하도록 구성되어 있어야 합니다.
+        return render_template(
+            'imformation_2.html',
+            tourist_info=tourist_info,
+            review_count=review_count,
+            reviews=reviews,
+            average_rating=average_rating
+        )
+    except Exception as e:
+        import traceback
+        print(f"Error in imformation_panel: {e}")
+        traceback.print_exc()
+        return "오류 발생", 500
+    finally:
+        if connection and connection.open:
+            connection.close()
+
+@app.route('/imformation/<string:site_name>')#imformation 페이지
+def imformation(site_name):
+    site_name = unquote(site_name)  # URL 디코딩
+    print(f"DEBUG: Received site_name: {site_name}")  # site_name 값 출력
+    connection = None
+    try:
+        connection = pymysql.connect(**db_config)
+        with connection.cursor() as cursor:
+            # 1. tourist_attraction 테이블에서 관광지 정보 가져오기
+            sql_tourist = """
+                SELECT * 
+                FROM tourist_attraction 
+                WHERE name = %s
+            """
+            cursor.execute(sql_tourist, (site_name,))
+            tourist_info = cursor.fetchone()
+
+            if not tourist_info:
+                print(f"DEBUG: No tourist attraction found for site_name: {site_name}")
+                return "관광지 정보를 찾을 수 없습니다.", 404
+
+            # tourist_info 출력
+            print(f"DEBUG: Tourist Info: {tourist_info}")
+
+            # 2. review 테이블에서 리뷰 정보 가져오기
+            sql_review_count = """
+                SELECT COUNT(*) AS review_count 
+                FROM review 
+                WHERE tourist_attraction_id = %s
+            """
+            cursor.execute(sql_review_count, (tourist_info['id'],))
+            review_count_result = cursor.fetchone()
+            review_count = review_count_result['review_count'] if review_count_result else 0
+
+            # 리뷰 개수 출력
+            print(f"DEBUG: Review Count: {review_count}")
+
+            sql_reviews = """
+                SELECT * 
+                FROM review 
+                WHERE tourist_attraction_id = %s
+            """
+            cursor.execute(sql_reviews, (tourist_info['id'],))
+            reviews = cursor.fetchall() if cursor.rowcount > 0 else []
+            
+            # 평점 평균 계산
+            if reviews:
+                average_rating = sum(review['rating'] for review in reviews) / len(reviews)
+            else:
+                average_rating = None  # 리뷰가 없으면 None으로 설정
+
+            # 리뷰 행 출력
+            print(f"DEBUG: Reviews: {reviews}")
+
+        # 템플릿 렌더링 전에 데이터 출력
+        print(f"DEBUG: Rendering template with data:")
+        print(f"DEBUG: Tourist Info: {tourist_info}")
+        print(f"DEBUG: Review Count: {review_count}")
+        print(f"DEBUG: Reviews: {reviews}")
+        print(f"DEBUG: Average Rating: {average_rating}")
+
+        return render_template(
+            'imformation.html',
+            tourist_info=tourist_info,
+            review_count=review_count,
+            reviews=reviews,
+            average_rating=average_rating
+        )
+    except Exception as e:
+        import traceback
+        print(f"Error in imformation route: {e}")
+        traceback.print_exc()
+        return "오류가 발생했습니다.", 500
+    finally:
+        if connection and connection.open:
+            connection.close()
 
 def get_site_details_by_id(site_id):
     connection = None

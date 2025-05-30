@@ -71,7 +71,7 @@
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            margin-left:20px;
+            margin-left: 20px;
         }
 
         .site-name {
@@ -116,34 +116,26 @@
         }
 
         .confirm-btn-container {
-            /* 버튼을 감싸는 컨테이너 추가 */
             text-align: center;
-            /* 가운데 정렬 */
             margin-top: 40px;
-            /* 위쪽 여백 조정 */
         }
 
         .confirm-btn {
             display: inline-block;
-            /* 인라인 블록 요소로 변경 */
             padding: 14px 30px;
             font-size: 18px;
             font-weight: bold;
             background-color: #4CAF50;
-            /* 밝은 초록색 */
             color: white;
-            /* 흰색 글씨 */
             border: none;
             border-radius: 8px;
             cursor: pointer;
             transition: background 0.3s;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            /* 그림자 효과 추가 */
         }
 
         .confirm-btn:hover {
             background-color: #45a049;
-            /* 더 진한 초록색으로 변경 */
         }
 
         .route-summary {
@@ -223,9 +215,7 @@
         .arrow-time-block {
             display: flex;
             flex-direction: column;
-            /* 가로 → 세로 정렬 */
             align-items: center;
-            /* 가운데 정렬 */
             margin: 30px 0;
         }
 
@@ -249,10 +239,9 @@
             width: auto;
             text-align: center;
             margin-left: 20px;
-            display: flex; /* 추가 */
-            align-items: center; /* 추가 */
-            justify-content: center; /* 추가 */
-
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .time-column {
@@ -305,10 +294,46 @@
             width: 65px;
             height: 30px;
         }
+
+        /* 모달 관련 스타일 */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 100;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-content {
+            position: fixed;
+            right: 0;
+            top: 0;
+            width: 30%;
+            height: 100%;
+            background: #fff;
+            box-shadow: -2px 0 8px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .modal-content .close {
+            float: right;
+            font-size: 28px;
+            margin: 10px;
+            cursor: pointer;
+        }
+
+        .modal-content iframe {
+            width: 100%;
+            height: calc(100% - 40px);
+            border: none;
+        }
     </style>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://apis.openapi.sk.com/tmap/jsv2?version=1&appKey=Mb9cttQ9De2UcPzNfNwCl7ZRY31kNiUqPjCAeZne&callback=tmapApiLoaded"></script>
-
 </head>
 
 <body>
@@ -318,7 +343,7 @@
         <h1>선택된 관광지 목록</h1>
         <ul class="site-list" id="siteList"></ul>
         <div class="confirm-btn-container">
-            <!-- 버튼을 감싸는 컨테이너 추가 -->
+            <!-- 버튼을 감싸는 컨테이너 -->
             <form method="POST" action="/live">
                 {% for i in range(1, count|int + 1) %}
                 <input type="hidden" name="site{{ i }}_id" value="{{ site_data[i].id }}">
@@ -337,7 +362,7 @@
         let polylines = [];
         let tmapLoaded = false;
         let infoWindow;
-        const apiKey = "Mb9cttQ9De2UcPzNfNwCl7ZRY31kNiUqPjCAeZne"; // 여기에 API 키를 입력하세요
+        const apiKey = "Mb9cttQ9De2UcPzNfNwCl7ZRY31kNiUqPjCAeZne"; // API 키
         const startIcon = "/static/start.png";
         const middleIcon = "/static/middle.png";
         const endIcon = "/static/end.png";
@@ -346,17 +371,12 @@
         const siteList = document.getElementById('siteList');
         const routeSummary = document.getElementById("routeSummary");
         let routeNames = [];
-        let city = params.get('city'); // 도시 정보 가져오기
-        let count = params.get('count'); // 관광지 수 가져오기
+        let city = params.get('city'); // 도시 정보
+        let count = params.get('count'); // 관광지 수
 
-        function confirmTrip() {
-            alert("여행이 확정되었습니다!");
-            // 또는 window.location.href = "/submit-final"; 와 같이 실제 이동 처리도 가능
-
-        }
-
+        // 각 관광지 정보를 배열에 저장
         let selectedSitesArray = [];
-        let travelInfos = []; // 각 구간별 소요 시간과 거리 정보를 저장할 배열
+        let travelInfos = []; // 각 구간별 소요 시간과 거리 정보
 
         for (let i = 1; i <= count; i++) {
             const name = params.get(`site${i}_name`) ? decodeURIComponent(params.get(`site${i}_name`)) : '';
@@ -365,7 +385,6 @@
             const imageUrl = params.get(`site${i}_image`) ? decodeURIComponent(params.get(`site${i}_image`)) : '';
             let location = null;
 
-            // 위치 정보 파싱 및 확인
             try {
                 const locObj = JSON.parse(locationParam);
                 if (locObj.mapx && locObj.mapy) {
@@ -382,22 +401,20 @@
             } catch (e) {
                 console.error("위치 정보 파싱 오류:", e);
             }
-
             if (name && location) {
                 selectedSitesArray.push({
                     name: name,
                     location: location,
                     address: address,
                     imageUrl: imageUrl
-                }); // 경로에 추가
-                routeNames.push(name); // 경로에 추가
+                });
+                routeNames.push(name);
             }
         }
 
-        // siteList 업데이트 함수
+        // siteList 업데이트 함수 – "정보 보기" 버튼을 onclick 이벤트로 호출하도록 수정
         function updateSiteList() {
-            siteList.innerHTML = ''; // 리스트 초기화
-
+            siteList.innerHTML = ''; // 초기화
             selectedSitesArray.forEach((site, index) => {
                 const isLast = index === selectedSitesArray.length - 1;
                 const li = document.createElement('li');
@@ -426,25 +443,24 @@
                         총 거리: ${distanceDisplay}
                     </div>
                 </div>
-                ` :
-                    '';
+                ` : '';
 
                 li.innerHTML = `
                 <div class="image-container">
                     ${site.imageUrl ?
                         `<img src="${site.imageUrl}" alt="${site.name}" class="site-image">` :
                         `<div class="site-placeholder">이미지 없음</div>`}
-
                 </div>
                 <div class="site-info">
-                    <div class="site-name">${site.name}</div>
+                    <div class="site-name">${site.name}
+                        <a href="javascript:void(0)" onclick="openTouristInfo('${site.name}')" class="info-button">정보 보기</a>
+                    </div>
                     <div class="site-location">${site.address}</div>
                     <div class="site-extra">추가 정보 1: 여기에 텍스트 입력</div>
                     <div class="site-extra">추가 정보 2: 여기에 텍스트 입력</div>
                 </div>
-            `;
+                `;
                 siteList.appendChild(li);
-
                 if (!isLast) {
                     const arrowDiv = document.createElement('div');
                     arrowDiv.innerHTML = `
@@ -460,7 +476,7 @@
                         </div>
                     </div>
                     <hr class="section-divider">
-                `;
+                    `;
                     siteList.appendChild(arrowDiv);
                 }
             });
@@ -473,53 +489,21 @@
             window.location.href = `/live?city=${encodeURIComponent(city)}&count=${encodeURIComponent(count)}`;
         }
 
-        // 경로 요약 텍스트 표시
-
-        if (routeNames.length >= 1) {
-            routeSummary.innerHTML = routeNames
-                .map((name, index) => {
-                    const tag = `<span class="route-tag">${name}</span>`;
-                    return index < routeNames.length - 1 ?
-                        `${tag}<span class="route-arrow">→</span>` :
-                        tag;
-                })
-                .join('');
-        } else if (routeNames.length === 1) {
-            routeSummary.textContent = routeNames[0];
-        } else {
-            routeSummary.textContent = "선택된 관광지가 없습니다.";
-        }
-
-        // Tmap 관련 함수
+        // Tmap 관련 함수들 (initializeMap, updateMapMarkers, getTmapPath, drawTmapPath, clearPolylines, etc.)
         function initializeMap() {
             const cityCoordinates = {
-                "서울": {
-                    lat: 37.5665,
-                    lng: 126.9780
-                },
-                "청주": {
-                    lat: 36.6424341,
-                    lng: 127.4890319
-                },
-                "부산": {
-                    lat: 35.1796,
-                    lng: 129.0756
-                },
-                "제주": {
-                    lat: 33.4996,
-                    lng: 126.5312
-                }
+                "서울": { lat: 37.5665, lng: 126.9780 },
+                "청주": { lat: 36.6424341, lng: 127.4890319 },
+                "부산": { lat: 35.1796, lng: 129.0756 },
+                "제주": { lat: 33.4996, lng: 126.5312 }
             };
-
             const center = cityCoordinates[city] || cityCoordinates["서울"];
-
             map = new Tmapv2.Map("map", {
                 center: new Tmapv2.LatLng(center.lat, center.lng),
                 width: "100%",
                 height: "500px",
                 zoom: 12
             });
-
             infoWindow = new Tmapv2.InfoWindow({
                 position: new Tmapv2.LatLng(0, 0),
                 border: '0px solid #FFFFFF',
@@ -543,9 +527,7 @@
                 console.warn("Tmap API가 아직 로드되지 않았습니다. 마커 업데이트를 연기합니다.");
                 return;
             }
-
             clearMarkers();
-
             selectedSitesArray.forEach((site, index) => {
                 if (site && site.location) {
                     let markerIcon;
@@ -556,9 +538,7 @@
                     } else {
                         markerIcon = middleIcon;
                     }
-
                     const lonLat = new Tmapv2.LatLng(site.location.lat, site.location.lng);
-
                     const marker = new Tmapv2.Marker({
                         position: lonLat,
                         icon: markerIcon,
@@ -566,58 +546,45 @@
                         title: site.name,
                         map: map
                     });
-
                     markers.push(marker);
                 } else {
                     console.error(`유효하지 않은 위치 정보: ${site.name}`);
                 }
             });
-
-               if (markers.length > 0) {
-                   const bounds = new Tmapv2.LatLngBounds();
-                    for (var i = 0; i < markers.length; i++) {
-                        bounds.extend(markers[i].getPosition());
-                    }
-                    if (markers.length === 1) {
-                        // 관광지가 하나인 경우 특정 줌 레벨 설정
-                        map.setCenter(markers[0].getPosition());
-                        map.setZoom(15); // 원하는 줌 레벨로 설정
-                    } else {
-                        // 관광지가 여러 개인 경우 기존 방식 유지
-                        map.fitBounds(bounds);
-                    }
+            if (markers.length > 0) {
+                const bounds = new Tmapv2.LatLngBounds();
+                for (var i = 0; i < markers.length; i++) {
+                    bounds.extend(markers[i].getPosition());
                 }
+                if (markers.length === 1) {
+                    map.setCenter(markers[0].getPosition());
+                    map.setZoom(15);
+                } else {
+                    map.fitBounds(bounds);
+                }
+            }
         }
 
-        // 경로를 그리는 함수
         function getTmapPath() {
             if (!tmapLoaded) {
                 console.warn("Tmap API가 아직 로드되지 않았습니다. 경로 요청을 연기합니다.");
                 return;
             }
-
-            // 기존 경로 삭제
             clearPolylines();
-            travelInfos = []; // 소요 시간과 거리 정보 초기화
-
+            travelInfos = [];
             if (selectedSitesArray.length < 2) {
                 console.warn("경로를 그리려면 2개 이상의 위치가 필요합니다.");
-                updateSiteList(); // 리스트 업데이트
+                updateSiteList();
                 return;
             }
-
-            // 각 지점들을 순차적으로 연결하는 경로 요청
             let promises = [];
             for (let i = 0; i < selectedSitesArray.length - 1; i++) {
                 const startPoint = selectedSitesArray[i].location;
                 const endPoint = selectedSitesArray[i + 1].location;
-
                 if (!startPoint || !endPoint) {
                     console.error("시작점 또는 종료점 좌표가 유효하지 않습니다.");
                     continue;
                 }
-
-                // Tmap API에 요청할 데이터 설정
                 const requestData = {
                     startX: startPoint.lng,
                     startY: startPoint.lat,
@@ -628,8 +595,6 @@
                     startName: selectedSitesArray[i].name,
                     endName: selectedSitesArray[i + 1].name
                 };
-
-                // Tmap API 호출
                 const promise = $.ajax({
                     method: "POST",
                     url: "https://apis.openapi.sk.com/tmap/routes/pedestrian?version=1&format=json",
@@ -642,29 +607,20 @@
                 });
                 promises.push(promise);
             }
-
             Promise.all(promises)
                 .then(results => {
                     results.forEach((response, index) => {
                         const resultData = response.features;
                         drawTmapPath(resultData);
-
-                        // 총 소요 시간과 총 거리 추출
-                        let totalTime = 0;
-                        let totalDistance = 0;
-
+                        let totalTime = 0, totalDistance = 0;
                         resultData.forEach(feature => {
                             totalTime += (feature.properties.totalTime || 0);
                             totalDistance += (feature.properties.totalDistance || 0);
                         });
-
                         const timeInMinutes = Math.round(totalTime / 60);
-                        travelInfos[index] = {
-                            time: timeInMinutes,
-                            distance: totalDistance
-                        };
+                        travelInfos[index] = { time: timeInMinutes, distance: totalDistance };
                     });
-                    updateSiteList(); // siteList 업데이트
+                    updateSiteList();
                 })
                 .catch(error => {
                     console.error("경로 요청 실패:", error);
@@ -677,7 +633,6 @@
                 console.warn("경로 데이터가 없습니다.");
                 return;
             }
-
             for (let i in pathData) {
                 const geometry = pathData[i].geometry;
                 if (geometry.type === "LineString") {
@@ -722,9 +677,42 @@
             alert("경로 요청 중 오류가 발생했습니다: " + error);
             console.error("경로 요청 오류:", error);
         }
-
         window.onload = init;
+
+        // 모달을 통해 관광지 정보( imformation_panel )를 불러오는 함수
+        function openTouristInfo(siteName) {
+            if (!siteName) {
+                alert("관광지 정보가 없습니다.");
+                return;
+            }
+            var modal = document.getElementById("infoModal");
+            var iframe = document.getElementById("infoFrame");
+            iframe.src = '/imformation_panel/' + encodeURIComponent(siteName);
+            modal.style.display = "block";
+        }
+
+        function closeModal() {
+            var modal = document.getElementById("infoModal");
+            modal.style.display = "none";
+            document.getElementById("infoFrame").src = "";
+        }
+
+        // 모달 외부 클릭 시 닫기 처리 (선택사항)
+        window.onclick = function(event) {
+            var modal = document.getElementById("infoModal");
+            if (event.target === modal) {
+                closeModal();
+            }
+        }
     </script>
+
+    <!-- 모달 HTML 코드: </body> 태그 바로 위에 추가 -->
+    <div id="infoModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <iframe id="infoFrame" src="" frameborder="0" style="width: 100%; height: 100%;"></iframe>
+        </div>
+    </div>
 </body>
 
 </html>
