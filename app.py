@@ -787,7 +787,71 @@ def submit_review():
 def finished():
     return render_template('finished.html')
 
-@app.route('/imformation/<string:site_name>')
+@app.route('/imformation_panel/<string:site_name>', methods=['GET'])#imformation_2 팝업 페이지
+def imformation_panel(site_name):
+    # URL 디코딩
+    from urllib.parse import unquote
+    site_name = unquote(site_name)
+    print(f"DEBUG: Received site_name for panel: {site_name}")
+    
+    connection = None
+    try:
+        connection = pymysql.connect(**db_config)
+        with connection.cursor() as cursor:
+            # 관광지 정보 조회
+            sql_tourist = """
+                SELECT *
+                FROM tourist_attraction
+                WHERE name = %s
+            """
+            cursor.execute(sql_tourist, (site_name,))
+            tourist_info = cursor.fetchone()
+            if not tourist_info:
+                return "관광지 정보를 찾을 수 없습니다.", 404
+
+            # 리뷰 개수 조회
+            sql_review_count = """
+                SELECT COUNT(*) AS review_count
+                FROM review
+                WHERE tourist_attraction_id = %s
+            """
+            cursor.execute(sql_review_count, (tourist_info['id'],))
+            review_count_result = cursor.fetchone()
+            review_count = review_count_result['review_count'] if review_count_result else 0
+
+            # 리뷰 조회
+            sql_reviews = """
+                SELECT *
+                FROM review
+                WHERE tourist_attraction_id = %s
+            """
+            cursor.execute(sql_reviews, (tourist_info['id'],))
+            reviews = cursor.fetchall() if cursor.rowcount > 0 else []
+            
+            # 평점 평균 계산
+            if reviews:
+                average_rating = sum(review['rating'] for review in reviews) / len(reviews)
+            else:
+                average_rating = None
+
+        # imformation_2.html 템플릿은 우측 팝업(모달) 형태의 디자인을 포함하도록 구성되어 있어야 합니다.
+        return render_template(
+            'imformation_2.html',
+            tourist_info=tourist_info,
+            review_count=review_count,
+            reviews=reviews,
+            average_rating=average_rating
+        )
+    except Exception as e:
+        import traceback
+        print(f"Error in imformation_panel: {e}")
+        traceback.print_exc()
+        return "오류 발생", 500
+    finally:
+        if connection and connection.open:
+            connection.close()
+
+@app.route('/imformation/<string:site_name>')#imformation 페이지
 def imformation(site_name):
     site_name = unquote(site_name)  # URL 디코딩
     print(f"DEBUG: Received site_name: {site_name}")  # site_name 값 출력
