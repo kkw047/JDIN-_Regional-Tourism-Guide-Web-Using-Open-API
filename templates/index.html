@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>관광지 검색</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <!-- Tmap 스크립트는 imformation.html 자체에서 로드되므로 여기서는 필요 없습니다. -->
     <style>
         /* CSS 변수 (연두색 계열 팔레트) */
         :root {
@@ -739,6 +740,93 @@
                 margin-bottom: 10px; /* 오류 메시지 하단 마진 조정 */
             }
         }
+
+        /* ----- 모달(팝업) 관련 CSS 추가 ----- */
+        #modal-overlay {
+            display: none; /* 초기에는 숨김 */
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6); /* 반투명 검정 배경 */
+            z-index: 1000; /* 다른 요소들 위에 표시 */
+            justify-content: center;
+            align-items: center;
+            overflow-y: auto; /* 내용이 길어지면 스크롤 */
+            backdrop-filter: blur(5px); /* 배경 블러 효과 */
+        }
+
+        #modal-content {
+            background-color: var(--white);
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            max-width: 90%; /* 화면 너비의 최대 90% */
+            /* max-height: 90vh; <- 이전에 여기만 있었음 */
+
+            /* 변경 시작: 모달 콘텐츠가 부모 높이를 채우고 90vh로 제한되도록 설정 */
+            height: 100%; /* 부모의 100% 높이를 채우려 시도 */
+            max-height: 90vh; /* 하지만 뷰포트 높이의 90%를 넘지 않도록 제한 */
+            /* 변경 끝 */
+
+            overflow: hidden; /* iframe 스크롤을 iframe 내부에서 처리 */
+            position: relative;
+            transform: translateY(-50px); /* 등장 애니메이션을 위해 약간 위로 */
+            opacity: 0;
+            transition: transform 0.3s ease-out, opacity 0.3s ease-out;
+            display: flex;
+            flex-direction: column;
+            width: 800px; /* 모달의 최대 너비 */
+            padding-top: 50px; /* 닫기 버튼 공간 확보 */
+        }
+
+        #modal-overlay.active #modal-content {
+            transform: translateY(0); /* 정상 위치로 */
+            opacity: 1; /* 완전히 표시 */
+        }
+
+        .modal-close-btn {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            background: none;
+            border: none;
+            font-size: 30px;
+            color: #555;
+            cursor: pointer;
+            z-index: 10; /* 다른 내용 위에 보이도록 */
+            transition: color 0.2s ease;
+        }
+
+        .modal-close-btn:hover {
+            color: #000;
+        }
+
+        #modal-iframe {
+            width: 100%;
+            height: 100%; /* iframe 자체는 여전히 부모 콘텐츠 영역의 100%를 차지 */
+            border: none; /* iframe 자체의 테두리 제거 */
+            background-color: transparent; /* iframe 배경 투명하게 (선택사항) */
+            flex-grow: 1; /* 남은 공간을 iframe이 모두 차지하도록 */
+        }
+
+        /* 모바일 반응형 모달 */
+        @media (max-width: 768px) {
+            #modal-content {
+                max-width: 95%;
+                /* max-height: 95vh; <- 모바일에서도 95vh로 제한 */
+                height: 100%; /* 모바일에서도 부모 높이를 채우려 시도 */
+                max-height: 95vh; /* 뷰포트 높이의 95%를 넘지 않도록 제한 */
+                padding-top: 40px; /* 모바일에서 닫기 버튼 공간 확보 */
+                border-radius: 10px;
+                width: auto; /* 모바일에서 width 고정값 제거 */
+            }
+            .modal-close-btn {
+                font-size: 24px;
+                top: 10px;
+                right: 15px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -748,11 +836,13 @@
         <div class="carousel-slides">
             {% for site in carousel_data %}
                 {% if site %}
-                    <div class="carousel-item"> {# loop.first 대신 JS에서 초기 current 설정 #}
+                    <div class="carousel-item">
                         <div class="left-content">
                             <span class="category-tag">{{ site.category or '카테고리' }}</span>
                             <h2 class="main-title">{{ site.name or '관광지 이름' }}</h2>
-                            <a href="#" class="view-details">자세히 보기</a> {# 실제 링크는 /site/{{ site.id }} 등으로 변경 가능 #}
+                            {# url_for를 사용하여 Flask 라우트와 매개변수를 직접 전달 #}
+                            {# 기존 imformation 라우트의 URL을 data-site-url에 저장 #}
+                            <a href="#" class="view-details" data-site-url="{{ url_for('imformation', site_name=site.name) }}">자세히 보기</a>
                         </div>
                         <div class="right-image-container">
                             <img src="{{ site.image or 'https://via.placeholder.com/400x300/c7f0c7/333333?text=No+Image' }}" alt="{{ site.name or '이미지 없음' }} 이미지">
@@ -764,7 +854,8 @@
                         <div class="left-content">
                             <span class="category-tag">정보 없음</span>
                             <h2 class="main-title">관광지 정보를<br>불러올 수 없습니다.</h2>
-                            <a href="#" class="view-details">돌아가기</a>
+                            {# 폴백 URL도 imformation 라우트 사용 #}
+                            <a href="#" class="view-details" data-site-url="{{ url_for('imformation', site_name='No Data') }}">돌아가기</a>
                         </div>
                         <div class="right-image-container">
                             <img src="https://via.placeholder.com/400x300/c7f0c7/333333?text=Error+Image" alt="데이터 오류 이미지">
@@ -774,11 +865,12 @@
             {% endfor %}
             {# carousel_data가 비어있을 경우를 위한 기본 폴백 슬라이드 #}
             {% if carousel_data | length == 0 %}
-                <div class="carousel-item"> {# loop.first 대신 JS에서 초기 current 설정 #}
+                <div class="carousel-item is-current">
                     <div class="left-content">
                         <span class="category-tag">안내</span>
                         <h2 class="main-title">표시할 관광지 정보가<br>아직 없습니다.</h2>
-                        <a href="#" class="view-details">시작하기</a>
+                        {# 폴백 URL도 imformation 라우트 사용 #}
+                        <a href="#" class="view-details" data-site-url="{{ url_for('imformation', site_name='No Data') }}">시작하기</a>
                     </div>
                     <div class="right-image-container">
                         <img src="https://via.placeholder.com/400x300/c7f0c7/333333?text=No+Data" alt="데이터 없음 이미지">
@@ -833,6 +925,16 @@
     </div>
 </div>
 
+<!-- ----- 모달(팝업) HTML 구조 추가 ----- -->
+<div id="modal-overlay">
+    <div id="modal-content">
+        <button class="modal-close-btn">×</button>
+        <!-- iframe을 사용하여 imformation.html을 통째로 로드 -->
+        <iframe id="modal-iframe" src="" frameborder="0"></iframe>
+    </div>
+</div>
+
+
 <script>
     document.addEventListener('DOMContentLoaded', () => {
         // ---------------------- 캐러셀 스크립트 ----------------------
@@ -864,10 +966,8 @@
                 return;
             }
 
-            // 이전 인덱스를 저장하여 어떤 슬라이드가 떠나는지 추적
             const oldCurrentIndex = currentIndex;
 
-            // 인덱스 유효성 검사 및 순환 처리
             if (index >= total) {
                 currentIndex = 0;
             } else if (index < 0) {
@@ -876,24 +976,18 @@
                 currentIndex = index;
             }
 
-            // 모든 슬라이드의 기존 클래스 제거 (is-next-peeking 제거)
             carouselItems.forEach(item => {
                 item.classList.remove('is-current', 'is-prev-hidden');
             });
 
-            // 현재 슬라이드에 is-current 클래스 추가
             const currentSlide = carouselItems[currentIndex];
             currentSlide.classList.add('is-current');
 
-            // 이전 슬라이드 (oldCurrentIndex)가 현재 슬라이드가 아니라면 is-prev-hidden 클래스 추가
-            // 이를 통해 이전 슬라이드는 페이드아웃되고, 새로운 슬라이드는 페이드인됩니다.
             if (oldCurrentIndex !== currentIndex) {
                  const prevSlide = carouselItems[oldCurrentIndex];
                  prevSlide.classList.add('is-prev-hidden');
             }
 
-
-            // 페이지 정보 업데이트
             currentSlideSpan.textContent = currentIndex + 1;
         }
 
@@ -922,7 +1016,6 @@
             playPauseBtn.setAttribute('data-status', 'pause');
         }
 
-        // 캐러셀 이벤트 리스너 (버튼이 존재할 경우에만 추가)
         if (prevBtn) {
             prevBtn.addEventListener('click', () => {
                 prevSlide();
@@ -945,7 +1038,6 @@
             });
         }
 
-        // 초기 로드 시 첫 번째 슬라이드 표시 및 자동 슬라이드 시작
         if (carouselItems.length > 0) {
             showSlide(currentIndex);
             startAutoSlide();
@@ -959,7 +1051,6 @@
 
         // ---------------------- 관광지 검색 폼 스크립트 ----------------------
 
-        // 슬라이더 값 표시
         const rangeInput = document.getElementById('tourist_sites_count');
         const rangeValue = document.getElementById('range-value');
 
@@ -969,7 +1060,6 @@
             });
         }
 
-        // 폼 제출 이벤트 처리
         const form = document.getElementById('search-form');
         const formErrorMessage = document.getElementById('form-error-message');
 
@@ -1003,7 +1093,6 @@
             });
         }
 
-        // "저장된 여행경로" 버튼 클릭 이벤트
         const usercodeErrorMessage = document.getElementById('usercode-error-message');
         const userTextInput = document.getElementById('userText');
 
@@ -1035,6 +1124,51 @@
                 window.location.href = `/live?code=${encodeURIComponent(userTextInput.value)}`;
             }
         };
+
+        // ---------------------- 모달(팝업) 스크립트 추가 (iframe 버전) ----------------------
+        const modalOverlay = document.getElementById('modal-overlay');
+        const modalContent = document.getElementById('modal-content');
+        const modalIframe = document.getElementById('modal-iframe');
+        const modalCloseBtn = document.querySelector('.modal-close-btn');
+
+        function openModal(siteUrl) {
+            modalIframe.src = siteUrl; // iframe의 src 속성 설정
+            modalOverlay.style.display = 'flex'; // flex로 설정하여 중앙 정렬 활성화
+
+            // 모달 등장 애니메이션을 위해 클래스 추가
+            setTimeout(() => {
+                modalOverlay.classList.add('active');
+            }, 10);
+        }
+
+        function closeModal() {
+            modalOverlay.classList.remove('active');
+            // 애니메이션 종료 후 display none으로 변경
+            setTimeout(() => {
+                modalOverlay.style.display = 'none';
+                modalIframe.src = ''; // iframe 내용 비우기 (불필요한 로딩 방지)
+            }, 300); // CSS transition 시간과 맞춰줍니다.
+        }
+
+        document.querySelectorAll('.view-details').forEach(button => {
+            button.addEventListener('click', (event) => {
+                event.preventDefault(); // 기본 링크 동작 방지
+                const siteUrl = event.target.dataset.siteUrl; // data-site-url 값 가져오기
+                if (siteUrl && !siteUrl.includes('No Data')) { // 'No Data' 케이스는 제외
+                    openModal(siteUrl);
+                } else {
+                    console.log("표시할 관광지 정보가 없습니다.");
+                }
+            });
+        });
+
+        modalOverlay.addEventListener('click', (event) => {
+            if (event.target === modalOverlay) { // 오버레이 자체를 클릭했을 때만 닫기
+                closeModal();
+            }
+        });
+
+        modalCloseBtn.addEventListener('click', closeModal);
     });
 </script>
 </body>

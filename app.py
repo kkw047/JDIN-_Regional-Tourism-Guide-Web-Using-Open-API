@@ -205,8 +205,6 @@ def live():
         return "잘못된 count 값입니다.", 400
 
     usercode = ''
-    # usercode 생성 및 중복 확인
-    # DB 연결은 필요한 시점에 최소한으로 유지
     while True:
         usercode = ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
         try:
