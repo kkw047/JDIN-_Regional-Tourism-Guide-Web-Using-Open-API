@@ -4,215 +4,1233 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>관광지 검색</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <!-- Tmap 스크립트는 imformation.html 자체에서 로드되므로 여기서는 필요 없습니다. -->
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f5f5f5;
+        /* CSS 변수 (연두색 계열 팔레트) */
+        :root {
+            --primary-green: #54c700;       /* 진한 연두색 (메인 버튼, 슬라이더 핸들) */
+            --light-green: #a8ff84;         /* 밝은 연두색 (슬라이더 트랙, 테두리) */
+            --very-light-green: #fff;       /* 아주 밝은 연두색 -> 흰색으로 변경 */
+            --accent-green: #76ff03;        /* 강조 연두색 (호버 효과) */
+            --text-dark: #222;              /* 어두운 텍스트 (더 진하게) */
+            --text-light: #666;             /* 밝은 텍스트 (플레이스홀더 등, 중간 회색) */
+            --neutral-border: rgba(0, 0, 0, 0.08); /* 중립적인 경계선 (더 연하게) */
+            --white: #fff;                  /* 흰색 */
+            --red-error: #e74c3c;           /* 에러 메시지 빨간색 (더 부드러운 빨강) */
+            --shadow-light: rgba(0, 0, 0, 0.05); /* 가벼운 그림자 */
+            --shadow-medium: rgba(0, 0, 0, 0.1); /* 중간 그림자 */
+            --shadow-strong: rgba(0, 0, 0, 0.15); /* 강한 그림자 */
+        }
+
+        /* 기본 리셋 및 폰트 */
+        * {
             margin: 0;
             padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            overflow-x: hidden; /* 가로 스크롤 방지 */
+            background-color: var(--very-light-green); /* 전체 배경색 - 이제 흰색 */
+        }
+
+        /* 메인 컨테이너 - 캐러셀과 기존 메인 콘텐츠를 감쌈 */
+        .main-page-container {
             display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
+            min-height: 100vh; /* 뷰포트 높이 전체 사용 (모바일에서 스크롤 대비 min-height) */
+            width: 100vw; /* 뷰포트 너비 전체 사용 */
+            background-color: var(--very-light-green); /* 전체 배경색 - 이제 흰색 */
         }
 
-        .container {
-            background-color: white;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            padding: 20px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-            width: 400px;
-            text-align: center;
+        /* ---------------------- 캐러셀 섹션 (왼쪽) ---------------------- */
+        .carousel-section {
+            flex: 0 0 60%; /* 캐러셀 섹션 너비 60%로 증가 */
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between; /* 내용과 네비게이션을 위아래로 분리 */
+            padding: 40px; /* 여백 증가: 30px -> 40px */
+            overflow: hidden; /* 슬라이드 애니메이션을 위해 */
+            background-color: var(--white); /* 캐러셀 섹션 자체 배경 흰색 */
+            box-shadow: 2px 0 10px var(--shadow-light); /* 오른쪽에 은은한 그림자 */
         }
 
-        h1 {
-            font-size: 24px;
-            margin-bottom: 20px;
+        .carousel-slides {
+            position: relative;
+            flex-grow: 1; /* 남은 공간을 차지 */
+            display: flex; /* 내부 이미지 중앙 정렬 */
+            align-items: center; /* 세로 중앙 정렬 */
+            justify-content: center; /* 가로 중앙 정렬 */
+            padding: 40px; /* Padding for the entire slide area */
+            box-sizing: border-box;
         }
 
-        label {
-            display: block;
-            margin-bottom: 10px;
-            text-align: left;
-            font-weight: bold;
+        /* 캐러셀 아이템 기본 스타일 (모든 아이템) */
+        .carousel-item {
+            position: absolute; /* Changed to absolute to stack */
+            top: 40px; /* Match carousel-slides padding */
+            left: 40px; /* Match carousel-slides padding */
+            width: calc(100% - 80px); /* 100% minus padding */
+            height: calc(100% - 80px); /* 100% minus padding */
+            background-color: transparent;
+            overflow: hidden; /* Important for image */
+
+            transform: translateX(0);
+            opacity: 0;
+            z-index: 0;
+            pointer-events: none;
+
+            transition: opacity 0.8s ease-in-out,
+                        z-index 0.01s ease 0.79s; /* z-index transition to make it change after opacity */
         }
 
-        select {
+        /* 현재 활성화된 슬라이드 */
+        .carousel-item.is-current {
+            transform: translateX(0);
+            opacity: 1;
+            z-index: 2;
+            pointer-events: auto;
+            transition: opacity 0.8s ease-in-out; /* Only opacity for current */
+        }
+
+        /* 이전 슬라이드 (페이드아웃 상태) */
+        .carousel-item.is-prev-hidden {
+            transform: translateX(0);
+            opacity: 0;
+            z-index: 1; /* Keep it above z-index 0 during transition */
+            pointer-events: none;
+            transition: opacity 0.8s ease-in-out,
+                        z-index 0.01s ease 0.79s; /* z-index transition to make it change after opacity */
+        }
+
+        /* 이미지 컨테이너 - carousel-item 내에서 중앙 정렬 */
+        .right-image-container {
             width: 100%;
-            padding: 8px;
-            margin-bottom: 20px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .right-image-container img {
+            width: 100%; /* Fill the container */
+            height: 100%; /* Fill the container */
+            object-fit: cover; /* Cover the container, cropping if necessary */
+            object-position: center; /* Center the image within the container */
+            display: block;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px var(--shadow-medium);
+            transition: transform 0.3s ease;
+        }
+        .carousel-item.is-current .right-image-container img:hover {
+            transform: scale(1.02);
+        }
+
+        /* 기존 left-content 역할은 이제 carousel-navigation 내부에서 함 */
+        /* 카테고리 태그 제거 (display: none 처리) */
+        .category-tag {
+            display: none;
+        }
+
+        /* 캐러셀 하단 네비게이션 */
+        .carousel-navigation {
+            display: flex;
+            justify-content: space-between; /* 요소들을 양 끝으로 분산 */
+            align-items: center;
+            padding-top: 25px;
+            border-top: 1px solid var(--neutral-border);
+            margin-top: 40px;
+            position: relative;
+            z-index: 10;
+            gap: 20px; /* 요소들 간 간격 */
+        }
+
+        /* 슬라이드 숫자 정보 */
+        .page-info {
+            font-size: 20px; /* 폰트 사이즈 약간 키움 */
+            font-weight: 700; /* 폰트 굵기 더 굵게 */
+            color: var(--primary-green); /* 메인 연두색으로 변경 */
+            letter-spacing: 0.5px;
+            flex-shrink: 0; /* 공간이 부족해도 줄어들지 않도록 */
+            opacity: 1; /* 기본적으로 보이게 */
+            transition: opacity 0.5s ease-in-out; /* 페이드 효과 추가 */
+        }
+
+        /* 캐러셀 중간 텍스트 정보 (새로운 요소) */
+        .carousel-text-info {
+            flex-grow: 1; /* 남은 공간을 최대한 차지 */
+            text-align: center; /* 내부 텍스트 중앙 정렬 */
+            min-width: 0; /* flexbox 아이템이 내용 길이에 따라 무한정 늘어나는 것을 방지 */
+            overflow: hidden; /* 오버플로우 숨김 */
+            opacity: 1; /* 기본적으로 보이게 */
+            transition: opacity 0.5s ease-in-out; /* 페이드 효과 추가 */
+        }
+
+        .carousel-text-info .main-title { /* 내비게이션 바에 맞게 크기 조절 */
+            font-size: 28px; /* 기존 44px에서 축소 */
+            font-weight: 700;
+            line-height: 1.2;
+            color: var(--text-dark);
+            margin-bottom: 5px; /* 마진 축소 */
+            text-shadow: none; /* 그림자 제거 (더 깔끔하게) */
+            display: block;
+            white-space: nowrap; /* 한 줄로 표시 */
+            overflow: hidden; /* 넘치는 부분 숨김 */
+            text-overflow: ellipsis; /* 넘치는 부분 말줄임표 */
+        }
+
+        .carousel-text-info .view-details { /* 내비게이션 바에 맞게 크기 조절 */
+            font-size: 16px; /* 기존 19px에서 축소 */
+            color: var(--primary-green);
+            text-decoration: none;
+            cursor: pointer;
+            transition: color 0.3s ease, transform 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            font-weight: 500;
+        }
+        .carousel-text-info .view-details:hover {
+            color: var(--accent-green);
+            transform: translateX(0px); /* 화살표 제거로 인한 트랜스폼 제거/조정 */
+        }
+        .carousel-text-info .view-details::after {
+            content: ''; /* 화살표 제거 */
+            margin-left: 0px; /* 화살표 제거로 인한 마진 제거 */
+            transition: none; /* 화살표 제거로 인한 트랜지션 제거 */
+        }
+
+        .carousel-controls {
+            flex-shrink: 0; /* 공간이 부족해도 줄어들지 않도록 */
+        }
+
+        .carousel-controls button {
+            background: none;
+            border: 2px solid var(--light-green);
+            border-radius: 50%;
+            width: 45px;
+            height: 45px;
+            font-size: 20px;
+            color: var(--primary-green);
+            cursor: pointer;
+            margin-left: 15px;
+            transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, transform 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .carousel-controls button:hover {
+            background-color: var(--primary-green);
+            color: var(--white);
+            border-color: var(--primary-green);
+            transform: translateY(-2px);
+        }
+        .carousel-controls button:active {
+            transform: translateY(0);
+        }
+
+        /* ---------------------- 기존 메인 화면 섹션 (오른쪽) - 관광지 검색 폼 삽입 ---------------------- */
+        .existing-main-content {
+            flex: 0 0 40%;
+            background-color: var(--very-light-green);
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* 배경 이미지 - 추상적인 패턴 */
+        .existing-main-content::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%2390EE90' fill-opacity='0.15' fill-rule='evenodd'%3E%3Cpath d='M1 0h58v1H1zM1 59h58v1H1zM0 1v58H1V1zM59 1v58h1V1zM4 4h52v1H4zM4 55h52v1H4zM5 4v52H4V4zM56 4v52h1V4zM7 7h46v1H7zM7 52h46v1H7zM8 7v46H7V7zM53 7v46h1V7zM10 10h40v1H10zM10 49h40v1H10zM11 10v40H10V10zM49 10v40h1V10zM13 13h34v1H13zM13 46h34v1H13zM14 13v34H13V13zM46 13v34h1V13zM16 16h28v1H16zM16 43h28v1H16zM17 16v28H16V16zM43 16v28h1V16zM19 19h22v1H19zM19 40h22v1H19zM20 19v22H19V19zM40 19v22h1V19zM22 22h16v1H22zM22 37h16v1H22zM23 22v16H22V22zM37 22v16h1V22zM25 25h10v1H25zM25 34h10v1H25zM26 25v10H25V25zM34 25v10h1V25z'/%3E%3C/g%3E%3C/svg%3E");
+            background-size: 60px 60px;
+            opacity: 0.2;
+            z-index: 1;
+        }
+
+
+        /* ---------------------- 관광지 검색 폼 스타일 (디자인 통일 적용) ---------------------- */
+        .form-container {
+            background-color: var(--white);
+            border-radius: 20px;
+            padding: 35px;
+            box-shadow: 0 15px 40px var(--shadow-strong);
+            width: 100%;
+            max-width: 500px;
+            text-align: center;
+            z-index: 2;
+            position: relative;
+            transform: translateY(-10px);
+            transition: transform 0.3s ease;
+        }
+        .form-container:hover {
+             transform: translateY(-12px);
+        }
+
+
+        .form-container h1 {
+            font-size: 32px;
+            margin-bottom: 40px;
+            color: var(--text-dark);
+            font-weight: 700;
+            position: relative;
+        }
+        .form-container h1::after {
+            content: '';
+            position: absolute;
+            left: 50%;
+            bottom: -10px;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 4px;
+            background-color: var(--primary-green);
+            border-radius: 2px;
+        }
+
+        .form-container label {
+            display: block;
+            margin-bottom: 12px;
+            text-align: left;
+            font-weight: 600;
+            color: var(--text-dark);
             font-size: 16px;
         }
 
-        input[type="range"] {
+        .form-container select,
+        .form-container input[type="text"] {
+            width: 100%;
+            padding: 14px 15px;
+            margin-bottom: 30px;
+            border: 1px solid var(--neutral-border);
+            border-radius: 10px;
+            font-size: 17px;
+            font-family: 'Noto Sans KR', sans-serif;
+            color: var(--text-dark);
+            background-color: var(--white);
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+        .form-container select:focus,
+        .form-container input[type="text"]:focus {
+            outline: none;
+            border-color: var(--primary-green);
+            box-shadow: 0 0 0 4px rgba(84, 199, 0, 0.2);
+        }
+        .form-container select {
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%2354c700'%3E%3Cpath d='M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 15px center;
+            background-size: 18px;
+            padding-right: 40px;
+        }
+
+
+        .form-container input[type="text"]::placeholder {
+            color: var(--text-light);
+        }
+
+
+        .form-container input[type="range"] {
             -webkit-appearance: none;
             appearance: none;
             width: 100%;
             height: 10px;
-            border-radius: 20px;
-            background: linear-gradient(to right, #9cff57, #bfff8a); /* 연두색 그라데이션 */
+            border-radius: 5px;
+            background: var(--light-green);
             outline: none;
             transition: background 0.3s;
             cursor: pointer;
+            margin-bottom: 10px;
         }
 
-        input[type="range"]::-webkit-slider-thumb {
+        .form-container input[type="range"]::-webkit-slider-thumb {
             -webkit-appearance: none;
             appearance: none;
-            width: 25px;
-            height: 25px;
-            background: #54c700; /* 연한 초록색 핸들 */
-            border: 2px solid #a8ff84; /* 연두색 테두리 */
+            width: 26px;
+            height: 26px;
+            background: var(--primary-green);
+            border: 4px solid var(--white);
             border-radius: 50%;
-            box-shadow: 0 0 8px #a8ff84; /* 빛나는 효과 */
-            cursor: pointer;
-            transition: background 0.3s, transform 0.2s;
+            box-shadow: 0 3px 8px var(--shadow-medium);
+            cursor: grab;
+            transition: background 0.3s ease, transform 0.2s ease, border-color 0.3s ease;
+            margin-top: -8px;
         }
 
-        input[type="range"]:hover::-webkit-slider-thumb {
-            background: #76ff03; /* 연두색으로 hover */
-            transform: scale(1.1); /* 살짝 커지는 효과 */
+        .form-container input[type="range"]:active::-webkit-slider-thumb {
+            cursor: grabbing;
         }
 
-        input[type="range"]::-moz-range-thumb {
-            width: 25px;
-            height: 25px;
-            background: #54c700;
-            border: 2px solid #a8ff84;
+        .form-container input[type="range"]:hover::-webkit-slider-thumb {
+            background: var(--accent-green);
+            transform: scale(1.05);
+        }
+
+        /* Firefox 및 IE/Edge를 위한 핸들 스타일 */
+        .form-container input[type="range"]::-moz-range-thumb,
+        .form-container input[type="range"]::-ms-thumb {
+            width: 26px;
+            height: 26px;
+            background: var(--primary-green);
+            border: 4px solid var(--white);
             border-radius: 50%;
-            cursor: pointer;
-            box-shadow: 0 0 8px #a8ff84;
+            cursor: grab;
+            box-shadow: 0 3px 8px var(--shadow-medium);
+            transition: background 0.3s ease, transform 0.2s ease, border-color 0.3s ease;
         }
 
-        input[type="range"]::-ms-thumb {
-            width: 25px;
-            height: 25px;
-            background: #54c700;
-            border: 2px solid #a8ff84;
-            border-radius: 50%;
-            cursor: pointer;
-            box-shadow: 0 0 8px #a8ff84;
+        .form-container input[type="range"]:hover::-moz-range-thumb,
+        .form-container input[type="range"]:hover::-ms-thumb {
+            background: var(--accent-green);
+            transform: scale(1.05);
+        }
+        .form-container input[type="range"]:active::-moz-range-thumb,
+        .form-container input[type="range"]:active::-ms-thumb {
+            cursor: grabbing;
         }
 
-        button {
+
+        .form-container button[type="submit"] {
             width: 100%;
-            padding: 10px;
-            background-color: #54c700; /* 슬라이더와 비슷한 연한 초록색 */
-            color: white;
+            padding: 16px;
+            background-color: var(--primary-green);
+            color: var(--white);
+            border: none;
+            border-radius: 35px;
+            font-size: 19px;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+            font-family: 'Noto Sans KR', sans-serif;
+            font-weight: 700;
+            margin-top: 30px;
+            box-shadow: 0 8px 20px var(--shadow-medium);
+        }
+
+        .form-container button[type="submit"]:hover {
+            background-color: var(--accent-green);
+            transform: translateY(-2px);
+            box-shadow: 0 12px 25px var(--shadow-strong);
+        }
+        .form-container button[type="submit"]:active {
+            transform: translateY(0);
+            box-shadow: 0 5px 15px var(--shadow-light);
+        }
+
+        .form-container .error {
+            color: var(--red-error);
+            font-size: 14px;
+            margin-top: 5px;
+            margin-bottom: 15px;
+            text-align: left;
+            padding-left: 5px;
+            font-weight: 500;
+        }
+
+        .form-container .range-value {
+            font-size: 19px;
+            margin-bottom: 35px;
+            font-weight: 700;
+            color: var(--primary-green);
+            text-align: center;
+            padding-left: 0;
+            display: block;
+        }
+
+        /* 사용자 코드 입력 섹션 */
+        .user-code-section {
+            margin-top: 40px;
+            padding-top: 30px;
+            border-top: 1px dashed var(--neutral-border);
+            text-align: center;
+        }
+
+        .user-code-section .input-group {
+            display: flex;
+            justify-content: flex-start;
+            align-items: center;
+            width: 100%;
+        }
+
+        .user-code-section input[type="text"] {
+            flex-grow: 1;
+            margin-right: 15px;
+            margin-bottom: 0;
+            padding: 14px 15px;
+            border: 1px solid var(--neutral-border);
+            border-radius: 10px;
+            font-size: 17px;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+        .user-code-section input[type="text"]:focus {
+            outline: none;
+            border-color: var(--primary-green);
+            box-shadow: 0 0 0 4px rgba(84, 199, 0, 0.2);
+        }
+
+        .user-code-section input[type="text"]::placeholder {
+            color: var(--text-light);
+        }
+
+
+        .user-code-section button {
+            width: auto;
+            padding: 14px 25px;
+            font-size: 16px;
+            white-space: nowrap;
+            background-color: var(--primary-green);
+            color: var(--white);
             border: none;
             border-radius: 30px;
-            font-size: 16px;
             cursor: pointer;
-            transition: background 0.3s;
+            transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+            font-family: 'Noto Sans KR', sans-serif;
+            font-weight: 600;
+            box-shadow: 0 4px 12px var(--shadow-light);
         }
 
-        button:hover {
-            background-color: #76ff03; /* 연두색 */
+        .user-code-section button:hover {
+            background-color: var(--accent-green);
+            transform: translateY(-1px);
+            box-shadow: 0 6px 15px var(--shadow-medium);
+        }
+        .user-code-section button:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 8px var(--shadow-light);
         }
 
-        .error {
-            color: red;
-            font-size: 14px;
-            margin-top: -15px;
-            margin-bottom: 15px;
+        .user-code-section .error {
+            margin-top: 8px;
+            padding-left: 0;
+            text-align: center;
         }
 
-        .range-value {
-            font-size: 16px;
-            margin-bottom: 20px;
-            font-weight: bold;
-            color: #54c700; /* 선택된 값 강조 색상 */
+
+        /* ---------------------- 반응형 디자인 ---------------------- */
+        @media (max-width: 1024px) {
+            .carousel-section {
+                flex: 0 0 60%;
+                padding: 30px;
+            }
+            .carousel-slides {
+                padding: 30px;
+            }
+            .carousel-item {
+                top: 30px;
+                left: 30px;
+                width: calc(100% - 60px);
+                height: calc(100% - 60px);
+            }
+            .right-image-container img {
+                border-radius: 10px;
+            }
+            .carousel-navigation {
+                padding-top: 20px;
+                margin-top: 30px;
+                gap: 15px;
+            }
+            .page-info {
+                font-size: 19px;
+            }
+            .carousel-text-info .main-title {
+                font-size: 24px;
+            }
+            .carousel-text-info .view-details {
+                font-size: 15px;
+            }
+            .carousel-controls button {
+                font-size: 18px;
+                width: 40px;
+                height: 40px;
+            }
+
+            .existing-main-content {
+                flex: 0 0 40%;
+                padding: 30px;
+            }
+            .form-container {
+                max-width: 450px;
+                padding: 30px;
+            }
+            .form-container h1 {
+                font-size: 30px;
+                margin-bottom: 30px;
+            }
+            .form-container h1::after {
+                bottom: -8px;
+            }
+            .form-container label {
+                margin-bottom: 10px;
+            }
+            .form-container select,
+            .form-container input[type="text"] {
+                padding: 12px 14px;
+                margin-bottom: 25px;
+                font-size: 16px;
+            }
+            .form-container select {
+                background-position: right 12px center;
+            }
+            .form-container button[type="submit"] {
+                padding: 15px;
+                font-size: 18px;
+                margin-top: 25px;
+            }
+            .form-container .range-value {
+                font-size: 18px;
+                margin-bottom: 30px;
+            }
+            .user-code-section {
+                margin-top: 30px;
+                padding-top: 25px;
+            }
+            .user-code-section input[type="text"] {
+                padding: 12px 14px;
+                font-size: 16px;
+            }
+            .user-code-section button {
+                padding: 12px 20px;
+                font-size: 15px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .main-page-container {
+                flex-direction: column;
+                min-height: auto;
+            }
+            .carousel-section {
+                flex: none;
+                width: 100%;
+                height: 50vh; /* 모바일에서 캐러셀 높이 고정 */
+                padding: 20px;
+                box-shadow: 0 2px 8px var(--shadow-light);
+            }
+            .carousel-slides {
+                padding: 0; /* 모바일에서는 padding 제거, 이미지 자체에 집중 */
+                height: calc(100% - 100px); /* 내비게이션 바 높이 고려 */
+            }
+            .carousel-item {
+                position: static; /* 모바일에서는 다시 static으로 변경하여 플로우에 따름 */
+                width: 100%;
+                height: 100%;
+                top: 0;
+                left: 0;
+            }
+            .right-image-container {
+                height: 100%;
+                width: 90%; /* 이미지가 너무 크게 차지하지 않도록 조정 */
+                margin: 0 auto; /* 중앙 정렬 */
+            }
+            .right-image-container img {
+                object-fit: contain; /* 이미지 비율 유지하며 포함 */
+                border-radius: 8px;
+            }
+
+            .carousel-navigation {
+                flex-direction: column; /* 세로로 스택 */
+                align-items: center; /* 중앙 정렬 */
+                padding-top: 15px;
+                margin-top: 15px;
+                gap: 10px;
+                height: 100px; /* 고정된 높이 */
+            }
+            .page-info {
+                order: 1; /* 위에서부터 순서대로 */
+                font-size: 17px;
+                margin-bottom: 5px;
+            }
+            .carousel-text-info {
+                order: 2;
+                width: 100%; /* 너비 전체 차지 */
+                text-align: center;
+                margin-bottom: 5px;
+            }
+            .carousel-text-info .main-title {
+                font-size: 20px; /* 모바일에서 더 축소 */
+                margin-bottom: 3px;
+                white-space: normal; /* 모바일에서는 줄바꿈 허용 */
+                overflow: visible;
+                text-overflow: clip;
+            }
+            .carousel-text-info .view-details {
+                font-size: 14px;
+            }
+            .carousel-controls {
+                order: 3;
+                margin-left: 0;
+                display: flex; /* 버튼들 가로 배열 유지 */
+                justify-content: center;
+                width: 100%;
+            }
+            .carousel-controls button {
+                width: 38px;
+                height: 38px;
+                font-size: 17px;
+                margin: 0 4px; /* 버튼 간격 조절 */
+            }
+
+            .existing-main-content {
+                flex: none;
+                width: 100%;
+                height: auto;
+                padding: 35px 25px;
+            }
+            .existing-main-content::before {
+                 opacity: 0.1;
+            }
+            .form-container {
+                max-width: none;
+                width: 100%;
+                padding: 25px;
+                transform: translateY(0);
+                box-shadow: 0 8px 25px var(--shadow-medium);
+            }
+            .form-container:hover {
+                 transform: translateY(0);
+            }
+            .form-container h1 {
+                font-size: 26px;
+                margin-bottom: 25px;
+            }
+            .form-container h1::after {
+                bottom: -6px;
+            }
+            .form-container label {
+                font-size: 15px;
+            }
+            .form-container select,
+            .form-container input[type="text"] {
+                padding: 10px 12px;
+                margin-bottom: 20px;
+                font-size: 15px;
+            }
+            .form-container select {
+                background-position: right 10px center;
+            }
+            .form-container input[type="range"] {
+                height: 8px;
+            }
+            .form-container input[type="range"]::-webkit-slider-thumb,
+            .form-container input[type="range"]::-moz-range-thumb,
+            .form-container input[type="range"]::-ms-thumb {
+                width: 24px;
+                height: 24px;
+                margin-top: -8px;
+            }
+            .form-container button[type="submit"] {
+                padding: 14px;
+                font-size: 17px;
+                margin-top: 25px;
+            }
+            .form-container .range-value {
+                font-size: 17px;
+                margin-bottom: 25px;
+            }
+            .user-code-section {
+                margin-top: 30px;
+                padding-top: 20px;
+            }
+            .user-code-section .input-group {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .user-code-section input[type="text"] {
+                width: 100%;
+                margin-right: 0;
+                margin-bottom: 12px;
+                padding: 10px 12px;
+                font-size: 15px;
+            }
+            .user-code-section button {
+                width: 100%;
+                padding: 12px 18px;
+                font-size: 15px;
+            }
+            .form-container .error,
+            .user-code-section .error {
+                padding-left: 0;
+                text-align: center;
+                margin-bottom: 10px;
+            }
+        }
+
+        /* ----- 모달(팝업) 관련 CSS 추가 ----- */
+        #modal-overlay {
+            display: none; /* 초기에는 숨김 */
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6); /* 반투명 검정 배경 */
+            z-index: 1000; /* 다른 요소들 위에 표시 */
+            justify-content: center;
+            align-items: center;
+            overflow-y: auto; /* 내용이 길어지면 스크롤 */
+            backdrop-filter: blur(5px); /* 배경 블러 효과 */
+        }
+
+        #modal-content {
+            background-color: var(--white);
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            max-width: 90%; /* 화면 너비의 최대 90% */
+
+            height: 100%; /* 부모의 100% 높이를 채우려 시도 */
+            max-height: 90vh; /* 하지만 뷰포트 높이의 90%를 넘지 않도록 제한 */
+
+            overflow: hidden; /* iframe 스크롤을 iframe 내부에서 처리 */
+            position: relative;
+            transform: translateY(-50px); /* 등장 애니메이션을 위해 약간 위로 */
+            opacity: 0;
+            transition: transform 0.3s ease-out, opacity 0.3s ease-out;
+            display: flex;
+            flex-direction: column;
+            width: 800px; /* 모달의 최대 너비 */
+            padding-top: 50px; /* 닫기 버튼 공간 확보 */
+        }
+
+        #modal-overlay.active #modal-content {
+            transform: translateY(0); /* 정상 위치로 */
+            opacity: 1; /* 완전히 표시 */
+        }
+
+        .modal-close-btn {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            background: none;
+            border: none;
+            font-size: 30px;
+            color: #555;
+            cursor: pointer;
+            z-index: 10; /* 다른 내용 위에 보이도록 */
+            transition: color 0.2s ease;
+        }
+
+        .modal-close-btn:hover {
+            color: #000;
+        }
+
+        #modal-iframe {
+            width: 100%;
+            height: 100%; /* iframe 자체는 여전히 부모 콘텐츠 영역의 100%를 차지 */
+            border: none; /* iframe 자체의 테두리 제거 */
+            background-color: transparent; /* iframe 배경 투명하게 (선택사항) */
+            flex-grow: 1; /* 남은 공간을 iframe이 모두 차지하도록 */
+        }
+
+        /* 모바일 반응형 모달 */
+        @media (max-width: 768px) {
+            #modal-content {
+                max-width: 95%;
+                height: 100%; /* 모바일에서도 부모 높이를 채우려 시도 */
+                max-height: 95vh; /* 뷰포트 높이의 95%를 넘지 않도록 제한 */
+                padding-top: 40px; /* 모바일에서 닫기 버튼 공간 확보 */
+                border-radius: 10px;
+                width: auto; /* 모바일에서 width 고정값 제거 */
+            }
+            .modal-close-btn {
+                font-size: 24px;
+                top: 10px;
+                right: 15px;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>관광지 검색</h1>
-       <form method="post" action="/submit" id="search-form">
-    <!-- 도시 선택 -->
-    <label for="tourist_location">도시를 선택하세요:</label>
-    <select name="tourist_location" id="tourist_location" required>
-        <option value="none" selected>도시를 선택하세요</option>
-        <option value="서울">서울</option>
-        <option value="청주">청주</option>
-        <option value="부산">부산</option>
-        <option value="제주">제주</option>
-    </select>
+<div class="main-page-container">
+    <!-- ---------------------- 새로운 캐러셀 섹션 ---------------------- -->
+    <div class="carousel-section">
+        <div class="carousel-slides">
+            {% for site in carousel_data %}
+                {% if site %}
+                    <div class="carousel-item">
+                        <div class="right-image-container">
+                            <img src="{{ site.image or 'https://via.placeholder.com/400x300/c7f0c7/333333?text=No+Image' }}" alt="{{ site.name or '이미지 없음' }} 이미지">
+                        </div>
+                    </div>
+                {% else %}
+                    {# 데이터가 유효하지 않은 경우를 위한 폴백 슬라이드 #}
+                    <div class="carousel-item">
+                        <div class="right-image-container">
+                            <img src="https://via.placeholder.com/400x300/c7f0c7/333333?text=Error+Image" alt="데이터 오류 이미지">
+                        </div>
+                    </div>
+                {% endif %}
+            {% endfor %}
+            {# carousel_data가 비어있을 경우를 위한 기본 폴백 슬라이드 #}
+            {% if carousel_data | length == 0 %}
+                <div class="carousel-item is-current">
+                    <div class="right-image-container">
+                        <img src="https://via.placeholder.com/400x300/c7f0c7/333333?text=No+Data" alt="데이터 없음 이미지">
+                    </div>
+                </div>
+            {% endif %}
+        </div>
 
-    <!-- 관광지 수 선택 (슬라이더) -->
-    <label for="tourist_sites_count">관광지 수:</label>
-    <input type="range" name="tourist_sites_count" id="tourist_sites_count" min="1" max="3" value="1">
-    <div class="range-value" id="range-value">1</div>
-
-    <button type="submit">검색</button>
-    <div class="error" id="error-message" style="display: none; text-align:left; margin-left:140px; margin-top:4px;"></div>
-</form>
-<div style="margin-top:20px; text-align:center;">
-    <div style="display: flex; justify-content: flex-start; align-items: center; width: 100%; max-width: 400px; margin: 0 auto;">
-        <input type="text" id="userText" placeholder="사용자 코드를 입력하세요" style="width:180px; padding:8px; margin-right:8px;">
-        <button type="button" onclick="submitText()" style="padding:6px 12px; font-size:14px;">저장된 여행경로</button>
+        <!-- 캐러셀 하단 네비게이션 -->
+        <div class="carousel-navigation">
+            <div class="page-info"><span id="current-slide">1</span> / <span id="total-slides"></span></div>
+            <div class="carousel-text-info">
+                <!-- 관광지 이름과 자세히 보기 링크가 이곳으로 이동 -->
+                <h2 class="main-title" id="current-title">관광지 이름</h2>
+                <a href="#" class="view-details" id="current-details-link" data-site-url="">자세히 보기</a>
+            </div>
+            <div class="carousel-controls">
+                <button class="prev-btn" aria-label="Previous slide">←</button>
+                <button class="play-pause-btn" data-status="play" aria-label="Play/Pause carousel">||</button>
+                <button class="next-btn" aria-label="Next slide">→</button>
+            </div>
+        </div>
     </div>
-    <div class="error" id="usercode-error-message" style="display: none; text-align:left; margin-left:225px; margin-top:4px;"></div>
+
+    <!-- ---------------------- 기존 메인 화면 섹션 (오른쪽) - 관광지 검색 폼 삽입 ---------------------- -->
+    <div class="existing-main-content">
+        <div class="form-container">
+            <h1>관광지 검색</h1>
+            <form method="post" action="/submit" id="search-form">
+                <!-- 도시 선택 -->
+                <label for="tourist_location">도시를 선택하세요:</label>
+                <select name="tourist_location" id="tourist_location" required>
+                    <option value="none" selected>도시를 선택하세요</option>
+                    <option value="서울">서울</option>
+                    <option value="청주">청주</option>
+                    <option value="부산">부산</option>
+                    <option value="제주">제주</option>
+                </select>
+
+                <!-- 관광지 수 선택 (슬라이더) -->
+                <label for="tourist_sites_count">관광지 수:</label>
+                <input type="range" name="tourist_sites_count" id="tourist_sites_count" min="1" max="3" value="1">
+                <div class="range-value" id="range-value">1</div>
+
+                <button type="submit">검색</button>
+                <div class="error" id="form-error-message" style="display: none;"></div>
+            </form>
+
+            <div class="user-code-section">
+                <div class="input-group">
+                    <input type="text" id="userText" placeholder="저장된 사용자 코드를 입력하세요">
+                    <button type="button" onclick="submitText()">여행경로 불러오기</button>
+                </div>
+                <div class="error" id="usercode-error-message" style="display: none;"></div>
+            </div>
+        </div>
+    </div>
 </div>
-<script>
-    function submitText() {
-        const text = document.getElementById('userText').value;
-        const usercodeErrorMessage = document.getElementById('usercode-error-message');
-        if (text.trim() === "") {
-            usercodeErrorMessage.style.display = "block";
-            usercodeErrorMessage.textContent = "사용자 코드를 입력하세요!";
-            return;
-        }
-        usercodeErrorMessage.style.display = "none";
-        // live.html로 이동 (GET 파라미터로 코드 전달)
-        window.location.href = `/live?code=${encodeURIComponent(text)}`;
-    }
-</script>
-    </script>
-            <!-- 에러 메시지 -->
-            <div class="error" id="error-message" style="display: none;"></div>
-        </form>
-    </div>
 
-    <script>
-        // 슬라이더 값 표시
+<!-- ----- 모달(팝업) HTML 구조 추가 ----- -->
+<div id="modal-overlay">
+    <div id="modal-content">
+        <button class="modal-close-btn">×</button>
+        <!-- iframe을 사용하여 imformation.html을 통째로 로드 -->
+        <iframe id="modal-iframe" src="" frameborder="0"></iframe>
+    </div>
+</div>
+
+<script>
+    // Flask에서 전달받은 carousel_data를 JavaScript 변수로 저장
+    // Jinja2 템플릿 엔진이 렌더링될 때 이 부분이 채워집니다.
+    const carousel_data_js = {{ carousel_data | tojson }};
+
+    document.addEventListener('DOMContentLoaded', () => {
+        // ---------------------- 캐러셀 스크립트 ----------------------
+        const carouselItemsContainer = document.querySelector('.carousel-slides');
+        let carouselItems = carouselItemsContainer.querySelectorAll('.carousel-item');
+
+        const totalSlidesSpan = document.getElementById('total-slides');
+        const currentSlideSpan = document.getElementById('current-slide');
+        const pageInfoContainer = document.querySelector('.page-info'); // 새로 추가된 요소 참조
+
+        const prevBtn = document.querySelector('.prev-btn');
+        const nextBtn = document.querySelector('.next-btn');
+        const playPauseBtn = document.querySelector('.play-pause-btn');
+
+        const carouselTextInfoContainer = document.querySelector('.carousel-text-info'); // 새로운 요소 참조
+        const currentTitleElement = document.getElementById('current-title');
+        const currentDetailsLink = document.getElementById('current-details-link');
+
+        let currentIndex = 0;
+        let autoSlideInterval;
+        const slideDuration = 5000; // 5초마다 슬라이드 전환
+        let isPaused = false; // 자동 슬라이드 일시정지 여부
+
+        // 총 슬라이드 수 업데이트
+        totalSlidesSpan.textContent = carouselItems.length;
+
+        function showSlide(index) {
+            const total = carouselItems.length;
+            if (total === 0) {
+                currentSlideSpan.textContent = 0;
+                totalSlidesSpan.textContent = 0;
+                currentTitleElement.textContent = '표시할 정보가 없습니다.';
+                currentDetailsLink.style.display = 'none'; // 링크 숨김
+                if (playPauseBtn) playPauseBtn.disabled = true;
+                if (prevBtn) prevBtn.disabled = true;
+                if (nextBtn) nextBtn.disabled = true;
+                carouselTextInfoContainer.style.opacity = '1'; // 정보가 없어도 보이게
+                pageInfoContainer.style.opacity = '1'; // 정보가 없어도 보이게
+                return;
+            }
+
+            const oldCurrentIndex = currentIndex;
+
+            if (index >= total) {
+                currentIndex = 0;
+            } else if (index < 0) {
+                currentIndex = total - 1;
+            } else {
+                currentIndex = index;
+            }
+
+            // 모든 슬라이드에서 활성 클래스 제거
+            carouselItems.forEach(item => {
+                item.classList.remove('is-current', 'is-prev-hidden');
+            });
+
+            // 새로운 현재 슬라이드에 is-current 클래스 추가
+            const currentSlide = carouselItems[currentIndex];
+            currentSlide.classList.add('is-current');
+
+            // 이전 슬라이드에 is-prev-hidden 클래스 추가 (페이드아웃 효과)
+            if (oldCurrentIndex !== currentIndex) {
+                 const prevSlide = carouselItems[oldCurrentIndex];
+                 prevSlide.classList.add('is-prev-hidden');
+            }
+
+            // 하단 내비게이션의 텍스트 및 숫자 페이드 효과 및 업데이트
+            carouselTextInfoContainer.style.opacity = '0'; // 정보 숨김 (페이드 아웃 시작)
+            pageInfoContainer.style.opacity = '0'; // 숫자 숨김 (페이드 아웃 시작)
+
+            setTimeout(() => {
+                const currentSiteData = carousel_data_js[currentIndex];
+                if (currentSiteData) {
+                    currentTitleElement.textContent = currentSiteData.name || '관광지 이름';
+                    // **** 수정된 부분: URL 형식을 경로 변수 형태로 변경 ****
+                    currentDetailsLink.dataset.siteUrl = `/imformation/${encodeURIComponent(currentSiteData.name || 'No Data')}`;
+                    // ****************************************************
+                    currentDetailsLink.style.display = 'inline-flex'; // 링크 다시 보이게
+                } else {
+                    currentTitleElement.textContent = '정보 없음';
+                    // **** 수정된 부분: URL 형식을 경로 변수 형태로 변경 ****
+                    currentDetailsLink.dataset.siteUrl = `/imformation/${encodeURIComponent('No Data')}`;
+                    // ****************************************************
+                    currentDetailsLink.style.display = 'none'; // 링크 숨김
+                }
+                currentSlideSpan.textContent = currentIndex + 1; // 숫자 업데이트
+
+                carouselTextInfoContainer.style.opacity = '1'; // 정보 다시 보임 (페이드 인 시작)
+                pageInfoContainer.style.opacity = '1'; // 숫자 다시 보임 (페이드 인 시작)
+            }, 250); // CSS transition duration (0.5s)의 절반 정도 시간 (내용이 사라진 후 업데이트되도록)
+        }
+
+        function nextSlide() {
+            showSlide(currentIndex + 1);
+        }
+
+        function prevSlide() {
+            showSlide(currentIndex - 1);
+        }
+
+        function startAutoSlide() {
+            if (autoSlideInterval) {
+                clearInterval(autoSlideInterval);
+            }
+            autoSlideInterval = setInterval(nextSlide, slideDuration);
+            isPaused = false;
+            playPauseBtn.textContent = '||';
+            playPauseBtn.setAttribute('data-status', 'play');
+        }
+
+        function pauseAutoSlide() {
+            clearInterval(autoSlideInterval);
+            isPaused = true;
+            playPauseBtn.textContent = '▶';
+            playPauseBtn.setAttribute('data-status', 'pause');
+        }
+
+        if (prevBtn) {
+            prevBtn.addEventListener('click', () => {
+                prevSlide();
+                pauseAutoSlide();
+            });
+        }
+        if (nextBtn) {
+            nextBtn.addEventListener('click', () => {
+                nextSlide();
+                pauseAutoSlide();
+            });
+        }
+        if (playPauseBtn) {
+            playPauseBtn.addEventListener('click', () => {
+                if (isPaused) {
+                    startAutoSlide();
+                } else {
+                    pauseAutoSlide();
+                }
+            });
+        }
+
+        // 캐러셀 초기화
+        if (carouselItems.length > 0) {
+            showSlide(currentIndex); // 초기 로드 시 텍스트도 업데이트
+            startAutoSlide();
+        } else {
+            // 데이터가 없는 경우를 위한 폴백 처리
+            currentSlideSpan.textContent = 0;
+            totalSlidesSpan.textContent = 0;
+            currentTitleElement.textContent = '표시할 관광지 정보가 없습니다.';
+            currentDetailsLink.style.display = 'none'; // 링크 숨김
+            if (playPauseBtn) playPauseBtn.disabled = true;
+            if (prevBtn) prevBtn.disabled = true;
+            if (nextBtn) nextBtn.disabled = true;
+            carouselTextInfoContainer.style.opacity = '1'; // 폴백 정보도 보이게
+            pageInfoContainer.style.opacity = '1'; // 폴백 숫자도 보이게
+
+            // 폴백 슬라이드가 하나만 있을 경우, 그 슬라이드를 강제로 활성화
+            const fallbackSlide = document.querySelector('.carousel-item');
+            if (fallbackSlide) {
+                fallbackSlide.classList.add('is-current');
+            }
+        }
+
+
+        // ---------------------- 관광지 검색 폼 스크립트 ----------------------
+
         const rangeInput = document.getElementById('tourist_sites_count');
         const rangeValue = document.getElementById('range-value');
 
-        rangeInput.addEventListener('input', function() {
-            rangeValue.textContent = rangeInput.value;
-        });
+        if (rangeInput && rangeValue) {
+            rangeInput.addEventListener('input', function() {
+                rangeValue.textContent = rangeInput.value;
+            });
+        }
 
-        // 폼 제출 이벤트 처리
         const form = document.getElementById('search-form');
-        const errorMessage = document.getElementById('error-message');
+        const formErrorMessage = document.getElementById('form-error-message');
 
-        form.addEventListener('submit', function(event) {
-            const city = document.getElementById('tourist_location').value;
-            const count = document.getElementById('tourist_sites_count').value;
+        if (form) {
+            form.addEventListener('submit', function(event) {
+                const citySelect = document.getElementById('tourist_location');
+                const countInput = document.getElementById('tourist_sites_count');
 
-            // 유효성 검사
-            if (city === "none") {
-                event.preventDefault(); // 제출 중단
-                errorMessage.style.display = "block";
-                errorMessage.textContent = "도시를 선택하세요!";
-                return;
+                let isValid = true;
+                let errorMessage = '';
+
+                if (citySelect && citySelect.value === "none") {
+                    isValid = false;
+                    errorMessage = "도시를 선택하세요!";
+                } else if (countInput && (countInput.value === "" || parseInt(countInput.value) < 1)) {
+                    isValid = false;
+                    errorMessage = "관광지 수는 최소 1개 이어야 합니다!";
+                }
+
+                if (!isValid) {
+                    event.preventDefault();
+                    if (formErrorMessage) {
+                        formErrorMessage.style.display = "block";
+                        formErrorMessage.textContent = errorMessage;
+                    }
+                } else {
+                    if (formErrorMessage) {
+                        formErrorMessage.style.display = "none";
+                    }
+                }
+            });
+        }
+
+        const usercodeErrorMessage = document.getElementById('usercode-error-message');
+        const userTextInput = document.getElementById('userText');
+
+        window.submitText = function() {
+            let isValid = true;
+            let errorMessage = '';
+
+            if (userTextInput) {
+                if (userTextInput.value.trim() === "") {
+                    isValid = false;
+                    errorMessage = "사용자 코드를 입력하세요!";
+                }
+            } else {
+                isValid = false;
+                errorMessage = "입력 필드를 찾을 수 없습니다.";
             }
 
-            if (!count || count < 1) {
-                event.preventDefault(); // 제출 중단
-                errorMessage.style.display = "block";
-                errorMessage.textContent = "관광지 수는 최소 1개 이어야 합니다!";
+            if (!isValid) {
+                if (usercodeErrorMessage) {
+                    usercodeErrorMessage.style.display = "block";
+                    usercodeErrorMessage.textContent = errorMessage;
+                }
                 return;
             }
+            if (usercodeErrorMessage) {
+                usercodeErrorMessage.style.display = "none";
+            }
+            if (userTextInput) {
+                window.location.href = `/live?code=${encodeURIComponent(userTextInput.value)}`;
+            }
+        };
 
-            // 에러 메시지 숨기기
-            errorMessage.style.display = "none";
+        // ---------------------- 모달(팝업) 스크립트 추가 (iframe 버전) ----------------------
+        const modalOverlay = document.getElementById('modal-overlay');
+        const modalContent = document.getElementById('modal-content');
+        const modalIframe = document.getElementById('modal-iframe');
+        const modalCloseBtn = document.querySelector('.modal-close-btn');
+
+        function openModal(siteUrl) {
+            modalIframe.src = siteUrl; // iframe의 src 속성 설정
+            modalOverlay.style.display = 'flex'; // flex로 설정하여 중앙 정렬 활성화
+
+            // 모달 등장 애니메이션을 위해 클래스 추가
+            setTimeout(() => {
+                modalOverlay.classList.add('active');
+            }, 10);
+        }
+
+        function closeModal() {
+            modalOverlay.classList.remove('active');
+            // 애니메이션 종료 후 display none으로 변경
+            setTimeout(() => {
+                modalOverlay.style.display = 'none';
+                modalIframe.src = ''; // iframe 내용 비우기 (불필요한 로딩 방지)
+            }, 300); // CSS transition 시간과 맞춰줍니다.
+        }
+
+        // .view-details는 이제 carousel-navigation 내부에 있는 요소 하나이므로,
+        // 해당 ID를 가진 요소에만 이벤트 리스너를 붙이면 됩니다.
+        if (currentDetailsLink) {
+            currentDetailsLink.addEventListener('click', (event) => {
+                event.preventDefault(); // 기본 링크 동작 방지
+                const siteUrl = event.target.dataset.siteUrl; // data-site-url 값 가져오기
+                if (siteUrl && !siteUrl.includes('No Data')) { // 'No Data' 케이스는 제외
+                    openModal(siteUrl);
+                } else {
+                    console.log("표시할 관광지 정보가 없습니다.");
+                }
+            });
+        }
+
+        modalOverlay.addEventListener('click', (event) => {
+            if (event.target === modalOverlay) { // 오버레이 자체를 클릭했을 때만 닫기
+                closeModal();
+            }
         });
 
-    </script>
+        modalCloseBtn.addEventListener('click', closeModal);
+    });
+</script>
 </body>
 </html>
