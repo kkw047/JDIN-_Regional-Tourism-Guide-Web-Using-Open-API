@@ -21,7 +21,17 @@ db_config = {
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    # 캐러셀에 표시할 관광지 ID 목록
+    carousel_site_ids = [1, 2, 3, 4, 5, 6]
+    carousel_data = []
+
+    # 각 ID에 해당하는 관광지 정보를 DB에서 가져옴
+    for site_id in carousel_site_ids:
+        site_info = get_site_details_by_id(site_id)
+        if site_info:
+            carousel_data.append(site_info)
+
+    return render_template('index.html', carousel_data=carousel_data)
 
 
 @app.route('/submit', methods=['POST'])
@@ -195,8 +205,6 @@ def live():
         return "잘못된 count 값입니다.", 400
 
     usercode = ''
-    # usercode 생성 및 중복 확인
-    # DB 연결은 필요한 시점에 최소한으로 유지
     while True:
         usercode = ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
         try:
@@ -1017,12 +1025,13 @@ def imformation(site_name):
         if connection and connection.open:
             connection.close()
 
+
 def get_site_details_by_id(site_id):
     connection = None
     try:
         connection = pymysql.connect(**db_config)
         with connection.cursor() as cursor:
-            sql = "SELECT id, name, image, address FROM tourist_attraction WHERE id = %s"
+            sql = "SELECT id, name, category, image, address FROM tourist_attraction WHERE id = %s"  # category 필드 추가
             cursor.execute(sql, (site_id,))
             return cursor.fetchone()
     except Exception as e:
