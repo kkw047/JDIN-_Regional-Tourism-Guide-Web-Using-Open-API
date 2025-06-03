@@ -586,6 +586,8 @@ function moveToProcessPage() {
         params.append(`site${index + 1}_image`, encodeURIComponent(site.image));
         params.append(`site${index + 1}_address`, encodeURIComponent(site.address));
         params.append(`site${index + 1}_id`, site.id); // site.id 추가
+        params.append(`site${index + 1}_time`, encodeURIComponent(site.time || '정보 없음'));
+        params.append(`site${index + 1}_money`, encodeURIComponent(site.money || '정보 없음'));
     });
 
     params.append('city', encodeURIComponent(city));

@@ -49,7 +49,8 @@ def get_tourist_sites_from_api():
                     'image': item.get('firstimage', '이미지 정보 없음'),
                     'mapx': item.get('mapx', '좌표 없음'),
                     'mapy': item.get('mapy', '좌표 없음'),
-                    'tel': item.get('tel', '전화번호 정보 없음')[:100],
+                    'tel': item.get('tel', '전화번호 정보 없음')[:100]
+                                
                 })
         return tourist_sites
 
@@ -76,8 +77,8 @@ def save_tourist_sites_to_db(tourist_sites):
                 try:
                     # 관광지 데이터를 삽입 또는 업데이트
                     sql = """
-                    INSERT INTO tourist_attraction (name, address, image, mapx, mapy, tel)
-                    VALUES (%s, %s, %s, %s, %s, %s)
+                    INSERT INTO tourist_attraction (name, address, image, mapx, mapy, tel, time, money)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                     ON DUPLICATE KEY UPDATE
                         address = VALUES(address),
                         image = VALUES(image),
@@ -91,7 +92,7 @@ def save_tourist_sites_to_db(tourist_sites):
                         site['image'],
                         site['mapx'],
                         site['mapy'],
-                        site['tel']
+                        site['tel']   
                     ))
                 except Exception as e:
                     print(f"데이터 삽입 오류: {site}, 오류: {e}")
