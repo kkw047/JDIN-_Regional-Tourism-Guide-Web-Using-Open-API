@@ -146,6 +146,8 @@
     <!-- 기본 정보 -->
       <p><strong>주소:</strong> {{ tourist_info.address or '주소 정보 없음' }}</p>
       <p><strong>전화번호:</strong> {{ tourist_info.phone or '전화번호 정보 없음' }}</p>
+      <p><strong>입장료:</strong> {{ tourist_info.time or '입장료 정보 없음'}}</a></p>
+      <p><strong>예상 관광 시간:</strong> {{ tourist_info.money '예상 관강 시간 없음' }}</p>
     </section>
 
     <!-- 리뷰 -->
@@ -156,6 +158,8 @@
           <div class="review-item">
             <p><strong>작성시간:</strong> {{ review.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</p>
             <p><strong>평점:</strong> {{ review.rating }} / 5</p>
+            <p><strong>관광 시간:</strong></p>
+            <p><strong>입장 비용: </stong>></p>
             <p>{{ review.content }}</p>
           </div>
         {% endfor %}
