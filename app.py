@@ -87,7 +87,13 @@ def get_tourist_sites():
     try:
         connection = pymysql.connect(**db_config)
         with connection.cursor() as cursor:
-            sql = "SELECT id, name, address, mapx, mapy, image, category FROM tourist_attraction WHERE address LIKE %s"
+            sql = """
+                SELECT ta.id, ta.name, ta.address, ta.mapx, ta.mapy, ta.image, ta.category,
+                    ROUND(AVG(r.rating), 1) AS average_rating
+                FROM tourist_attraction ta
+                LEFT JOIN review r ON ta.id = r.tourist_attraction_id
+                WHERE ta.address LIKE %s
+                """
             params = [f"%{city}%"]
 
             if categories and categories != "전체":
@@ -98,13 +104,15 @@ def get_tourist_sites():
                     params.append(f"%{category_item}%")  # category -> category_item
 
                 sql += " AND (" + " OR ".join(like_conditions) + ")"
-
-            sql += " ORDER BY RAND() LIMIT 10"
+            sql += " GROUP BY ta.id ORDER BY RAND() LIMIT 100"
             cursor.execute(sql, params)
             results = cursor.fetchall()
 
             for res_item in results:  # result -> res_item
                 res_item['location'] = {'mapx': res_item['mapx'], 'mapy': res_item['mapy']}
+                if res_item['average_rating'] is None:
+                        res_item['average_rating'] = 0.0
+
 
         return jsonify({"success": True, "sites": results})
     except Exception as e:
