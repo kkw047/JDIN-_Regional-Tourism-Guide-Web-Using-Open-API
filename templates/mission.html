@@ -8,10 +8,11 @@
         body {
             font-family: Arial, sans-serif;
             margin: 0;
-            padding: 45px 10px 10px 10px;
+            /* padding: 45px 10px 10px 10px; */ /* Adjusted padding for potential fixed footer/button */
+            padding-bottom: 70px; /* Space for reward button if it's outside container */
             box-sizing: border-box;
             background-color: #f8f9fa;
-            height: 100vh;
+            min-height: 100vh; /* Ensure body takes full height */
             display: flex;
             flex-direction: column;
         }
@@ -19,9 +20,10 @@
         .mission-container {
             flex-grow: 1;
             overflow-y: auto;
-            padding: 15px;
+            padding: 15px; /* Moved top padding here */
+            padding-top: 45px; /* Original top padding */
             background-color: white;
-            border-radius: 0 0 8px 8px;
+            border-radius: 0 0 8px 8px; /* Potentially remove bottom radius if button is directly below */
         }
 
         .mission-item {
@@ -220,16 +222,93 @@
             font-size: 1.1em;
         }
 
+        #rewardButtonPlaceholder {
+            padding: 10px;
+            text-align: center;
+        }
+
+        #rewardClaimButton {
+            display: inline-block; /* Make it inline-block to center with text-align on parent */
+            margin-top: 10px; /* Space from mission list */
+            margin-bottom: 10px;
+            padding: 12px 25px;
+            background-color: #ffc107; /* A rewarding color, like gold */
+            color: #212529;
+            border: none;
+            border-radius: 5px;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        #rewardClaimButton:hover {
+            background-color: #e0a800;
+        }
+
         .mission-footer {
             padding: 10px;
             border-top: 1px solid #eee;
             background-color: #f0f0f0;
             text-align: center;
-            flex-shrink: 0;
+            flex-shrink: 0; /* Prevent footer from shrinking */
             font-size: 0.8em;
             color: #555;
-            border-radius: 0 0 6px 6px;
+            /* border-radius: 0 0 6px 6px; */ /* May not be needed if body has background */
         }
+
+        /* Modal Styles */
+        .modal {
+            display: none; /* Hidden by default */
+            position: fixed; /* Stay in place */
+            z-index: 1000; /* Sit on top */
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto; /* Enable scroll if needed */
+            background-color: rgba(0,0,0,0.6); /* Black w/ opacity */
+            /* padding-top: 60px; Location of the box - not needed if centering with flex */
+            align-items: center; /* Vertical center */
+            justify-content: center; /* Horizontal center */
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            /* margin: 5% auto; */ /* Replaced by flex centering */
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 500px;
+            text-align: center;
+            position: relative;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .modal-content img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 4px;
+            margin-top: 15px; /* Space from close button */
+        }
+
+        .close-button {
+            color: #aaa;
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            font-size: 28px;
+            font-weight: bold;
+            line-height: 1;
+        }
+
+        .close-button:hover,
+        .close-button:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
     </style>
 </head>
 <body>
@@ -239,8 +318,19 @@
             </div>
         <div class="no-missions" id="noMissionsMessage" style="display: none;">현재 진행 중인 미션이 없습니다.</div>
     </div>
+
+    <div id="rewardButtonPlaceholder">
+        </div>
+
     <div class="mission-footer">
         미션은 관광지당 1개씩 제공됩니다.
+    </div>
+
+    <div id="rewardModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" onclick="closeRewardModal()">&times;</span>
+            <img id="rewardImage" src="/static/coffee.png" alt="미션 완료 보상">
+        </div>
     </div>
 
     <script>
@@ -249,6 +339,23 @@
         const noMissionsMessage = document.getElementById('noMissionsMessage');
         const urlParams = new URLSearchParams(window.location.search);
         const usercode = urlParams.get('usercode');
+        const rewardButtonPlaceholder = document.getElementById('rewardButtonPlaceholder');
+        const rewardModal = document.getElementById('rewardModal');
+
+        function openRewardModal() {
+            if (rewardModal) rewardModal.style.display = 'flex'; // Use flex for centering
+        }
+
+        function closeRewardModal() {
+            if (rewardModal) rewardModal.style.display = 'none';
+        }
+        // Close modal if user clicks outside of the modal content
+        window.onclick = function(event) {
+            if (event.target == rewardModal) {
+                closeRewardModal();
+            }
+        }
+
 
         function renderMissions(missionsData) {
             missionListDiv.innerHTML = '';
@@ -261,7 +368,6 @@
                     const missionItem = document.createElement('div');
                     missionItem.className = 'mission-item';
 
-                    // Add overlays (always present in DOM, visibility controlled by CSS classes on missionItem)
                     const successOverlay = document.createElement('div');
                     successOverlay.className = 'mission-completed-overlay';
                     missionItem.appendChild(successOverlay);
@@ -270,7 +376,6 @@
                     failOverlay.className = 'mission-failed-overlay';
                     missionItem.appendChild(failOverlay);
 
-                    // Site Info
                     const siteInfoDiv = document.createElement('div');
                     siteInfoDiv.className = 'mission-site-info';
                     let siteImageHTML = '';
@@ -285,46 +390,39 @@
                     const missionContentContainer = document.createElement('div');
                     missionItem.appendChild(missionContentContainer);
 
-                    // Logic based on tourist_site_status (관광지 상태 우선 확인)
                     if (typeof mission.tourist_site_status === 'number' && mission.tourist_site_status === 0) {
-                        // Site is "waiting". Mission locked, no overlays.
-                        missionItem.classList.remove('completed', 'failed'); // 중요: 오버레이 숨김
+                        missionItem.classList.remove('completed', 'failed');
 
                         missionContentContainer.className = 'mission-waiting-message-container';
-                        if (mission.id === null) { // "Mission not found" placeholder
+                        if (mission.id === null) {
                              missionContentContainer.innerHTML = `
                                 <p>- 미션 정보 준비중 -</p>
                                 <span>(해당 관광지 방문 후 확인해주세요.)</span>
                             `;
-                        } else { // Regular mission
+                        } else {
                             missionContentContainer.innerHTML = `
                                 <p>- 미션 대기중 -</p>
                                 <span>(해당 관광지 방문 후 미션 내용이 활성화됩니다.)</span>
                             `;
                         }
                     } else {
-                        // Site is not "waiting". Display based on mission.confirmed_status.
-                        // Apply overlay classes first
                         if (mission.confirmed_status === 1) {
                             missionItem.classList.add('completed');
-                            missionItem.classList.remove('failed'); // Ensure only one state class
+                            missionItem.classList.remove('failed');
                         } else if (mission.confirmed_status === 3) {
                             missionItem.classList.add('failed');
-                            missionItem.classList.remove('completed'); // Ensure only one state class
-                        } else { // confirmed_status is 0 or other
+                            missionItem.classList.remove('completed');
+                        } else {
                             missionItem.classList.remove('completed', 'failed');
                         }
 
-                        // Then set content (details, buttons, or final messages)
                         missionContentContainer.className = 'mission-details';
                         missionContentContainer.innerHTML = `
                             <h4>${mission.title || (mission.id === null ? '미션 정보를 찾을 수 없습니다.' : '미션 제목 없음')}</h4>
                             <p>${mission.content || (mission.id === null ? '정상적인 미션 정보를 불러올 수 없습니다.' : '')}</p>
                         `;
 
-                        // *** 여기가 수정된 조건입니다 ***
                         if (mission.id !== null && mission.confirmed_status === 0 && (mission.tourist_site_status === 2 || mission.tourist_site_status === 1)) {
-                            // Actionable buttons for valid, pending missions where site is active (2) or completed (1)
                             const buttonsDiv = document.createElement('div');
                             buttonsDiv.className = 'mission-action-buttons';
                             buttonsDiv.innerHTML = `
@@ -405,18 +503,51 @@
                     })
                     .then(updateData => {
                         if (updateData.success) {
-                            fetchMissionDataAndRender(); // Re-fetch and re-render the list
+                            fetchMissionDataAndRender();
                         } else {
                             alert('미션 상태 업데이트 실패: ' + (updateData.error || '알 수 없는 오류'));
                         }
                     })
                     .catch(error => {
                         console.error('미션 상태 업데이트 중 최종 오류:', error.message);
-                        // alert('미션 상태 업데이트 중 오류가 발생했습니다.');
                     });
                 });
             });
         }
+
+        function checkAndDisplayRewardButton(missionsData) {
+            rewardButtonPlaceholder.innerHTML = ''; // 이전 버튼 제거
+
+            if (!missionsData || missionsData.length === 0) {
+                return;
+            }
+
+            const actualMissions = missionsData.filter(mission => mission && mission.id !== null);
+
+            if (actualMissions.length === 0) {
+                return;
+            }
+
+            let allConditionsMet = true;
+            for (const mission of actualMissions) {
+                const isMissionSuccessful = mission.confirmed_status === 1;
+                const isSiteCompleted = mission.tourist_site_status === 1; // 관광지 '완료' 상태
+
+                if (!isMissionSuccessful || !isSiteCompleted) {
+                    allConditionsMet = false;
+                    break;
+                }
+            }
+
+            if (allConditionsMet) {
+                const button = document.createElement('button');
+                button.id = 'rewardClaimButton';
+                button.textContent = '미션 완료 보상받기';
+                button.onclick = openRewardModal;
+                rewardButtonPlaceholder.appendChild(button);
+            }
+        }
+
 
         function fetchMissionDataAndRender() {
             if (usercode) {
@@ -435,6 +566,7 @@
                         loadingMessage.style.display = 'none';
                         if (data.success && data.missions) {
                             renderMissions(data.missions);
+                            checkAndDisplayRewardButton(data.missions); // Call after rendering missions
                         } else {
                             noMissionsMessage.style.display = 'block';
                             if (data.error) { console.error("서버 오류: ", data.error); }
