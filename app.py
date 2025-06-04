@@ -6,6 +6,7 @@ from urllib.parse import unquote
 import json
 import sys  # submit_review에서 사용
 from urllib.parse import unquote
+from urllib.parse import unquote
 app = Flask(__name__)
 
 # MySQL DB 설정
@@ -111,6 +112,7 @@ def get_tourist_sites():
     finally:
         if connection and connection.open:
             connection.close()
+
 
 
 
