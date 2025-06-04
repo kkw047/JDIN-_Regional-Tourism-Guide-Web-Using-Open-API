@@ -972,7 +972,7 @@ def imformation_panel(site_name):
         if connection and connection.open:
             connection.close()
 
-@app.route('/imformation/<string:site_name>')#imformation 페이지
+@app.route('/imformation_live/<string:site_name>')#imformation_live 페이지
 def imformation(site_name):
     site_name = unquote(site_name)  # URL 디코딩
     print(f"DEBUG: Received site_name: {site_name}")  # site_name 값 출력
@@ -1034,7 +1034,7 @@ def imformation(site_name):
         print(f"DEBUG: Average Rating: {average_rating}")
 
         return render_template(
-            'imformation.html',
+            'imformation_live.html',
             tourist_info=tourist_info,
             review_count=review_count,
             reviews=reviews,

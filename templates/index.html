@@ -1020,13 +1020,13 @@
                 if (currentSiteData) {
                     currentTitleElement.textContent = currentSiteData.name || '관광지 이름';
                     // **** 수정된 부분: URL 형식을 경로 변수 형태로 변경 ****
-                    currentDetailsLink.dataset.siteUrl = `/imformation/${encodeURIComponent(currentSiteData.name || 'No Data')}`;
+                    currentDetailsLink.dataset.siteUrl = `/imformation_panel/${encodeURIComponent(currentSiteData.name || 'No Data')}`;
                     // ****************************************************
                     currentDetailsLink.style.display = 'inline-flex'; // 링크 다시 보이게
                 } else {
                     currentTitleElement.textContent = '정보 없음';
                     // **** 수정된 부분: URL 형식을 경로 변수 형태로 변경 ****
-                    currentDetailsLink.dataset.siteUrl = `/imformation/${encodeURIComponent('No Data')}`;
+                    currentDetailsLink.dataset.siteUrl = `/imformation_panel/${encodeURIComponent('No Data')}`;
                     // ****************************************************
                     currentDetailsLink.style.display = 'none'; // 링크 숨김
                 }
