@@ -137,12 +137,36 @@ def process():
                 location = {}
         # else: location은 이미 {}로 초기화됨
 
+        site_id = request.args.get(f'site{i}_id')
+        print(f"[DEBUG] site{i}_id = {site_id}")  # site_id 로그 확인
+
+        if site_id:
+            try:
+                connection = pymysql.connect(**db_config)
+                with connection.cursor() as cursor:
+                    cursor.execute("""
+                        SELECT name, address, image, time, money 
+                        FROM tourist_attraction 
+                        WHERE id = %s
+                    """, (site_id,))
+                    result = cursor.fetchone()
+                    print(f"[DEBUG] DB result for site{i}_id={site_id}: {result}")
+                    if result:
+                        site_info = result
+            except Exception as e:
+                print(f"[ERROR] DB 조회 실패 (site_id={site_id}): {e}")
+            finally:
+                if connection and connection.open:
+                    connection.close()
+
         site_data[i] = {
-            'name': request.args.get(f'site{i}_name'),
+            'name': site_info.get('name', '정보 없음'),
             'location': location,
-            'image': request.args.get(f'site{i}_image'),
-            'address': request.args.get(f'site{i}_address'),
-            'id': request.args.get(f'site{i}_id')
+            'image': site_info.get('image'),
+            'address': site_info.get('address', '정보 없음'),
+            'id': site_id,
+            'time': site_info.get('time', '정보 없음'),
+            'money': site_info.get('money', '정보 없음')
         }
 
     return render_template('process.html', city=city, count=count, site_data=site_data)
