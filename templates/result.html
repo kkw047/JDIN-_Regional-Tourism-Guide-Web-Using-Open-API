@@ -46,12 +46,14 @@
             padding: 15px;
         }
         .results {
-            flex: 1;
-            min-width: 300px;
-            background-color: #f9f9f9;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            padding: 15px;
+          flex: 1;
+          min-width: 300px;
+          max-height: 700px;     /* 높이 고정 */
+          overflow-y: auto;      /* 세로 스크롤 가능 */
+          background-color: #f9f9f9;
+          border: 1px solid #ddd;
+          border-radius: 8px;
+          padding: 15px;
         }
         .buttons button {
             display: block;
@@ -163,6 +165,11 @@
             color: #999;
             animation: bounceDown 1.8s infinite;
         }
+        .star-rating {
+          margin-bottom: 5px;
+          font-size: 25px;
+          margin-right: 10px;
+        }
         .arrow-down::before {
             content: "▼";
             display: inline-block;
@@ -185,7 +192,47 @@
             border: 2px solid #ffffff;
             box-shadow: 0 0 10px #ffffff;
         }
-
+        #infoModal {
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background-color: rgba(0,0,0,0.5);
+          visibility: hidden;
+          opacity: 0;
+          transition: opacity 0.3s ease;
+          z-index: 100;
+        }
+        #infoModal.open {
+          visibility: visible;
+          opacity: 1;
+        }
+        #infoModal .modal-content {
+          position: absolute;
+          top: 0;
+          right: 0;
+          width: 30%;
+          height: 100%;
+          background-color: #fff;
+          box-shadow: -2px 0 8px rgba(0,0,0,0.3);
+          transform: translateX(100%);
+          transition: transform 0.35s ease;
+        }
+        #infoModal.open .modal-content {
+          transform: translateX(0);
+        }
+        #infoModal .close {
+          float: right;
+          font-size: 28px;
+          margin: 10px;
+          cursor: pointer;
+        }
+        #infoModal iframe {
+          width: 100%;
+          height: calc(100% - 40px);
+          border: none;
+        }
         /* 마커 이미지 크기 조절 */
         .tmap-marker img {
             width: 65px; /* 원하는 가로 크기 */
@@ -611,28 +658,57 @@ function moveToProcessPage() {
     const selectedSite = buttonIndex ? selectedSites[buttonIndex] : null;
 
     sites.forEach(site => {
-      const li = document.createElement("li");
-      const infoDiv = document.createElement("div");
-      infoDiv.className = "site-info";
-      const category = site.category ? `(${site.category})` : "";
-      const address = site.address || "위치 정보 없음";
+    const li = document.createElement("li");
 
-      infoDiv.innerHTML = `<strong>${site.name}</strong> ${category}<br><small style="color: #666;">${address}</small>`;
-      li.appendChild(infoDiv);
+    // 별점 HTML 생성
+    const rating = site.average_rating || 0;
+    const starDiv = document.createElement("div");
+    starDiv.className = "star-rating";
+    for (let i = 1; i <= 5; i++) {
+      const star = document.createElement("span");
+      star.textContent = "★";
+      star.style.color = i <= rating ? "#ffc107" : "#ccc";
+      starDiv.appendChild(star);
+    }
 
-      const actionButton = document.createElement("button");
-      if (selectedSite && selectedSite.id === site.id) {
-        actionButton.textContent = "선택 취소";
-        actionButton.classList.add("cancel-btn");
-        actionButton.setAttribute("data-site-id", site.id);
-      } else {
-        actionButton.textContent = "선택";
-        actionButton.classList.add("select-btn");
-      }
-      actionButton.onclick = () => handleSiteSelection(actionButton, site.id, site.name, site);
-      li.appendChild(actionButton);
-      resultContainer.appendChild(li);
-    });
+    // 관광지 정보 영역
+    const infoDiv = document.createElement("div");
+    infoDiv.className = "site-info";
+    const category = site.category ? `(${site.category})` : "";
+    const address = site.address || "위치 정보 없음";
+    infoDiv.innerHTML = `
+      <strong>
+        <a href="javascript:void(0)" onclick="openTouristInfo('${site.name}')" style="color: inherit; text-decoration: none;">
+          ${site.name}
+        </a>
+      </strong> ${category}<br>
+      <small style="color: #666;">${address}</small>`;
+    // 버튼 생성
+    const actionButton = document.createElement("button");
+    if (selectedSite && selectedSite.id === site.id) {
+      actionButton.textContent = "선택 취소";
+      actionButton.classList.add("cancel-btn");
+      actionButton.setAttribute("data-site-id", site.id);
+    } else {
+      actionButton.textContent = "선택";
+      actionButton.classList.add("select-btn");
+    }
+    actionButton.onclick = () => handleSiteSelection(actionButton, site.id, site.name, site);
+
+    // 버튼과 별점을 감싸는 div
+    const rightDiv = document.createElement("div");
+    rightDiv.style.display = "flex";
+    rightDiv.style.flexDirection = "row";
+    rightDiv.style.alignItems = "center";
+    rightDiv.style.gap = "10px";
+    rightDiv.appendChild(starDiv);
+    rightDiv.appendChild(actionButton);
+
+    // li 구성
+    li.appendChild(infoDiv);
+    li.appendChild(rightDiv);
+    resultContainer.appendChild(li);
+  });
   }
 
  function parseLocation(locationStr) {
@@ -818,8 +894,31 @@ function clearTmapPath() {
   }
   polylines = [];
 }
+function openTouristInfo(siteName) {
+  if (!siteName) return;
+  const modal = document.getElementById("infoModal");
+  const iframe = document.getElementById("infoFrame");
+  iframe.src = '/imformation_panel/' + encodeURIComponent(siteName);
+  modal.classList.add("open");
+}
 
+function closeModal() {
+  const modal = document.getElementById("infoModal");
+  modal.classList.remove("open");
+  document.getElementById("infoFrame").src = "";
+}
+
+window.onclick = function(event) {
+  const infoM = document.getElementById("infoModal");
+  if (event.target === infoM) closeModal();
+}
   window.onload = init;
 </script>
+  <div id="infoModal">
+    <div class="modal-content">
+      <span class="close" onclick="closeModal()">×</span>
+      <iframe id="infoFrame" src="" frameborder="0"></iframe>
+    </div>
+  </div>
 </body>
 </html>
