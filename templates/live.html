@@ -104,6 +104,10 @@
         padding: 5px 13px;
     }
 
+    .site-name-box:hover {
+    color: rgb(77, 174, 119); /* 마우스를 올렸을 때 글자 색 */
+    }
+
     .site-button {
         text-align: left;
 
@@ -420,11 +424,9 @@
     <li class="site-item">
         <div class="grid-container">
             <div class="site-info">
-                <div class="site-name-box">
-                    <button class="site-name-button" onclick="openPanel('{{ tourist_sites[i].name }}')">
-                        {{ tourist_sites[i].name }}
-                     </button>
-            </div>
+                <div class="site-name-box" onclick="openPanel('{{ tourist_sites[i].name }}', '{{ tourist_sites[i-1].name if i > 0 else 'NULL' }}')">
+                    {{ tourist_sites[i].name }}
+                </div>
             </div>
             <div class="site-button">
                 {% if statuses[i] == 0 %}
@@ -1101,12 +1103,13 @@
         }
     </script>
     <script>
-        function openPanel(siteName) {
-            if (!siteName) {
-                console.error("관광지 이름이 없습니다.");
+        function openPanel(currentSiteName, previousSiteName) {
+            if (!currentSiteName) {
+                console.error("현재 관광지 이름이 없습니다.");
                 return;
             }
-            const panelUrl = `/imformation_live/${encodeURIComponent(siteName)}`;
+
+            const panelUrl = `/imformation_live/${encodeURIComponent(currentSiteName)}/${encodeURIComponent(previousSiteName)}`;
             const modalIframe = document.getElementById('modalIframe');
             const infoModal = document.getElementById('infoModal');
 

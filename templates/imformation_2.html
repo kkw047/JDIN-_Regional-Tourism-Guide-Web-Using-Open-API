@@ -16,7 +16,7 @@
     header {
       background-color: #008009;
       color: white;
-      padding: 2rem 1rem;
+      padding: 1rem 0.5rem;
       text-align: center;
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     }
@@ -35,10 +35,10 @@
     }
     section {
       background-color: #fff;
-      padding: 1.5rem;
+      padding: 1rem;
       border-radius: 12px;
       box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
-      margin-bottom: 2rem;
+      margin-bottom: 1rem;
     }
     .map-container {
       width: 100%;
@@ -70,6 +70,32 @@
     strong {
       color: #555;
     }
+    #load-more-btn {
+    display: inline-block;
+    padding: 10px 20px;
+    background-color: #008009;
+    color: white;
+    font-size: 16px;
+    font-weight: bold;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    margin-top: 10px;
+  }
+
+  #load-more-btn:hover {
+    background-color: #005f06;
+  }
+
+  #load-more-btn:active {
+    background-color: #004004;
+  }
+  .review-item p {
+    word-wrap: break-word; /* 긴 단어를 줄바꿈 */
+    white-space: pre-wrap; /* 줄바꿈을 유지 */
+    overflow-wrap: break-word; /* 긴 텍스트를 줄바꿈 */
+  }
   </style>
   <script src="https://apis.openapi.sk.com/tmap/vectorjs?version=1&appKey=mxmVv8O9Lf6E9oY1vT6mZ76Ex7ef2hks2if5ccZi"></script>
   <script type="text/javascript">
@@ -145,27 +171,76 @@
 
     <!-- 기본 정보 -->
       <p><strong>주소:</strong> {{ tourist_info.address or '주소 정보 없음' }}</p>
-      <p><strong>입장료:</strong> {{ tourist_info.time or '입장료 정보 없음'}}</p>
-      <p><strong>예상 관광 시간:</strong> {{ tourist_info.money or '예상 관강 시간 없음' }}</p>
+      <p><strong>입장료:</strong> {{ tourist_info.money or '입장료 정보 없음'}}</p>
+      <p><strong>예상 관광 시간:</strong> {{ tourist_info.time or '예상 관강 시간 없음' }}</p>
     </section>
 
-    <!-- 리뷰 -->
-    <section class="reviews">
-      <h2>리뷰</h2>
-      {% if reviews %}
-        {% for review in reviews %}
-          <div class="review-item">
-            <p><strong>작성시간:</strong> {{ review.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</p>
-            <p><strong>평점:</strong> {{ review.rating }} / 5</p>
-            <p><strong>관광 시간:</strong></p>
-            <p><strong>입장 비용: </stong>></p>
-            <p>{{ review.content }}</p>
-          </div>
-        {% endfor %}
-      {% else %}
-        <p>등록된 댓글이 없습니다.</p>
+<!-- 리뷰 -->
+{% if reviews and reviews|length > 0 %}
+<section class="reviews">
+  <h2>리뷰</h2>
+  <div id="review-container">
+    {% for review in reviews[:5] %}
+      {% if review.content and review.content|length > 2 %}
+        <div class="review-item">
+          <p><strong>작성시간:</strong> {{ review.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</p>
+          <p><strong>평점:</strong> {{ review.rating }} / 5</p>
+          <p>{{ review.content }}</p>
+        </div>
       {% endif %}
-    </section>
+    {% endfor %}
+  </div>
+  {% if reviews|length > 5 %}
+    <button id="load-more-btn" onclick="loadMoreReviews()">추가 보기</button>
+  {% endif %}
+</section>
+{% endif %}
+  </main>
+  <script>
+  let currentReviewIndex = 5; // 현재 표시된 리뷰 개수
+  const reviews = {{ reviews | tojson }}; // 서버에서 전달된 리뷰 데이터
+
+function loadMoreReviews() {
+  const reviewContainer = document.getElementById('review-container');
+  const loadMoreBtn = document.getElementById('load-more-btn');
+
+  let loadedCount = 0; // 실제 로드된 리뷰 개수
+
+  // 다음 5개의 리뷰를 추가로 로드
+  for (let i = currentReviewIndex; i < reviews.length; i++) {
+    const review = reviews[i];
+
+    // 내용이 없는 리뷰는 건너뜀
+    if (!review.content || review.content.length <= 2) {
+      continue;
+    }
+
+    const reviewItem = document.createElement('div');
+    reviewItem.className = 'review-item';
+    reviewItem.innerHTML = `
+      <p><strong>작성시간:</strong> ${review.created_at}</p>
+      <p><strong>평점:</strong> ${review.rating} / 5</p>
+      <p>${review.content.replace(/\n/g, '<br>')}</p>
+    `;
+    reviewContainer.appendChild(reviewItem);
+
+    loadedCount++; // 실제 로드된 리뷰 개수 증가
+
+    // 5개의 리뷰를 로드하면 루프 종료
+    if (loadedCount >= 5) {
+      break;
+    }
+  }
+
+  // 현재 리뷰 인덱스 업데이트
+  currentReviewIndex += loadedCount;
+
+  // 모든 리뷰를 로드했으면 버튼 숨김
+  if (currentReviewIndex >= reviews.length) {
+    loadMoreBtn.style.display = 'none';
+  }
+}
+</script>
   </main>
 </body>
 </html>
