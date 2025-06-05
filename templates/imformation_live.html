@@ -125,6 +125,7 @@
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script type="text/javascript">
         let isMapVisible = false; // 지도 표시 여부를 추적
+        const tourist_first_Name = "{{ tourist_info.name if tourist_info else '' }}";
 
     function toggleMap() {
         const mapDiv = document.getElementById('map_div');
@@ -167,7 +168,7 @@ function initTmap() {
   // 첫 번째 관광지일 경우 경로 탐색을 건너뜀
   if ("{{ tourist_info2 }}" === "None") {
     const descriptionElement = document.getElementById("travel-description");
-    descriptionElement.textContent = "첫 번째 관광지입니다.";
+    descriptionElement.textContent = "처음 관광지 : " + tourist_first_Name;
     return; // 경로 탐색만 건너뜀, 지도와 도착지 마커는 출력됨
   }
   // 출발지 Marker 생성 (기본 마커)
