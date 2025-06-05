@@ -124,15 +124,10 @@ function initTmap() {
     zoom: 16
   });
 
-  // 도착지 Marker 생성 (사용자 지정 아이콘)
+  // 도착지 Marker 생성 (기본 마커)
   const endMarker = new Tmapv3.Marker({
     position: new Tmapv3.LatLng(endY, endX),
-    map: map,
-    icon: {
-      url: '/static/end.png', // 도착지 아이콘 이미지 경로
-      size: new Tmapv3.Size(32, 32), // 아이콘 크기
-      anchor: new Tmapv3.Point(16, 32) // 기준점 설정
-    }
+    map: map
   });
 
   // 첫 번째 관광지일 경우 경로 탐색을 건너뜀
@@ -142,15 +137,10 @@ function initTmap() {
     return; // 경로 탐색만 건너뜀, 지도와 도착지 마커는 출력됨
   }
 
-  // 출발지 Marker 생성 (사용자 지정 아이콘)
+  // 출발지 Marker 생성 (기본 마커)
   const startMarker = new Tmapv3.Marker({
     position: new Tmapv3.LatLng(startY, startX),
-    map: map,
-    icon: {
-      url: '/static/start.png', // 출발지 아이콘 이미지 경로
-      size: new Tmapv3.Size(32, 32), // 아이콘 크기
-      anchor: new Tmapv3.Point(16, 32) // 기준점 설정
-    }
+    map: map
   });
 
   // Tmap API를 사용하여 경로 탐색 및 소요 시간, 거리 계산
@@ -276,7 +266,7 @@ function initTmap() {
     <!-- 기본 정보 -->
       <p><strong>주소:</strong> {{ tourist_info.address or '주소 정보 없음' }}</p>
       <p><strong>입장료:</strong> {{ tourist_info.time or '입장료 정보 없음'}}</p>
-      <p><strong>예상 관광 시간:</strong> {{ tourist_info.money or '예상 관강 시간 없음' }}</p>
+      <p><strong>예상 관광 시간:</strong> {{ tourist_info.money or '예상 관광 시간 없음' }}</p>
       <br>
       <p><strong>관강지 상세 정보:</strong>
       <p>{{ tourist_info.tourist_information or '상세 정보 없음' }}</p>
