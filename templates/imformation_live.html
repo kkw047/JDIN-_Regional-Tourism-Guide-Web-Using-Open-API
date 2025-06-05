@@ -96,11 +96,46 @@
       white-space: pre-wrap; /* 줄바꿈을 유지 */
       overflow-wrap: break-word; /* 긴 텍스트를 줄바꿈 */
     }
-    
-  </style>
+    #map_div {
+        display: none; /* 지도 숨김 */
+    }
+    #toggle-map-btn {
+        display: inline-block;
+        padding: 10px 20px;
+        background-color: #0056b3; /* 파란색으로 변경 */
+        color: white;
+        font-size: 16px;
+        font-weight: bold;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+        margin-top: 10px;
+    }
+
+    #toggle-map-btn:hover {
+        background-color: #004494; /* 어두운 파란색으로 변경 */
+    }
+
+    #toggle-map-btn:active {
+        background-color: #003366; /* 더 어두운 파란색으로 변경 */
+    }
+</style>
   <script src="https://apis.openapi.sk.com/tmap/vectorjs?version=1&appKey=mxmVv8O9Lf6E9oY1vT6mZ76Ex7ef2hks2if5ccZi"></script>
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script type="text/javascript">
+        let isMapVisible = false; // 지도 표시 여부를 추적
+
+    function toggleMap() {
+        const mapDiv = document.getElementById('map_div');
+        if (!isMapVisible) {
+            mapDiv.style.display = 'block'; // 지도 보이기
+            initTmap(); // 지도 초기화
+        } else {
+            mapDiv.style.display = 'none'; // 지도 숨기기
+        }
+        isMapVisible = !isMapVisible; // 상태 변경
+    }
 function initTmap() {
   const startX = parseFloat("{{ tourist_info2.mapx | default('126.98702028') }}");
   const startY = parseFloat("{{ tourist_info2.mapy | default('37.56520450') }}");
@@ -116,6 +151,7 @@ function initTmap() {
     return;
   }
 
+
   // Tmap 지도 생성
   const map = new Tmapv3.Map("map_div", {
     center: new Tmapv3.LatLng(endY, endX),
@@ -123,20 +159,17 @@ function initTmap() {
     height: "400px",
     zoom: 16
   });
-
   // 도착지 Marker 생성 (기본 마커)
   const endMarker = new Tmapv3.Marker({
     position: new Tmapv3.LatLng(endY, endX),
     map: map
   });
-
   // 첫 번째 관광지일 경우 경로 탐색을 건너뜀
   if ("{{ tourist_info2 }}" === "None") {
     const descriptionElement = document.getElementById("travel-description");
     descriptionElement.textContent = "첫 번째 관광지입니다.";
     return; // 경로 탐색만 건너뜀, 지도와 도착지 마커는 출력됨
   }
-
   // 출발지 Marker 생성 (기본 마커)
   const startMarker = new Tmapv3.Marker({
     position: new Tmapv3.LatLng(startY, startX),
@@ -186,7 +219,6 @@ function initTmap() {
           }
         }
       });
-
       const polyline = new Tmapv3.Polyline({
         path: path,
         strokeColor: "#0056b3",
@@ -244,19 +276,20 @@ function initTmap() {
   <main>
   <!-- 소요 시간 -->
 <section>
-  <h2>소요 시간 및 거리</h2>
-  {% if tourist_info2 %}
-    <p id="travel-description">
-      출발 관광지: {{ tourist_info2.name }}<br>
-      도착 관광지: {{ tourist_info.name }}
-    </p>
-    <br>
-    <p id="travel-time">소요 시간 정보를 가져오는 중...</p>
-    <p id="travel-distance">거리 정보를 가져오는 중...</p>
-  {% else %}
-    <p id="travel-description">첫 번째 관광지입니다.</p>
-  {% endif %}
-  <div id="map_div" class="map-container"></div>
+    <h2>소요 시간 및 거리</h2>
+    {% if tourist_info2 %}
+        <p id="travel-description">
+            이전 관광지: {{ tourist_info2.name }}<br>
+            도착 관광지: {{ tourist_info.name }}
+        </p>
+        <br>
+        <p id="travel-time">소요 시간 정보를 가져오는 중...</p>
+        <p id="travel-distance">거리 정보를 가져오는 중...</p>
+    {% else %}
+        <p id="travel-description">도착 관광지: {{ tourist_info.name }}</p>
+    {% endif %}
+    <button id="toggle-map-btn" onclick="toggleMap()">관광지 주변 보기</button>
+    <div id="map_div" class="map-container" style="display: none;"></div>
 </section>
     <!-- 지도 -->
 
@@ -266,14 +299,14 @@ function initTmap() {
     <!-- 기본 정보 -->
       <p><strong>주소:</strong> {{ tourist_info.address or '주소 정보 없음' }}</p>
       <p><strong>입장료:</strong> {{ tourist_info.time or '입장료 정보 없음'}}</p>
-      <p><strong>예상 관광 시간:</strong> {{ tourist_info.money or '예상 관광 시간 없음' }}</p>
+      <p><strong>추천 관광 시간:</strong> {{ tourist_info.money or '예상 관광 시간 없음' }}</p>
       <br>
       <p><strong>관강지 상세 정보:</strong>
       <p>{{ tourist_info.tourist_information or '상세 정보 없음' }}</p>
     </section>
 
 
-        <!-- 사진 -->
+      <!-- 사진 
     <section class="image-section">
       <h2>사진</h2>
       {% if tourist_info.image %}
@@ -282,6 +315,7 @@ function initTmap() {
         <p>사진이 없습니다.</p>
       {% endif %}
     </section>
+    -->
     
 <!-- 리뷰 -->
 {% if reviews and reviews|length > 0 %}
@@ -348,6 +382,12 @@ function loadMoreReviews() {
     loadMoreBtn.style.display = 'none';
   }
 }
+</script>
+<script>
+    function showMap() {
+        const mapDiv = document.getElementById('map_div');
+        mapDiv.style.display = 'block'; // 지도 보이기
+    }
 </script>
   </main>
 </body>
