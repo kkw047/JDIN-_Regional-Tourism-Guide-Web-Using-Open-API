@@ -19,7 +19,6 @@ db_config = {
     'cursorclass': pymysql.cursors.DictCursor
 }
 
-
 @app.route('/')
 def index():
     # 캐러셀에 표시할 관광지 ID 목록
@@ -121,6 +120,8 @@ def get_tourist_sites():
     finally:
         if connection and connection.open:
             connection.close()
+
+
 
 
 @app.route('/process')
@@ -853,8 +854,8 @@ def finished():
 def imformation_panel(site_name):
     from urllib.parse import unquote
     site_name = unquote(site_name)
-    print(f"DEBUG: Received site_name for panel: {site_name}")
-
+    # print(f"DEBUG: Received site_name for panel: {site_name}")
+    
     connection = None
     try:
         connection = pymysql.connect(**db_config)
@@ -895,47 +896,70 @@ def imformation_panel(site_name):
             connection.close()
 
 
-@app.route('/imformation/<string:site_name>')
-def imformation(site_name):
-    site_name = unquote(site_name)
-    print(f"DEBUG: Received site_name: {site_name}")
+@app.route('/imformation_live/<string:site_name>/<string:site_name2>', methods=['GET'])
+def imformation(site_name, site_name2=None):
+    site_name = unquote(site_name)  # 현재 관광지 이름 디코딩
+    site_name2 = unquote(site_name2) if site_name2 != 'NULL' else None  # 이전 관광지 이름 디코딩 (NULL 처리)
+    print(f"DEBUG: Received site_name: {site_name}, site_name2: {site_name2}")  # 디버깅 출력
+
     connection = None
     try:
         connection = pymysql.connect(**db_config)
         with connection.cursor() as cursor:
-            sql_tourist = "SELECT * FROM tourist_attraction WHERE name = %s"
+            # 현재 관광지 정보 가져오기
+            sql_tourist = """
+                SELECT * 
+                FROM tourist_attraction 
+                WHERE name = %s
+            """
             cursor.execute(sql_tourist, (site_name,))
             tourist_info = cursor.fetchone()
 
             if not tourist_info:
-                print(f"DEBUG: No tourist attraction found for site_name: {site_name}")
-                return "관광지 정보를 찾을 수 없습니다.", 404
-            print(f"DEBUG: Tourist Info: {tourist_info}")
+                # print(f"DEBUG: No tourist attraction found for site_name: {site_name}")
+                return "현재 관광지 정보를 찾을 수 없습니다.", 404
 
-            sql_review_count = "SELECT COUNT(*) AS review_count FROM review WHERE tourist_attraction_id = %s"
+            # 리뷰 개수 조회
+            sql_review_count = """
+                SELECT COUNT(*) AS review_count
+                FROM review
+                WHERE tourist_attraction_id = %s
+            """
             cursor.execute(sql_review_count, (tourist_info['id'],))
             review_count_result = cursor.fetchone()
             review_count = review_count_result['review_count'] if review_count_result else 0
-            print(f"DEBUG: Review Count: {review_count}")
 
-            sql_reviews = "SELECT * FROM review WHERE tourist_attraction_id = %s"
+            # 리뷰 조회
+            sql_reviews = """
+                SELECT *
+                FROM review
+                WHERE tourist_attraction_id = %s
+            """
             cursor.execute(sql_reviews, (tourist_info['id'],))
             reviews = cursor.fetchall() if cursor.rowcount > 0 else []
 
+            # 평점 평균 계산
             average_rating = None
             if reviews:
                 average_rating = sum(review['rating'] for review in reviews) / len(reviews)
-            print(f"DEBUG: Reviews: {reviews}")
 
-        print(f"DEBUG: Rendering template with data:")
-        print(f"DEBUG: Tourist Info: {tourist_info}")
-        print(f"DEBUG: Review Count: {review_count}")
-        print(f"DEBUG: Reviews: {reviews}")
-        print(f"DEBUG: Average Rating: {average_rating}")
+            # 이전 관광지 정보 가져오기 (site_name2가 있을 경우)
+            tourist_info2 = None
+            if site_name2:
+                cursor.execute(sql_tourist, (site_name2,))
+                tourist_info2 = cursor.fetchone()
+
+        # 템플릿 렌더링 전에 데이터 출력
+        # print(f"DEBUG: Tourist Info: {tourist_info}")
+        # print(f"DEBUG: Tourist Info2: {tourist_info2}")
+        # print(f"DEBUG: Review Count: {review_count}")
+        # print(f"DEBUG: Average Rating: {average_rating}")
+        # print(f"DEBUG: Reviews: {reviews}")
 
         return render_template(
-            'imformation.html',
+            'imformation_live.html',
             tourist_info=tourist_info,
+            tourist_info2=tourist_info2,
             review_count=review_count,
             reviews=reviews,
             average_rating=average_rating
@@ -948,7 +972,6 @@ def imformation(site_name):
     finally:
         if connection and connection.open:
             connection.close()
-
 
 def get_site_details_by_id(site_id):
     connection = None
