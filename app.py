@@ -914,7 +914,7 @@ def imformation_panel(site_name):
     # URL 디코딩
     from urllib.parse import unquote
     site_name = unquote(site_name)
-    print(f"DEBUG: Received site_name for panel: {site_name}")
+    # print(f"DEBUG: Received site_name for panel: {site_name}")
     
     connection = None
     try:
@@ -994,7 +994,7 @@ def imformation(site_name, site_name2=None):
             tourist_info = cursor.fetchone()
 
             if not tourist_info:
-                print(f"DEBUG: No tourist attraction found for site_name: {site_name}")
+                # print(f"DEBUG: No tourist attraction found for site_name: {site_name}")
                 return "현재 관광지 정보를 찾을 수 없습니다.", 404
 
             # 리뷰 개수 조회
@@ -1028,11 +1028,11 @@ def imformation(site_name, site_name2=None):
                 tourist_info2 = cursor.fetchone()
 
         # 템플릿 렌더링 전에 데이터 출력
-        print(f"DEBUG: Tourist Info: {tourist_info}")
-        print(f"DEBUG: Tourist Info2: {tourist_info2}")
-        print(f"DEBUG: Review Count: {review_count}")
-        print(f"DEBUG: Average Rating: {average_rating}")
-        print(f"DEBUG: Reviews: {reviews}")
+        # print(f"DEBUG: Tourist Info: {tourist_info}")
+        # print(f"DEBUG: Tourist Info2: {tourist_info2}")
+        # print(f"DEBUG: Review Count: {review_count}")
+        # print(f"DEBUG: Average Rating: {average_rating}")
+        # print(f"DEBUG: Reviews: {reviews}")
 
         return render_template(
             'imformation_live.html',
