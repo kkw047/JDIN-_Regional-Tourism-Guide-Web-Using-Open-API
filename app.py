@@ -6,6 +6,8 @@ from urllib.parse import unquote
 import json
 import sys  # submit_review에서 사용
 from urllib.parse import unquote
+from flask import send_from_directory
+import os
 
 app = Flask(__name__)
 
@@ -988,6 +990,17 @@ def get_site_details_by_id(site_id):
         if connection and connection.open:
             connection.close()
 
+@app.route('/.well-known/pki-validation/<path:filename>')
+def serve_zerossl_challenge(filename):
+    return send_from_directory(os.path.join(app.root_path, '.well-known', 'pki-validation'), filename)
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(
+        host='0.0.0.0',
+        port=443,
+        ssl_context=(
+            'fullchain.pem',   # 또는 'C:/Users/너의경로/fullchain.pem'
+            'private.key'      # 또는 'C:/Users/너의경로/private.key'
+        ),
+        debug=True
+    )
