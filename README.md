@@ -67,7 +67,7 @@ Open API를 활용하여 **출발지 기준 거리 계산**, **여행 시간 설
   - `python app.py` 또는 `flask run`
 - **서비스 URL**
   - [http://61.81.96.151:5000](http://61.81.96.151:5000)
-  - [http://justdoit.myddns.me/](http://justdoit.myddns.me/)
+  - [https://justdoit.myddns.me](https://justdoit.myddns.me)
 
 ---
 
